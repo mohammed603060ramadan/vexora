@@ -14,6 +14,7 @@ const services = [
     number: "02",
     title: "Cybersecurity",
     description:
+    
       "We help businesses identify security risks and strengthen their digital protection.",
     tags: ["Security Assessment", "Risk Analysis", "Protection"],
   },
