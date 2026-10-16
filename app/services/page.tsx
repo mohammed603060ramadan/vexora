@@ -8,6 +8,7 @@ const services = [
     description:
       "Modern websites, web applications, and custom software built around your business needs.",
     tags: ["Web Development", "Web Applications", "Custom Software"],
+    href: "/services/software-development",
   },
   {
     number: "02",
@@ -15,6 +16,7 @@ const services = [
     description:
       "Practical security solutions to identify risks, strengthen protection, and support safer digital operations.",
     tags: ["Security Assessment", "Risk Analysis", "Protection"],
+    href: "/services/cybersecurity",
   },
   {
     number: "03",
@@ -22,6 +24,7 @@ const services = [
     description:
       "Reliable network design and IT infrastructure solutions that help your technology work together.",
     tags: ["Networking", "Infrastructure", "IT Solutions"],
+    href: "/services/networks-infrastructure",
   },
   {
     number: "04",
@@ -29,6 +32,7 @@ const services = [
     description:
       "Turn complex data into clear insights that help you understand performance and make informed decisions.",
     tags: ["Data Analysis", "Reporting", "Insights"],
+    href: "/services/data-analytics",
   },
   {
     number: "05",
@@ -36,6 +40,7 @@ const services = [
     description:
       "Strategic digital marketing focused on reaching the right audience and improving campaign performance.",
     tags: ["Digital Strategy", "Campaigns", "Optimization"],
+    href: "/services/digital-marketing",
   },
 ];
 
@@ -77,23 +82,30 @@ export default function ServicesPage() {
           aria-hidden="true"
           className="pointer-events-none absolute -right-32 top-0 h-80 w-80 rounded-full bg-[#087bff]/15 blur-[120px]"
         />
+
         <div className="relative mx-auto max-w-screen-2xl px-6 py-24 sm:py-32 lg:px-10">
           <p className="mb-6 text-sm font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
             What We Do
           </p>
+
           <h1 className="max-w-4xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-7xl">
             Technology that moves your business forward.
           </h1>
+
           <p className="mt-8 max-w-2xl text-base leading-8 text-gray-400 sm:text-lg">
             From software development to digital strategy, VEXORA brings
             technology and practical thinking together to help your business
             move forward.
           </p>
+
           <Link
             href="/#contact"
-            className="mt-10 inline-flex rounded-full bg-[#1687ff] px-7 py-4 text-sm font-semibold transition hover:bg-[#45a5ff]"
+            className="relative z-10 mt-10 inline-flex rounded-full bg-[#1687ff] px-7 py-4 text-sm font-semibold transition hover:bg-[#45a5ff]"
           >
-            Discuss Your Project <span className="ml-3" aria-hidden="true">↗</span>
+            Discuss Your Project
+            <span className="ml-3" aria-hidden="true">
+              ↗
+            </span>
           </Link>
         </div>
       </section>
@@ -104,10 +116,12 @@ export default function ServicesPage() {
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#45a5ff]">
               Our Expertise
             </p>
+
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               Our Services
             </h2>
           </div>
+
           <p className="max-w-lg leading-7 text-gray-400">
             Flexible technology services designed to solve real challenges
             and support your next stage of growth.
@@ -116,14 +130,17 @@ export default function ServicesPage() {
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {services.map((service) => (
-            <article
+            <Link
               key={service.number}
-              className="group rounded-2xl border border-white/10 bg-white/[0.025] p-7 transition duration-300 hover:-translate-y-1 hover:border-[#278cff]/50 hover:bg-white/[0.045] sm:p-8"
+              href={service.href}
+              aria-label={`Explore ${service.title}`}
+              className="relative z-10 group block rounded-2xl border border-white/10 bg-white/[0.025] p-7 transition duration-300 hover:-translate-y-1 hover:border-[#278cff]/50 hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a5ff] sm:p-8"
             >
               <div className="mb-10 flex items-center justify-between">
                 <span className="text-sm font-medium tracking-widest text-[#45a5ff]">
                   {service.number}
                 </span>
+
                 <span
                   aria-hidden="true"
                   className="text-xl text-gray-500 transition group-hover:text-[#45a5ff]"
@@ -131,12 +148,15 @@ export default function ServicesPage() {
                   ↗
                 </span>
               </div>
+
               <h3 className="text-xl font-semibold sm:text-2xl">
                 {service.title}
               </h3>
+
               <p className="mt-4 min-h-20 leading-7 text-gray-400">
                 {service.description}
               </p>
+
               <div className="mt-7 flex flex-wrap gap-2">
                 {service.tags.map((tag) => (
                   <span
@@ -147,7 +167,7 @@ export default function ServicesPage() {
                   </span>
                 ))}
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
@@ -158,15 +178,20 @@ export default function ServicesPage() {
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#45a5ff]">
               Have a project in mind?
             </p>
+
             <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
               Let&apos;s find the right solution for you.
             </h2>
           </div>
+
           <Link
             href="/#contact"
-            className="inline-flex w-fit shrink-0 rounded-full border border-[#278cff]/60 px-7 py-4 text-sm font-medium transition hover:border-[#1687ff] hover:bg-[#1687ff]"
+            className="relative z-10 inline-flex w-fit shrink-0 rounded-full border border-[#278cff]/60 px-7 py-4 text-sm font-medium transition hover:border-[#1687ff] hover:bg-[#1687ff]"
           >
-            Contact VEXORA <span className="ml-3" aria-hidden="true">↗</span>
+            Contact VEXORA
+            <span className="ml-3" aria-hidden="true">
+              ↗
+            </span>
           </Link>
         </div>
       </section>
@@ -177,13 +202,3 @@ export default function ServicesPage() {
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
