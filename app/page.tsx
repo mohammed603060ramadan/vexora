@@ -1,6 +1,6 @@
 ﻿
-
 import Image from "next/image";
+import Link from "next/link";
 
 const services = [
   {
@@ -14,7 +14,6 @@ const services = [
     number: "02",
     title: "Cybersecurity",
     description:
-    
       "We help businesses identify security risks and strengthen their digital protection.",
     tags: ["Security Assessment", "Risk Analysis", "Protection"],
   },
@@ -46,9 +45,9 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
       {/* Header */}
       <header className="border-b border-white/10">
-        <div className="mx-auto flex min-h-[88px] max-w-screen-2xl items-center justify-between gap-6 px-6 py-4 lg:px-10">
-          <a
-            href="#home"
+        <div className="mx-auto flex min-h-[88px] max-w-screen-2xl items-center justify-between gap-4 px-6 py-4 lg:px-10">
+          <Link
+            href="/"
             aria-label="VEXORA Home"
             className="flex shrink-0 items-center"
           >
@@ -60,7 +59,7 @@ export default function Home() {
               priority
               className="h-auto max-h-[66px] w-auto max-w-[190px] object-contain"
             />
-          </a>
+          </Link>
 
           <nav
             aria-label="Main navigation"
@@ -77,20 +76,26 @@ export default function Home() {
             </a>
           </nav>
 
-          <a
-            href="#contact"
-            className="shrink-0 rounded-full border border-[#278cff]/60 px-5 py-3 text-sm font-medium transition hover:bg-[#1687ff] hover:border-[#1687ff]"
-          >
-            Let&apos;s Talk <span aria-hidden="true">â†—</span>
-          </a>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link
+              href="/login"
+              className="rounded-full px-3 py-3 text-sm font-medium text-gray-300 transition hover:text-[#45a5ff] sm:px-4"
+            >
+              Login
+            </Link>
+
+            <a
+              href="#contact"
+              className="rounded-full border border-[#278cff]/60 px-4 py-3 text-sm font-medium transition hover:border-[#1687ff] hover:bg-[#1687ff] sm:px-5"
+            >
+              Let&apos;s Talk <span aria-hidden="true">↗</span>
+            </a>
+          </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section
-        id="home"
-        className="relative isolate border-b border-white/5"
-      >
+      <section id="home" className="relative isolate border-b border-white/5">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-40 top-10 -z-10 h-[420px] w-[420px] rounded-full bg-[#087bff]/10 blur-[130px]"
@@ -122,7 +127,8 @@ export default function Home() {
               href="#services"
               className="rounded-full bg-[#1687ff] px-7 py-4 font-semibold text-white transition hover:bg-[#0872e5]"
             >
-              Explore Our Services <span aria-hidden="true">â†’</span>
+              Explore Our Services{" "}
+              <span aria-hidden="true">→</span>
             </a>
 
             <a
@@ -171,11 +177,12 @@ export default function Home() {
                   <span className="text-sm tracking-widest text-[#45a5ff]">
                     {service.number}
                   </span>
+
                   <span
                     aria-hidden="true"
                     className="text-xl text-gray-500 transition group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-[#45a5ff]"
                   >
-                    â†—
+                    ↗
                   </span>
                 </div>
 
@@ -261,7 +268,7 @@ export default function Home() {
                 href="mailto:vexore.mr@gmail.com"
                 className="inline-flex items-center gap-3 rounded-full bg-[#1687ff] px-7 py-4 font-semibold transition hover:bg-[#0872e5]"
               >
-                Email Us <span aria-hidden="true">â†—</span>
+                Email Us <span aria-hidden="true">↗</span>
               </a>
 
               <a
@@ -270,7 +277,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 rounded-full border border-[#25D366] px-7 py-4 font-semibold text-[#25D366] transition hover:bg-[#25D366]/10"
               >
-                WhatsApp <span aria-hidden="true">â†—</span>
+                WhatsApp <span aria-hidden="true">↗</span>
               </a>
             </div>
           </div>
@@ -280,19 +287,17 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between lg:px-10">
-          <p>Â© 2026 VEXORA. All rights reserved.</p>
+          <p>© 2026 VEXORA. All rights reserved.</p>
 
-          <p>Software Â· Security Â· Data Â· Networks Â· Digital</p>
+          <p>Software · Security · Data · Networks · Digital</p>
 
-          <a
-            href="#home"
-            className="transition hover:text-[#45a5ff]"
-          >
-            Back to top â†‘
+          <a href="#home" className="transition hover:text-[#45a5ff]">
+            Back to top ↑
           </a>
         </div>
       </footer>
     </main>
   );
 }
+
 
