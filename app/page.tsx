@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import Image from "next/image";
@@ -234,6 +234,29 @@ export default function Home() {
               onClick={closeMenu}
             >
               Login
+            </Link>
+            <Link
+              href="/admin-login"
+              className="nav-admin"
+              onClick={closeMenu}
+              aria-label="Administrator login"
+              title="Administrator login"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              <span>Admin</span>
             </Link>
             <Link
               href="/contact"
@@ -884,6 +907,26 @@ export default function Home() {
 
         .main-nav .nav-login {
           padding-left: 8px;
+        }
+
+        .main-nav .nav-admin {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 9px 12px;
+          border: 1px solid rgba(39, 140, 255, 0.35);
+          border-radius: 10px;
+          background: rgba(39, 140, 255, 0.08);
+          color: #8ecaff;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .main-nav .nav-admin:hover {
+          border-color: #278cff;
+          background: rgba(39, 140, 255, 0.16);
+          color: #ffffff;
         }
 
         .menu-toggle {
