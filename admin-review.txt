@@ -1,0 +1,478 @@
+﻿
+===== .\app\admin\layout.tsx =====
+6: import { createClient } from "@/lib/supabase/server";
+13: { label: "Team & Roles", href: "/admin/team", icon: "♧" },
+24: function AdminLoading() {
+27: Loading administration workspace...
+40: const supabase = await createClient();
+41: const { data, error } = await supabase.auth.getUser();
+43: if (error || !data.user) {
+44: redirect("/login?next=/admin");
+47: if (data.user.app_metadata?.role !== "admin") {
+48: redirect("/client");
+159: <Suspense fallback={<AdminLoading />}>
+
+===== .\app\admin\page.tsx =====
+3: import { createClient } from "@/lib/supabase/server";
+117: key: "todo",
+178: hasError,
+184: hasError: boolean;
+194: {hasError ? (
+206: role="img"
+264: const supabase = await createClient();
+300: const errors = [
+301: projectsResult.error && "المشاريع",
+302: clientsResult.error && "العملاء",
+303: tasksResult.error && "المهام",
+304: teamResult.error && "الفريق",
+305: newInquiriesResult.error && "الاستفسارات الجديدة",
+306: inquiriesResult.error && "إجمالي الاستفسارات",
+364: value: projectsResult.error ? null : projects.length,
+365: detail: projectsResult.error
+372: value: clientsResult.error
+380: value: tasksResult.error ? null : openTasks.length,
+381: detail: tasksResult.error
+388: value: teamResult.error ? null : activeTeamMembers,
+389: detail: teamResult.error
+396: value: newInquiriesResult.error
+404: value: tasksResult.error ? null : completedTasks,
+441: {errors.length > 0 && (
+443: role="alert"
+446: تعذر تحميل بيانات بعض الأقسام: {errors.join("، ")}.
+480: projectsResult.error
+486: hasError={Boolean(projectsResult.error)}
+492: tasksResult.error ? "غير متاح" : tasks.length
+496: hasError={Boolean(tasksResult.error)}
+516: {tasksResult.error ? "—" : openTasks.length}
+524: {tasksResult.error ? "—" : overdueTasks.length}
+534: {tasksResult.error
+
+===== .\app\admin\academy\page.tsx =====
+5: import { useCallback, useEffect, useState } from "react";
+79: const [courses, setCourses] = useState<Course[]>([]);
+80: const [loading, setLoading] = useState(true);
+81: const [error, setError] = useState("");
+82: const [search, setSearch] = useState("");
+83: const [statusFilter, setStatusFilter] = useState("all");
+85: const [showForm, setShowForm] = useState(false);
+86: const [form, setForm] = useState<CourseForm>(initialForm);
+87: const [saving, setSaving] = useState(false);
+88: const [formError, setFormError] = useState("");
+89: const [successMessage, setSuccessMessage] = useState("");
+92: setLoading(true);
+93: setError("");
+96: const { data, error: queryError } = await supabase
+103: if (queryError) {
+104: setError(queryError.message);
+110: setError("حدث خطأ غير متوقع أثناء تحميل الكورسات.");
+113: setLoading(false);
+117: useEffect(() => {
+126: setFormError("");
+134: setFormError("");
+140: setFormError("اكتب عنوان الكورس أولًا.");
+150: setFormError(
+165: setFormError("عدد الساعات يجب أن يكون رقمًا صحيحًا أكبر من صفر.");
+172: const { error: insertError } = await supabase.from("courses").insert({
+182: if (insertError) {
+183: if (insertError.code === "23505") {
+184: setFormError(
+188: insertError.code === "42501" ||
+189: insertError.message.toLowerCase().includes("row-level security")
+191: setFormError(
+192: "ليست لديك صلاحية إضافة الكورسات. تحقق من دور المدير وسياسات RLS في Supabase."
+195: setFormError(`تعذر حفظ الكورس: ${insertError.message}`);
+206: setFormError("حدث خطأ غير متوقع أثناء حفظ الكورس. حاول مرة أخرى.");
+258: onClick={() => {
+260: setFormError("");
+271: onClick={() => void loadCourses()}
+272: disabled={loading}
+283: role="status"
+303: <form onSubmit={handleCreateCourse} className="space-y-5">
+466: {formError && (
+468: role="alert"
+471: {formError}
+487: onClick={() => {
+489: setFormError("");
+514: {loading ? "—" : item.value.toLocaleString("en-US")}
+553: {error && (
+555: role="alert"
+559: <p className="mt-1 break-words">{error}</p>
+566: {loading ? (
+570: ) : error ? (
+654: {!loading && !error && courses.length > 0 && (
+
+===== .\app\admin\clients\page.tsx =====
+4: import { useEffect, useMemo, useState } from "react";
+122: const [clients, setClients] = useState<Client[]>([]);
+123: const [form, setForm] = useState<ClientForm>(emptyForm);
+125: const [editingId, setEditingId] = useState<string | null>(null);
+126: const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+127: const [clientProjects, setClientProjects] = useState<ClientProject[]>([]);
+129: const [search, setSearch] = useState("");
+130: const [filter, setFilter] = useState<FilterType>("all");
+131: const [sort, setSort] = useState<SortType>("newest");
+133: const [loading, setLoading] = useState(true);
+134: const [refreshing, setRefreshing] = useState(false);
+135: const [saving, setSaving] = useState(false);
+136: const [deletingId, setDeletingId] = useState<string | null>(null);
+137: const [detailsLoading, setDetailsLoading] = useState(false);
+139: const [showForm, setShowForm] = useState(false);
+140: const [message, setMessage] = useState("");
+141: const [error, setError] = useState("");
+149: const { data, error: fetchError } = await supabase
+156: if (fetchError) {
+157: setError(`Could not load clients: ${fetchError.message}`);
+162: setError("");
+165: setError("An unexpected error occurred while loading clients.");
+168: setLoading(false);
+173: useEffect(() => {
+178: const { data, error: fetchError } = await supabase
+187: if (fetchError) {
+188: setError(`Could not load clients: ${fetchError.message}`);
+194: setError("An unexpected error occurred while loading clients.");
+198: setLoading(false);
+221: setError("");
+237: setError("");
+248: setError("");
+265: setError("Client name is required.");
+270: setError("Client name cannot exceed 150 characters.");
+275: setError("Please enter a valid email address.");
+280: setError("");
+304: if (result.error) {
+305: setError(`Could not save client: ${result.error.message}`);
+310: setError(
+332: setError("An unexpected error occurred while saving the client.");
+346: setError("");
+350: const { data, error: deleteError } = await supabase
+356: if (deleteError) {
+357: setError(`Could not delete client: ${deleteError.message}`);
+362: setError(
+379: setError("An unexpected error occurred while deleting the client.");
+388: setDetailsLoading(true);
+389: setError("");
+392: const { data, error: projectsError } = await supabase
+398: if (projectsError) {
+399: setError(
+400: `Could not load related projects: ${projectsError.message}`
+407: setError("Could not load the client's project details.");
+409: setDetailsLoading(false);
+486: disabled={refreshing || loading}
+487: onClick={() => void loadClients(true)}
+496: disabled={loading || clients.length === 0}
+497: onClick={() => downloadClientsCsv(filteredClients)}
+505: onClick={openNewForm}
+515: role="status"
+523: onClick={() => setMessage("")}
+531: {error && (
+533: role="alert"
+536: <span className="break-words">{error}</span>
+539: aria-label="Dismiss error message"
+540: onClick={() => setError("")}
+587: {loading ? "—" : stat.value}
+623: onClick={closeForm}
+630: <form onSubmit={handleSubmit} className="space-y-5">
+723: onClick={closeForm}
+742: {loading
+743: ? "Loading client records..."
+787: {loading ? (
+791: Loading your client directory...
+815: onClick={openNewForm}
+846: onClick={() => void openClientDetails(client)}
+879: onClick={() => openEditForm(client)}
+888: onClick={() => void deleteClient(client)}
+915: role="dialog"
+940: onClick={() => setSelectedClient(null)}
+997: {detailsLoading ? (
+999: Loading related projects...
+1045: onClick={() => openEditForm(selectedClient)}
+1053: onClick={() => setSelectedClient(null)}
+
+===== .\app\admin\inquiries\page.tsx =====
+3: import { useCallback, useEffect, useMemo, useState } from "react";
+50: const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+51: const [loading, setLoading] = useState(true);
+52: const [saving, setSaving] = useState(false);
+53: const [error, setError] = useState("");
+54: const [notice, setNotice] = useState("");
+55: const [search, setSearch] = useState("");
+56: const [statusFilter, setStatusFilter] = useState("all");
+57: const [priorityFilter, setPriorityFilter] = useState("all");
+58: const [editing, setEditing] = useState<Inquiry | null>(null);
+59: const [form, setForm] = useState(emptyForm);
+60: const [showForm, setShowForm] = useState(false);
+63: setLoading(true);
+64: setError("");
+66: const { data, error: queryError } = await supabase
+71: if (queryError) {
+72: setError(queryError.message);
+78: setLoading(false);
+81: useEffect(() => {
+85: const { data, error: queryError } = await supabase
+92: if (queryError) {
+93: setError(queryError.message);
+98: setLoading(false);
+144: setError("");
+163: setError("");
+171: setError("");
+194: : await supabase.from("inquiries").insert(payload).select().single();
+196: if (result.error) {
+197: setError(result.error.message);
+211: setError("");
+214: const { error: updateError } = await supabase
+219: if (updateError) {
+220: setError(updateError.message);
+235: setError("");
+238: const { error: deleteError } = await supabase
+243: if (deleteError) {
+244: setError(deleteError.message);
+270: onClick={startNew}
+277: {error && (
+278: <div role="alert" className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">
+279: {error}
+284: <div role="status" className="rounded-xl border border-blue-400/30 bg-blue-400/10 p-4 text-sm text-blue-200">
+314: <button type="button" className={buttonClass} onClick={() => setShowForm(false)}>
+319: <form onSubmit={saveInquiry} className="grid gap-4 sm:grid-cols-2">
+451: <button type="button" className={buttonClass} onClick={() => setShowForm(false)}>
+492: {loading ? (
+493: <div className="p-10 text-center text-sm text-slate-400">Loading inquiries...</div>
+552: <button type="button" className={buttonClass} onClick={() => startEdit(item)}>
+558: onClick={() => void deleteInquiry(item)}
+
+===== .\app\admin\projects\page.tsx =====
+4: import { useEffect, useState } from "react";
+56: const [projects, setProjects] = useState<Project[]>([]);
+57: const [clients, setClients] = useState<Client[]>([]);
+58: const [form, setForm] = useState<ProjectForm>(emptyForm);
+59: const [editingId, setEditingId] = useState<string | null>(null);
+60: const [showForm, setShowForm] = useState(false);
+61: const [search, setSearch] = useState("");
+62: const [filter, setFilter] = useState("all");
+63: const [loading, setLoading] = useState(true);
+64: const [saving, setSaving] = useState(false);
+65: const [message, setMessage] = useState("");
+66: const [messageType, setMessageType] = useState<"error" | "success">(
+70: // Initial data loading.
+72: useEffect(() => {
+93: if (projectsResult.error) {
+95: `Could not load projects: ${projectsResult.error.message}`
+97: setMessageType("error");
+102: if (clientsResult.error) {
+104: `Could not load clients: ${clientsResult.error.message}`
+106: setMessageType("error");
+113: setMessage("An unexpected error occurred while loading data.");
+114: setMessageType("error");
+117: setLoading(false);
+131: setLoading(true);
+148: if (projectsResult.error) {
+150: `Could not load projects: ${projectsResult.error.message}`
+152: setMessageType("error");
+157: if (clientsResult.error) {
+159: `Could not load clients: ${clientsResult.error.message}`
+161: setMessageType("error");
+166: setMessage("An unexpected error occurred while loading data.");
+167: setMessageType("error");
+169: setLoading(false);
+207: setMessageType("error");
+216: setMessageType("error");
+225: setMessageType("error");
+257: : await supabase.from("projects").insert(payload).select("id");
+259: if (result.error) {
+260: setMessage(`Could not save project: ${result.error.message}`);
+261: setMessageType("error");
+269: setMessageType("error");
+288: setMessage("An unexpected error occurred while saving the project.");
+289: setMessageType("error");
+305: const { data, error } = await supabase
+311: if (error) {
+312: setMessage(`Could not delete project: ${error.message}`);
+313: setMessageType("error");
+321: setMessageType("error");
+332: setMessage("An unexpected error occurred while deleting the project.");
+333: setMessageType("error");
+416: onClick={openNewForm}
+425: role="status"
+428: messageType === "error"
+471: onClick={() => {
+481: <form onSubmit={saveProject} className="grid gap-5 sm:grid-cols-2">
+594: onClick={() => {
+642: {loading ? (
+644: Loading projects and clients...
+663: onClick={openNewForm}
+721: onClick={() => openEditForm(project)}
+729: onClick={() => void deleteProject(project)}
+
+===== .\app\admin\services\page.tsx =====
+5: import { useCallback, useEffect, useState } from "react";
+61: function getErrorMessage(error: unknown) {
+63: typeof error === "object" &&
+64: error !== null &&
+65: "message" in error &&
+66: typeof error.message === "string"
+68: const message = error.message;
+92: const [services, setServices] = useState<Service[]>([]);
+93: const [loading, setLoading] = useState(true);
+94: const [saving, setSaving] = useState(false);
+95: const [search, setSearch] = useState("");
+96: const [statusFilter, setStatusFilter] = useState("all");
+97: const [form, setForm] = useState<ServiceForm>(emptyForm);
+98: const [editingId, setEditingId] = useState<string | null>(null);
+99: const [showForm, setShowForm] = useState(false);
+100: const [message, setMessage] = useState("");
+101: const [error, setError] = useState("");
+102: const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+105: setLoading(true);
+106: setError("");
+111: const { data, error: queryError } = await supabase
+119: if (queryError) {
+120: throw queryError;
+125: setError(getErrorMessage(err));
+127: setLoading(false);
+131: useEffect(() => {
+163: setError("");
+187: setError("");
+195: setError("");
+200: setError("");
+207: setError("Ø§ÙƒØªØ¨ Ø§Ø³Ù… Ø§Ù„Ø®Ø¯Ù…Ø©.");
+212: setError("Ø£Ø¯Ø®Ù„ Ø±Ø§Ø¨Ø·Ù‹Ø§ Ù…Ø®ØªØµØ±Ù‹Ø§ ØµØ§Ù„Ø­Ù‹Ø§ Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ© Ø£Ùˆ Ø§Ù„Ø£Ø±Ù‚Ø§Ù….");
+229: setError("Ø§Ù„Ø³Ø¹Ø± ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ù‹Ø§ ÙŠØ³Ø§ÙˆÙŠ ØµÙØ±Ù‹Ø§ Ø£Ùˆ Ø£ÙƒØ¨Ø±.");
+234: setError("Ø§Ù„Ù…Ø¯Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ø¹Ø¯Ø¯ Ø£ÙŠØ§Ù… ØµØ­ÙŠØ­Ù‹Ø§ ÙŠØ³Ø§ÙˆÙŠ ØµÙØ±Ù‹Ø§ Ø£Ùˆ Ø£ÙƒØ¨Ø±.");
+239: setError("ØªØ±ØªÙŠØ¨ Ø§Ù„Ø¹Ø±Ø¶ ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø¹Ø¯Ø¯Ù‹Ø§ ØµØ­ÙŠØ­Ù‹Ø§.");
+246: setError("Ø§Ù„Ø¹Ù…Ù„Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ø±Ù…Ø²Ù‹Ø§ Ù…Ù† 3 Ø£Ø­Ø±ÙØŒ Ù…Ø«Ù„ USD Ø£Ùˆ EGP.");
+267: const { error: updateError } = await supabase
+272: if (updateError) throw updateError;
+276: const { error: insertError } = await supabase
+280: if (insertError) throw insertError;
+290: setError(getErrorMessage(err));
+297: setError("");
+314: const { error: updateError } = await supabase
+319: if (updateError) throw updateError;
+324: setError(getErrorMessage(err));
+335: setError("");
+341: const { error: deleteError } = await supabase
+346: if (deleteError) throw deleteError;
+351: setError(getErrorMessage(err));
+379: onClick={openCreateForm}
+388: role="status"
+395: {error && (
+397: role="alert"
+400: <p>{error}</p>
+403: onClick={() => setError("")}
+464: onClick={() => void loadServices()}
+465: disabled={loading}
+468: {loading ? "Loading..." : "Refresh"}
+472: {loading ? (
+474: Loading services...
+539: onClick={() => openEditForm(service)}
+546: onClick={() => void toggleStatus(service)}
+553: onClick={() => void deleteService(service)}
+612: onClick={() => openEditForm(service)}
+619: onClick={() => void toggleStatus(service)}
+626: onClick={() => void deleteService(service)}
+651: role="dialog"
+667: onClick={closeForm}
+676: <form onSubmit={handleSubmit} className="space-y-5 p-5">
+833: onClick={closeForm}
+
+===== .\app\admin\tasks\page.tsx =====
+3: import { useCallback, useEffect, useState } from "react";
+18: status: "todo" | "in_progress" | "completed" | "blocked";
+40: status: "todo",
+63: todo: "To Do",
+77: const [tasks, setTasks] = useState<Task[]>([]);
+78: const [projects, setProjects] = useState<Project[]>([]);
+79: const [form, setForm] = useState<TaskForm>(emptyForm);
+80: const [editingId, setEditingId] = useState<string | null>(null);
+81: const [search, setSearch] = useState("");
+82: const [statusFilter, setStatusFilter] = useState("all");
+83: const [showForm, setShowForm] = useState(false);
+84: const [loading, setLoading] = useState(true);
+85: const [saving, setSaving] = useState(false);
+86: const [error, setError] = useState("");
+87: const [message, setMessage] = useState("");
+90: setLoading(true);
+91: setError("");
+98: supabase.from("projects").select("id, title").order("title"),
+101: if (taskResult.error) {
+102: setError(taskResult.error.message);
+107: if (projectResult.error) {
+108: setError((current) =>
+110: ? `${current} | Projects: ${projectResult.error.message}`
+111: : `Projects: ${projectResult.error.message}`
+117: setLoading(false);
+120: useEffect(() => {
+129: supabase.from("projects").select("id, title").order("title"),
+134: if (taskResult.error) {
+135: setError(taskResult.error.message);
+140: if (projectResult.error) {
+141: setError((current) =>
+143: ? `${current} | Projects: ${projectResult.error.message}`
+144: : `Projects: ${projectResult.error.message}`
+150: setLoading(false);
+170: setError("");
+186: setError("");
+194: setError("");
+209: ? await supabase.from("tasks").update(payload).eq("id", editingId)
+210: : await supabase.from("tasks").insert(payload);
+212: if (result.error) {
+213: setError(result.error.message);
+228: setError("");
+231: const { error: deleteError } = await supabase
+236: if (deleteError) {
+237: setError(deleteError.message);
+321: onClick={openNewForm}
+345: ["To Do", tasks.filter((task) => task.status === "todo").length],
+359: role="status"
+372: {error && (
+374: role="alert"
+384: {error}
+394: <form onSubmit={handleSubmit}>
+522: onClick={() => {
+578: {loading ? (
+579: <p style={{ color: "#94a3b8", padding: "25px 0" }}>Loading tasks...</p>
+662: onClick={() => openEditForm(task)}
+669: onClick={() => void deleteTask(task)}
+
+===== .\app\admin\team\page.tsx =====
+3: import { useCallback, useEffect, useState } from "react";
+74: const [members, setMembers] = useState<TeamMember[]>([]);
+75: const [form, setForm] = useState<MemberForm>(emptyForm);
+76: const [editingId, setEditingId] = useState<string | null>(null);
+77: const [search, setSearch] = useState("");
+78: const [statusFilter, setStatusFilter] = useState("all");
+79: const [showForm, setShowForm] = useState(false);
+80: const [loading, setLoading] = useState(true);
+81: const [saving, setSaving] = useState(false);
+82: const [error, setError] = useState("");
+83: const [message, setMessage] = useState("");
+86: setLoading(true);
+87: setError("");
+89: const { data, error: fetchError } = await supabase
+94: if (fetchError) {
+95: setError(fetchError.message);
+100: setLoading(false);
+103: useEffect(() => {
+107: const { data, error: fetchError } = await supabase
+114: if (fetchError) {
+115: setError(fetchError.message);
+120: setLoading(false);
+140: setError("");
+156: setError("");
+164: setError("");
+183: : await supabase.from("team_members").insert(payload);
+185: if (result.error) {
+186: setError(result.error.message);
+205: setError("");
+208: const { error: deleteError } = await supabase
+213: if (deleteError) {
+214: setError(deleteError.message);
+307: onClick={openNewForm}
+345: role="status"
+358: {error && (
+360: role="alert"
+370: {error}
+380: <form onSubmit={handleSubmit}>
+513: onClick={() => {
+571: {loading ? (
+573: Loading team members...
+643: onClick={() => openEditForm(member)}
+650: onClick={() => void deleteMember(member)}

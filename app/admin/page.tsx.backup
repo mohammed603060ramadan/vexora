@@ -1,0 +1,243 @@
+
+import Link from "next/link";
+
+const managementCards = [
+  {
+    title: "إدارة المشاريع",
+    description: "متابعة المشاريع وحالات التنفيذ وتفاصيل كل مشروع.",
+    href: "/admin/projects",
+    icon: "▦",
+    label: "المشاريع والعملاء",
+  },
+  {
+    title: "إدارة العملاء",
+    description: "مساحة لإدارة بيانات العملاء وربطهم بالمشاريع.",
+    href: "/admin/clients",
+    icon: "♙",
+    label: "علاقات العملاء",
+  },
+  {
+    title: "خدمات الشركة",
+    description: "إدارة خدمات VEXORA ومحتواها وترتيب ظهورها.",
+    href: "/admin/services",
+    icon: "◇",
+    label: "خدمات الشركة",
+  },
+  {
+    title: "صفحات الموقع",
+    description: "إدارة الصفحات والأقسام والمحتوى وحالة النشر.",
+    href: "/admin/pages",
+    icon: "▤",
+    label: "إدارة المحتوى",
+  },
+  {
+    title: "الأخبار التقنية",
+    description: "إضافة الأخبار والمقالات وتعديلها وإدارة نشرها.",
+    href: "/admin/news",
+    icon: "◉",
+    label: "الأخبار والمقالات",
+  },
+  {
+    title: "الفعاليات",
+    description: "إدارة المؤتمرات والفعاليات وورش العمل.",
+    href: "/admin/events",
+    icon: "◇",
+    label: "الفعاليات",
+  },
+  {
+    title: "الأكاديمية",
+    description: "إدارة الدورات والمحتوى التعليمي.",
+    href: "/admin/academy",
+    icon: "▣",
+    label: "التعليم والتدريب",
+  },
+  {
+    title: "الفريق والصلاحيات",
+    description: "إدارة أعضاء الفريق والأدوار والصلاحيات.",
+    href: "/admin/team",
+    icon: "♧",
+    label: "إدارة الوصول",
+  },
+  {
+    title: "رسائل التواصل",
+    description: "مراجعة استفسارات العملاء والرسائل الواردة.",
+    href: "/admin/messages",
+    icon: "✉",
+    label: "التواصل",
+  },
+  {
+    title: "التحليلات",
+    description: "تجهيز تقارير أداء الشركة والمشاريع والموقع.",
+    href: "/admin/analytics",
+    icon: "▥",
+    label: "التقارير والمؤشرات",
+  },
+  {
+    title: "إعدادات النظام",
+    description: "إعدادات لوحة التحكم والتفضيلات العامة.",
+    href: "/admin/settings",
+    icon: "⚙",
+    label: "إعدادات الإدارة",
+  },
+  {
+    title: "إدارة المستخدمين",
+    description: "مراجعة حسابات المستخدمين وإدارة الوصول الإداري.",
+    href: "/admin/users",
+    icon: "♙",
+    label: "الحسابات والصلاحيات",
+  },
+];
+
+const systemTasks = [
+  {
+    title: "ربط بيانات الشركة",
+    description:
+      "قراءة المشاريع والعملاء والرسائل من Supabase بدل البيانات التجريبية.",
+  },
+  {
+    title: "تفعيل إدارة المحتوى",
+    description:
+      "تنفيذ الإضافة والتعديل والحذف والنشر وربطها بقاعدة البيانات.",
+  },
+  {
+    title: "تأمين صلاحيات الإدارة",
+    description:
+      "التحقق من دور المستخدم على الخادم وتطبيق سياسات قاعدة البيانات.",
+  },
+];
+
+export default function AdminPage() {
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen bg-[#080b12] px-4 py-6 text-white sm:px-7 sm:py-9 lg:px-10"
+    >
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col gap-5 border-b border-white/[0.08] pb-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.18em] text-blue-400">
+              VEXORA / CONTROL CENTER
+            </p>
+
+            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              مركز التحكم
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-400">
+              إدارة عمليات الشركة ومحتوى الموقع والمشاريع والفريق من مكان واحد.
+            </p>
+          </div>
+
+          <Link
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex w-fit items-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm text-gray-300 transition hover:border-blue-400/30 hover:text-white"
+          >
+            معاينة الموقع
+            <span aria-hidden="true">↗</span>
+          </Link>
+        </header>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-2xl border border-blue-400/15 bg-gradient-to-br from-blue-500/10 to-transparent p-5">
+            <p className="text-sm text-gray-400">حالة لوحة التحكم</p>
+            <p className="mt-3 text-xl font-semibold">الواجهة الأساسية</p>
+            <p className="mt-2 text-xs leading-6 text-gray-500">
+              تم تجهيز واجهة الإدارة. ربط البيانات والعمليات الفعلية يأتي ضمن
+              خطوات التنفيذ التالية.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5">
+            <p className="text-sm text-gray-400">مصدر البيانات</p>
+            <p className="mt-3 text-xl font-semibold">Supabase</p>
+            <p className="mt-2 text-xs leading-6 text-gray-500">
+              سنربط كل قسم ببياناته الحقيقية وسياسات الوصول المناسبة.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5 sm:col-span-2 xl:col-span-1">
+            <p className="text-sm text-gray-400">طريقة الإدارة</p>
+            <p className="mt-3 text-xl font-semibold">من مكان واحد</p>
+            <p className="mt-2 text-xs leading-6 text-gray-500">
+              روابط الإدارة تبقى داخل مساحة /admin، مع فتح الموقع العام للمعاينة
+              فقط.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-12">
+          <div className="mb-5">
+            <p className="text-xs font-semibold tracking-widest text-blue-400">
+              MANAGEMENT
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">أقسام الإدارة</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-400">
+              اختر القسم الذي تريد العمل عليه.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {managementCards.map((card) => (
+              <Link
+                key={card.href}
+                href={card.href}
+                className="group rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-[#111a29]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-400/15 bg-blue-500/10 text-2xl text-blue-300">
+                    {card.icon}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-lg text-gray-600 transition group-hover:text-blue-300"
+                  >
+                    ↖
+                  </span>
+                </div>
+
+                <p className="mt-5 text-xs text-blue-300">{card.label}</p>
+                <h3 className="mt-2 text-lg font-semibold">{card.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-gray-400">
+                  {card.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-12 rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5 sm:p-7">
+          <p className="text-xs font-semibold tracking-widest text-blue-400">
+            IMPLEMENTATION PLAN
+          </p>
+          <h2 className="mt-2 text-xl font-bold">المهام الأساسية التالية</h2>
+
+          <div className="mt-5 divide-y divide-white/[0.07]">
+            {systemTasks.map((task, index) => (
+              <div
+                key={task.title}
+                className="flex items-start gap-4 py-5 first:pt-0 last:pb-0"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-sm text-blue-300">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
+                <div>
+                  <h3 className="font-medium">{task.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-gray-400">
+                    {task.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <footer className="mt-10 border-t border-white/[0.08] pt-5 text-xs leading-6 text-gray-500">
+          VEXORA Technology Group · Administrative Workspace
+        </footer>
+      </div>
+    </main>
+  );
+}
