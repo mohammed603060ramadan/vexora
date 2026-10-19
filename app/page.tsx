@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import Image from "next/image";
@@ -317,9 +317,15 @@ export default function Home() {
             <div className="visual-orbit orbit-inner" />
 
             <div className="visual-core">
-              <span className="core-mark">V</span>
-              <span className="core-label">VEXORA</span>
-              <span className="core-subtitle">TECHNOLOGY</span>
+              <Image
+                src="/vexora-logo.png"
+                alt=""
+                aria-hidden="true"
+                width={170}
+                height={170}
+                sizes="170px"
+                className="core-logo-image"
+              />
             </div>
 
             <div className="float-chip chip-code">
@@ -420,8 +426,15 @@ export default function Home() {
               <div className="about-art-lines" />
 
               <div className="about-art-center">
-                <span>V</span>
-                <small>THINK · BUILD · SECURE</small>
+                <Image
+                  src="/vexora-logo.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={160}
+                  height={160}
+                  sizes="160px"
+                  className="about-logo-image"
+                />
               </div>
 
               <div className="about-data data-a">SYSTEMS / 001</div>
@@ -640,7 +653,15 @@ export default function Home() {
             <div className="project-cross cross-two" />
 
             <div className="project-core">
-              <span>VX</span>
+              <Image
+                src="/vexora-logo.png"
+                alt=""
+                aria-hidden="true"
+                width={110}
+                height={110}
+                sizes="110px"
+                className="project-logo-image"
+              />
             </div>
           </div>
         </div>
@@ -1147,26 +1168,15 @@ export default function Home() {
           animation: corePulse 5s ease-in-out infinite;
         }
 
-        .core-mark {
-          color: #e6f2ff;
-          font-size: 63px;
-          line-height: 1;
-          font-weight: 800;
-          text-shadow: 0 0 30px rgba(77, 174, 255, 0.7);
-        }
-
-        .core-label {
-          margin-top: 8px;
-          font-size: 10px;
-          font-weight: 800;
-          letter-spacing: 0.28em;
-        }
-
-        .core-subtitle {
-          margin-top: 5px;
-          color: #7b9fc5;
-          font-size: 7px;
-          letter-spacing: 0.35em;
+        .core-logo-image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 158px;
+          max-height: 158px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 22px rgba(64, 158, 255, 0.25));
+          animation: logoBreath 6s ease-in-out infinite;
         }
 
         .float-chip {
@@ -1532,18 +1542,14 @@ export default function Home() {
           box-shadow: 0 0 65px rgba(39, 140, 255, 0.15);
         }
 
-        .about-art-center span {
-          color: #e4f2ff;
-          font-size: 92px;
-          font-weight: 800;
-          line-height: 1;
-        }
-
-        .about-art-center small {
-          margin-top: 8px;
-          color: #7fbaff;
-          font-size: 7px;
-          letter-spacing: 0.15em;
+        .about-logo-image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 158px;
+          max-height: 158px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 22px rgba(64, 158, 255, 0.24));
         }
 
         .about-data {
@@ -1891,10 +1897,13 @@ export default function Home() {
             border-color 0.3s ease;
         }
 
-        .project-core span {
+        .project-logo-image {
           display: block;
-          transform: rotate(-45deg);
-          letter-spacing: -0.06em;
+          width: 110px;
+          height: 110px;
+          object-fit: contain;
+          transform: rotate(-45deg) scale(1.12);
+          filter: drop-shadow(0 0 16px rgba(64, 158, 255, 0.3));
         }
 
         .project-panel:hover .project-core {
@@ -2119,6 +2128,18 @@ export default function Home() {
           }
           50% {
             translate: 0 -10px;
+          }
+        }
+
+        @keyframes logoBreath {
+          0%,
+          100% {
+            filter: drop-shadow(0 0 18px rgba(64, 158, 255, 0.2));
+            transform: scale(0.98);
+          }
+          50% {
+            filter: drop-shadow(0 0 28px rgba(64, 158, 255, 0.38));
+            transform: scale(1.02);
           }
         }
 
@@ -2426,10 +2447,6 @@ export default function Home() {
             height: 145px;
           }
 
-          .core-mark {
-            font-size: 52px;
-          }
-
           .orbit-middle {
             width: 275px;
           }
@@ -2494,10 +2511,6 @@ export default function Home() {
             height: 145px;
           }
 
-          .about-art-center span {
-            font-size: 76px;
-          }
-
           .academy-banner {
             padding: 22px;
           }
@@ -2560,6 +2573,47 @@ export default function Home() {
           .footer-links {
             gap: 14px;
           }
+        }
+
+        /* Premium interaction polish */
+
+        .vexora-site ::selection {
+          color: #ffffff;
+          background: rgba(39, 140, 255, 0.42);
+        }
+
+        .service-card,
+        .learning-card,
+        .registration-card,
+        .contact-option,
+        .project-panel {
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+        }
+
+        .contact-option {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .contact-option::before {
+          position: absolute;
+          inset: 0;
+          content: "";
+          pointer-events: none;
+          background: linear-gradient(110deg, transparent 20%, rgba(111, 190, 255, 0.08) 50%, transparent 80%);
+          transform: translateX(-120%);
+          transition: transform 0.65s ease;
+        }
+
+        .contact-option:hover::before {
+          transform: translateX(120%);
+        }
+
+        .vexora-site a:focus-visible,
+        .vexora-site button:focus-visible {
+          outline-offset: 5px;
+          box-shadow: 0 0 0 5px rgba(39, 140, 255, 0.13);
         }
 
         /* Accessibility */
