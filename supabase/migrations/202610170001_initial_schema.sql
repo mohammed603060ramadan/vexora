@@ -1,16 +1,22 @@
 
 -- =========================================================
 -- VEXORA Platform
--- Migration 001: Database foundation
+-- Migration: Initial database foundation
 -- PostgreSQL / Supabase
 -- =========================================================
 
 BEGIN;
 
--- Extension for UUID generation
+-- ---------------------------------------------------------
+-- 1. Extensions
+-- ---------------------------------------------------------
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Automatically update updated_at columns
+-- ---------------------------------------------------------
+-- 2. Shared timestamp trigger function
+-- ---------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -21,7 +27,10 @@ BEGIN
 END;
 $$;
 
--- General application user status
+-- ---------------------------------------------------------
+-- 3. Shared application enums
+-- ---------------------------------------------------------
+
 DO $$
 BEGIN
     CREATE TYPE public.app_user_status AS ENUM (
@@ -35,7 +44,6 @@ EXCEPTION
 END;
 $$;
 
--- General record status
 DO $$
 BEGIN
     CREATE TYPE public.record_status AS ENUM (
@@ -49,4 +57,3 @@ END;
 $$;
 
 COMMIT;
-

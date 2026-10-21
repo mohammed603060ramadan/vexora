@@ -1,5 +1,4 @@
-﻿
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +12,25 @@ const STUDENT_FORM_URL =
 
 const WHATSAPP_URL = "https://wa.me/201115449868";
 const EMAIL = "vexore.mr@gmail.com";
+
+const SOCIAL_LINKS = [
+  {
+    name: "LinkedIn",
+    href: "https://www.linkedin.com/in/mohammad-ramadan-706b89440?utm_source=share_via&utm_content=profile&utm_medium=member_android",
+  },
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/vexoramohammed/",
+  },
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/share/19hrz2yVC7/",
+  },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@vexoramohammed",
+  },
+];
 
 const services = [
   {
@@ -95,11 +113,249 @@ const capabilities = [
   "TECHNOLOGY TRAINING",
 ];
 
+function ServiceVisual({ type }: { type: string }) {
+  if (type === "01") {
+    return (
+      <div className="service-visual service-visual-code" aria-hidden="true">
+        <div className="mini-window-bar">
+          <i />
+          <i />
+          <i />
+          <span>app.tsx</span>
+        </div>
+
+        <div className="code-row">
+          <b>01</b>
+          <i className="code-short" />
+          <i className="code-long" />
+        </div>
+
+        <div className="code-row">
+          <b>02</b>
+          <i className="code-medium" />
+          <i className="code-tiny" />
+        </div>
+
+        <div className="code-row">
+          <b>03</b>
+          <i className="code-long" />
+        </div>
+
+        <div className="code-row">
+          <b>04</b>
+          <i className="code-short" />
+          <i className="code-medium" />
+        </div>
+
+        <span className="code-cursor" />
+      </div>
+    );
+  }
+
+  if (type === "02") {
+    return (
+      <div
+        className="service-visual service-visual-security"
+        aria-hidden="true"
+      >
+        <div className="terminal-top">
+          <span>SECURITY MONITOR</span>
+          <i>● LIVE</i>
+        </div>
+
+        <div className="terminal-line">
+          <b>[SCAN]</b>
+          <span>checking endpoints...</span>
+        </div>
+
+        <div className="terminal-line">
+          <b>[AUTH]</b>
+          <span>identity verified</span>
+        </div>
+
+        <div className="terminal-line terminal-success">
+          <b>[SAFE]</b>
+          <span>no threat detected</span>
+        </div>
+
+        <div className="terminal-line terminal-dim">
+          <b>[SYS]</b>
+          <span>monitoring active_</span>
+        </div>
+
+        <span className="terminal-scanline" />
+      </div>
+    );
+  }
+
+  if (type === "03") {
+    return (
+      <div
+        className="service-visual service-visual-network"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 300 94" role="presentation">
+          <g
+            className="network-lines"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          >
+            <path d="M150 47 L72 20 L30 64 M72 20 L105 72 M150 47 L224 20 L270 60 M224 20 L205 73 M150 47 L105 72 L205 73 L270 60 M30 64 L105 72" />
+          </g>
+
+          <g className="network-pulses">
+            <circle cx="150" cy="47" r="8" />
+            <circle cx="72" cy="20" r="5" />
+            <circle cx="30" cy="64" r="4" />
+            <circle cx="105" cy="72" r="5" />
+            <circle cx="224" cy="20" r="5" />
+            <circle cx="270" cy="60" r="4" />
+            <circle cx="205" cy="73" r="5" />
+          </g>
+        </svg>
+
+        <span className="network-label">CONNECTED SYSTEMS</span>
+      </div>
+    );
+  }
+
+  if (type === "04") {
+    return (
+      <div
+        className="service-visual service-visual-analytics"
+        aria-hidden="true"
+      >
+        <div className="analytics-head">
+          <span>DATA OVERVIEW</span>
+          <b>+24.8%</b>
+        </div>
+
+        <div className="analytics-chart">
+          {[28, 46, 35, 62, 48, 77, 58, 91, 70, 100, 83, 112].map(
+            (height, index) => (
+              <i
+                key={index}
+                style={{
+                  height: `${height * 0.58}px`,
+                  animationDelay: `${index * 70}ms`,
+                }}
+              />
+            ),
+          )}
+        </div>
+
+        <div className="analytics-baseline">
+          <span>WEEK 01</span>
+          <span>WEEK 12</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="service-visual service-visual-marketing"
+      aria-hidden="true"
+    >
+      <div className="marketing-metric">
+        <span>CAMPAIGN GROWTH</span>
+        <b>↑ 38.6%</b>
+      </div>
+
+      <svg viewBox="0 0 300 76" role="presentation">
+        <defs>
+          <linearGradient
+            id="marketingFill"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
+            <stop offset="0%" stopColor="#278cff" stopOpacity=".34" />
+            <stop offset="100%" stopColor="#278cff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        <path
+          className="marketing-area"
+          d="M5 65 L38 56 L68 60 L100 39 L132 45 L164 27 L198 33 L230 13 L260 20 L295 4 L295 76 L5 76 Z"
+          fill="url(#marketingFill)"
+        />
+
+        <path
+          className="marketing-line"
+          d="M5 65 L38 56 L68 60 L100 39 L132 45 L164 27 L198 33 L230 13 L260 20 L295 4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <circle cx="295" cy="4" r="4" fill="#dceeff" />
+      </svg>
+
+      <div className="marketing-tags">
+        <span>REACH</span>
+        <span>CONVERSION</span>
+        <span>ROI</span>
+      </div>
+    </div>
+  );
+}
+
+function SocialIcon({ name }: { name: string }) {
+  if (name === "LinkedIn") {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V8.99h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.46v6.29ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM3.56 20.45h3.57V8.99H3.56v11.46ZM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.73V1.73C24 .77 23.21 0 22.23 0Z" />
+      </svg>
+    );
+  }
+
+  if (name === "Instagram") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle
+          cx="17.4"
+          cy="6.6"
+          r="1"
+          fill="currentColor"
+          stroke="none"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "Facebook") {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.03 1.79-4.71 4.53-4.71 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.27h3.33l-.53 3.49h-2.8V24C19.61 23.07 24 18.09 24 12.07Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-4.16-2.46v10.49a5.28 5.28 0 1 1-4.58-5.24v2.66a2.67 2.67 0 1 0 1.97 2.58V0h2.61a4.83 4.83 0 0 0 4.16 4.61v2.08Z" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".vexora-site");
+
     if (!root) return;
 
     const nodes = root.querySelectorAll<HTMLElement>(".reveal");
@@ -108,10 +364,7 @@ export default function Home() {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (
-      reduceMotion ||
-      !("IntersectionObserver" in window)
-    ) {
+    if (reduceMotion || !("IntersectionObserver" in window)) {
       nodes.forEach((node) => node.classList.add("is-visible"));
       return;
     }
@@ -169,17 +422,138 @@ export default function Home() {
 
   return (
     <main id="top" className="vexora-site">
+      {/* =========================================================
+          VEXORA ADVANCED TECHNOLOGY BACKGROUND
+          ========================================================= */}
+
+      <div className="tech-background" aria-hidden="true">
+        <div className="tech-stars">
+          {Array.from({ length: 24 }).map((_, index) => (
+            <span
+              key={index}
+              className={`tech-star tech-star-${index + 1}`}
+            />
+          ))}
+        </div>
+
+        <div className="tech-grid tech-grid-a" />
+        <div className="tech-grid tech-grid-b" />
+
+        <div className="tech-glow tech-glow-a" />
+        <div className="tech-glow tech-glow-b" />
+        <div className="tech-glow tech-glow-c" />
+
+        <div className="tech-scan tech-scan-a" />
+        <div className="tech-scan tech-scan-b" />
+
+        <div className="tech-beam tech-beam-a" />
+        <div className="tech-beam tech-beam-b" />
+        <div className="tech-beam tech-beam-c" />
+
+        <div className="tech-data data-stream-a">
+          VEXORA::CORE / SYSTEM ONLINE / 01010110
+        </div>
+
+        <div className="tech-data data-stream-b">
+          SECURE CHANNEL // DATA FLOW // 00110101
+        </div>
+
+        <div className="tech-data data-stream-c">
+          SOFTWARE → SECURITY → NETWORK → DATA
+        </div>
+
+        <div className="tech-hud hud-top-left">
+          <span>VX.SYSTEM</span>
+          <b>ONLINE</b>
+        </div>
+
+        <div className="tech-hud hud-top-right">
+          <span>NETWORK</span>
+          <b>SECURE</b>
+        </div>
+
+        <div className="tech-hud hud-bottom-left">
+          <span>DATA FLOW</span>
+          <b>ACTIVE</b>
+        </div>
+
+        <div className="tech-hud hud-bottom-right">
+          <span>VEXORA</span>
+          <b>2026</b>
+        </div>
+
+        <svg
+          className="tech-network"
+          viewBox="0 0 1600 1000"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient
+              id="vxNetworkGradient"
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="0"
+            >
+              <stop offset="0%" stopColor="#1687ff" stopOpacity="0" />
+              <stop
+                offset="50%"
+                stopColor="#69c8ff"
+                stopOpacity="0.65"
+              />
+              <stop offset="100%" stopColor="#1687ff" stopOpacity="0" />
+            </linearGradient>
+
+            <filter id="vxGlow">
+              <feGaussianBlur
+                stdDeviation="2.2"
+                result="blur"
+              />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <g
+            className="network-paths"
+            fill="none"
+            stroke="url(#vxNetworkGradient)"
+          >
+            <path d="M-100 730 C180 510 330 780 560 590 S910 250 1190 460 S1420 620 1710 300" />
+            <path d="M-120 250 C190 430 350 120 610 350 S930 650 1210 360 S1440 200 1720 470" />
+            <path d="M-80 900 C250 730 430 820 700 690 S1080 620 1340 800 S1530 850 1720 720" />
+            <path d="M190 -80 C280 180 470 260 620 120 S920 40 1060 240 S1340 370 1490 120" />
+          </g>
+
+          <g className="network-packets">
+            <circle cx="280" cy="610" r="3" />
+            <circle cx="560" cy="590" r="3" />
+            <circle cx="910" cy="250" r="3" />
+            <circle cx="1190" cy="460" r="3" />
+            <circle cx="1420" cy="620" r="3" />
+            <circle cx="350" cy="300" r="3" />
+            <circle cx="610" cy="350" r="3" />
+            <circle cx="930" cy="650" r="3" />
+            <circle cx="1210" cy="360" r="3" />
+            <circle cx="1490" cy="120" r="3" />
+          </g>
+        </svg>
+      </div>
+
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
-      <div className="grid-overlay" aria-hidden="true" />
 
       {/* Navigation */}
+
       <header className="site-header">
         <div className="header-inner">
           <Link
-            href="/"
+            href="/admin-login"
             className="brand"
-            aria-label="VEXORA homepage"
+            aria-label="VEXORA administrator login"
+            title="Administrator login"
             onClick={closeMenu}
           >
             <Image
@@ -216,48 +590,27 @@ export default function Home() {
             <Link href="/services" onClick={closeMenu}>
               Services
             </Link>
+
             <Link href="/about" onClick={closeMenu}>
               About
             </Link>
+
             <Link href="/academy" onClick={closeMenu}>
               Academy
             </Link>
+
             <Link href="/projects" onClick={closeMenu}>
               Projects
             </Link>
+
             <Link href="/contact" onClick={closeMenu}>
               Contact
             </Link>
-            <Link
-              href="/login"
-              className="nav-login"
-              onClick={closeMenu}
-            >
+
+            <Link href="/login" className="nav-login" onClick={closeMenu}>
               Login
             </Link>
-            <Link
-              href="/admin-login"
-              className="nav-admin"
-              onClick={closeMenu}
-              aria-label="Administrator login"
-              title="Administrator login"
-            >
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-              <span>Admin</span>
-            </Link>
+
             <Link
               href="/contact"
               className="button button-small"
@@ -270,6 +623,7 @@ export default function Home() {
       </header>
 
       {/* Hero */}
+
       <section className="hero-section">
         <div className="hero-inner page-width">
           <div className="hero-copy">
@@ -286,14 +640,15 @@ export default function Home() {
 
             <p className="hero-description reveal">
               VEXORA brings software engineering, cybersecurity, networks,
-              data analytics, and digital marketing together to help businesses
-              build with clarity and move forward with confidence.
+              data analytics, and digital marketing together to help
+              businesses build with clarity and move forward with confidence.
             </p>
 
             <div className="hero-actions reveal">
               <Link href="/services" className="button">
                 Explore our services <span aria-hidden="true">↗</span>
               </Link>
+
               <Link href="/contact" className="button button-outline">
                 Start a conversation
               </Link>
@@ -331,12 +686,15 @@ export default function Home() {
             <div className="float-chip chip-code">
               <span>01</span> SOFTWARE
             </div>
+
             <div className="float-chip chip-security">
               <span>02</span> SECURITY
             </div>
+
             <div className="float-chip chip-data">
               <span>03</span> DATA
             </div>
+
             <div className="float-chip chip-network">
               <span>04</span> NETWORKS
             </div>
@@ -350,7 +708,11 @@ export default function Home() {
         <div className="ticker" aria-label="VEXORA capabilities">
           <div className="ticker-track">
             {[0, 1].map((group) => (
-              <div className="ticker-group" key={group} aria-hidden={group === 1}>
+              <div
+                className="ticker-group"
+                key={group}
+                aria-hidden={group === 1}
+              >
                 {capabilities.map((capability) => (
                   <span className="ticker-item" key={capability}>
                     {capability}
@@ -364,10 +726,12 @@ export default function Home() {
       </section>
 
       {/* Services */}
+
       <section id="services" className="section page-width">
         <div className="section-heading reveal">
           <div>
             <p className="section-kicker">WHAT WE DO / 01</p>
+
             <h2>
               Technology built around{" "}
               <span className="gradient-text">your goals.</span>
@@ -375,8 +739,9 @@ export default function Home() {
           </div>
 
           <p className="section-intro">
-            From your first idea to your next stage of growth, explore services
-            designed to solve real problems and create practical value.
+            From your first idea to your next stage of growth, explore
+            services designed to solve real problems and create practical
+            value.
           </p>
         </div>
 
@@ -390,12 +755,16 @@ export default function Home() {
             >
               <div className="service-card-top">
                 <span className="service-number">{service.number}</span>
+
                 <span className="service-symbol" aria-hidden="true">
                   {service.symbol}
                 </span>
               </div>
 
+              <ServiceVisual type={service.number} />
+
               <h3>{service.title}</h3>
+
               <p>{service.description}</p>
 
               <div className="tag-list">
@@ -419,6 +788,7 @@ export default function Home() {
       </section>
 
       {/* About */}
+
       <section id="about" className="about-section">
         <div className="page-width about-layout">
           <div className="about-art reveal" aria-hidden="true">
@@ -439,6 +809,7 @@ export default function Home() {
 
               <div className="about-data data-a">SYSTEMS / 001</div>
               <div className="about-data data-b">IDEAS INTO IMPACT</div>
+
               <div className="about-corner corner-a" />
               <div className="about-corner corner-b" />
             </div>
@@ -454,8 +825,9 @@ export default function Home() {
 
             <p>
               We combine technical thinking with a clear understanding of
-              business needs. Our goal is to recommend and build solutions that
-              are useful, secure, and made to support the people who use them.
+              business needs. Our goal is to recommend and build solutions
+              that are useful, secure, and made to support the people who use
+              them.
             </p>
 
             <p>
@@ -471,10 +843,12 @@ export default function Home() {
       </section>
 
       {/* Academy */}
+
       <section id="academy" className="section page-width academy-section">
         <div className="section-heading reveal">
           <div>
             <p className="section-kicker">VEXORA ACADEMY / 03</p>
+
             <h2>
               Learn skills.{" "}
               <span className="gradient-text">Build what&apos;s next.</span>
@@ -499,8 +873,12 @@ export default function Home() {
               </div>
 
               <p className="learning-label">{path.label}</p>
+
               <h3>{path.title}</h3>
-              <p className="learning-description">{path.description}</p>
+
+              <p className="learning-description">
+                {path.description}
+              </p>
 
               <Link href="/academy" className="text-link">
                 Explore learning path <span aria-hidden="true">↗</span>
@@ -511,10 +889,15 @@ export default function Home() {
 
         <div className="academy-banner reveal">
           <div>
-            <p className="section-kicker">YOUR NEXT STEP STARTS HERE</p>
+            <p className="section-kicker">
+              YOUR NEXT STEP STARTS HERE
+            </p>
+
             <h3>Ready to start learning with VEXORA?</h3>
+
             <p>
-              Visit the Academy page for training information and registration.
+              Visit the Academy page for training information and
+              registration.
             </p>
           </div>
 
@@ -537,13 +920,16 @@ export default function Home() {
       </section>
 
       {/* Registration */}
+
       <section id="registration" className="registration-section">
         <div className="page-width">
           <div className="section-heading reveal">
             <div>
               <p className="section-kicker">LET&apos;S CONNECT / 04</p>
+
               <h2>
-                Choose your <span className="gradient-text">next step.</span>
+                Choose your{" "}
+                <span className="gradient-text">next step.</span>
               </h2>
             </div>
 
@@ -560,6 +946,7 @@ export default function Home() {
               </div>
 
               <p className="section-kicker">FOR BUSINESSES</p>
+
               <h3>Have a project in mind?</h3>
 
               <p>
@@ -588,6 +975,7 @@ export default function Home() {
               </div>
 
               <p className="section-kicker">FOR LEARNERS</p>
+
               <h3>Ready to learn and grow?</h3>
 
               <p>
@@ -619,6 +1007,7 @@ export default function Home() {
       </section>
 
       {/* Projects */}
+
       <section id="projects" className="section page-width projects-section">
         <div className="project-panel reveal">
           <div className="project-panel-copy">
@@ -649,6 +1038,7 @@ export default function Home() {
             <div className="project-ring ring-one" />
             <div className="project-ring ring-two" />
             <div className="project-ring ring-three" />
+
             <div className="project-cross cross-one" />
             <div className="project-cross cross-two" />
 
@@ -668,6 +1058,7 @@ export default function Home() {
       </section>
 
       {/* Contact */}
+
       <section id="contact" className="contact-section">
         <div className="page-width contact-layout">
           <div className="contact-copy reveal">
@@ -679,8 +1070,8 @@ export default function Home() {
             </h2>
 
             <p>
-              Tell us what you&apos;re working on. We&apos;ll help you explore a
-              practical next step.
+              Tell us what you&apos;re working on. We&apos;ll help you explore
+              a practical next step.
             </p>
           </div>
 
@@ -738,13 +1129,70 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Social */}
+
+      <section
+        className="social-section"
+        aria-labelledby="social-heading"
+      >
+        <div className="page-width social-panel reveal">
+          <div className="social-copy">
+            <p className="section-kicker">
+              CONNECT WITH VEXORA / 07
+            </p>
+
+            <h2 id="social-heading">
+              Stay connected.{" "}
+              <span className="gradient-text">
+                Follow what&apos;s next.
+              </span>
+            </h2>
+
+            <p>
+              Follow VEXORA across our social channels and stay close to new
+              technology, projects, insights, and updates.
+            </p>
+          </div>
+
+          <div
+            className="social-links"
+            aria-label="VEXORA social media links"
+          >
+            {SOCIAL_LINKS.map((social) => (
+              <a
+                key={social.name}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-link"
+                aria-label={`Open VEXORA ${social.name} in a new tab`}
+              >
+                <span className="social-icon" aria-hidden="true">
+                  <SocialIcon name={social.name} />
+                </span>
+
+                <span className="social-link-copy">
+                  <strong>{social.name}</strong>
+                  <small>OPEN PROFILE</small>
+                </span>
+
+                <span className="social-arrow" aria-hidden="true">
+                  ↗
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
+
       <footer className="site-footer">
         <div className="page-width footer-main">
           <Link
             href="/"
             className="footer-brand"
-            aria-label="VEXORA homepage"
+            aria-label="VEXORA home"
           >
             <Image
               src="/vexora-logo.png"
@@ -774,14 +1222,25 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* =========================================================
+          ALL PAGE CSS
+          ========================================================= */}
+
       <style jsx global>{`
         :root {
-          --vx-bg: #070a10;
-          --vx-panel: #0d1420;
-          --vx-blue: #278cff;
+          --vx-bg: #05080e;
+          --vx-panel: #0b1420;
+          --vx-panel-2: #0d1928;
+          --vx-blue: #1687ff;
+          --vx-blue-bright: #45a5ff;
           --vx-cyan: #69c8ff;
           --vx-silver: #dce7f5;
-          --vx-muted: #9ba9bc;
+          --vx-muted: #95a5ba;
+          --vx-line: rgba(150, 190, 230, 0.13);
+        }
+
+        * {
+          box-sizing: border-box;
         }
 
         html {
@@ -794,26 +1253,32 @@ export default function Home() {
           background: var(--vx-bg);
         }
 
+        /* =========================================================
+           BASE
+           ========================================================= */
+
         .vexora-site {
           position: relative;
           isolation: isolate;
           min-height: 100vh;
           overflow: hidden;
+          color: #f5f9ff;
           background:
             radial-gradient(
-              ellipse at 50% -10%,
-              rgba(27, 103, 190, 0.13),
-              transparent 48%
+              circle at 50% -10%,
+              rgba(27, 105, 190, 0.2),
+              transparent 38%
             ),
-            var(--vx-bg);
-          color: #f7faff;
-          font-family: Arial, Helvetica, sans-serif;
-        }
-
-        .vexora-site *,
-        .vexora-site *::before,
-        .vexora-site *::after {
-          box-sizing: border-box;
+            linear-gradient(
+              180deg,
+              #05080e 0%,
+              #070c14 38%,
+              #060a11 100%
+            );
+          font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
         }
 
         .vexora-site a {
@@ -825,62 +1290,563 @@ export default function Home() {
           margin-inline: auto;
         }
 
-        .ambient {
-          position: absolute;
-          z-index: -1;
+        /* =========================================================
+           ADVANCED TECHNOLOGY BACKGROUND
+           ========================================================= */
+
+        .tech-background {
+          position: fixed;
+          inset: 0;
+          z-index: -10;
+          overflow: hidden;
           pointer-events: none;
+          background:
+            radial-gradient(
+              circle at 50% 35%,
+              rgba(18, 105, 205, 0.06),
+              transparent 42%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(3, 7, 13, 0.08),
+              rgba(3, 7, 13, 0.68)
+            );
+        }
+
+        .tech-background::before {
+          position: absolute;
+          inset: 0;
+          content: "";
+          background:
+            linear-gradient(
+              90deg,
+              rgba(39, 140, 255, 0.035) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              rgba(39, 140, 255, 0.035) 1px,
+              transparent 1px
+            );
+          background-size: 90px 90px;
+          mask-image: linear-gradient(
+            to bottom,
+            black,
+            rgba(0, 0, 0, 0.78),
+            transparent
+          );
+          animation: backgroundGridMove 24s linear infinite;
+        }
+
+        .tech-background::after {
+          position: absolute;
+          inset: 0;
+          content: "";
+          background:
+            radial-gradient(
+              ellipse at center,
+              transparent 25%,
+              rgba(0, 0, 0, 0.12) 55%,
+              rgba(0, 0, 0, 0.78) 100%
+            ),
+            repeating-linear-gradient(
+              0deg,
+              rgba(255, 255, 255, 0.012) 0,
+              rgba(255, 255, 255, 0.012) 1px,
+              transparent 1px,
+              transparent 5px
+            );
+          opacity: 0.7;
+        }
+
+        .tech-grid {
+          position: absolute;
+          inset: -30%;
+          opacity: 0.18;
+          transform: perspective(800px) rotateX(62deg) translateY(25%);
+          transform-origin: center center;
+        }
+
+        .tech-grid-a {
+          background-image:
+            linear-gradient(
+              rgba(39, 140, 255, 0.16) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(39, 140, 255, 0.16) 1px,
+              transparent 1px
+            );
+          background-size: 70px 70px;
+          animation: gridPerspective 22s linear infinite;
+        }
+
+        .tech-grid-b {
+          opacity: 0.08;
+          background-image:
+            linear-gradient(
+              rgba(105, 200, 255, 0.18) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(105, 200, 255, 0.18) 1px,
+              transparent 1px
+            );
+          background-size: 140px 140px;
+          animation: gridPerspectiveReverse 32s linear infinite;
+        }
+
+        .tech-glow {
+          position: absolute;
           border-radius: 999px;
           filter: blur(100px);
-          opacity: 0.22;
+          opacity: 0.18;
+        }
+
+        .tech-glow-a {
+          width: 520px;
+          height: 520px;
+          left: -240px;
+          top: 12%;
+          background: #006eff;
+          animation: glowFloatA 17s ease-in-out infinite alternate;
+        }
+
+        .tech-glow-b {
+          width: 460px;
+          height: 460px;
+          right: -220px;
+          top: 35%;
+          background: #00a9ff;
+          animation: glowFloatB 21s ease-in-out infinite alternate;
+        }
+
+        .tech-glow-c {
+          width: 520px;
+          height: 520px;
+          left: 30%;
+          bottom: -330px;
+          background: #135de0;
+          opacity: 0.1;
+          animation: glowFloatC 19s ease-in-out infinite alternate;
+        }
+
+        .tech-scan {
+          position: absolute;
+          left: -10%;
+          width: 120%;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(69, 165, 255, 0.7),
+            rgba(105, 200, 255, 0.22),
+            transparent
+          );
+          box-shadow:
+            0 0 12px rgba(39, 140, 255, 0.4),
+            0 0 30px rgba(39, 140, 255, 0.16);
+        }
+
+        .tech-scan-a {
+          top: 16%;
+          animation: scanVertical 9s ease-in-out infinite;
+        }
+
+        .tech-scan-b {
+          top: 63%;
+          opacity: 0.38;
+          animation: scanVertical 13s ease-in-out infinite reverse;
+        }
+
+        .tech-beam {
+          position: absolute;
+          width: 2px;
+          height: 140%;
+          top: -20%;
+          background: linear-gradient(
+            180deg,
+            transparent,
+            rgba(69, 165, 255, 0.32),
+            rgba(105, 200, 255, 0.06),
+            transparent
+          );
+          filter: blur(0.3px);
+          opacity: 0.35;
+        }
+
+        .tech-beam-a {
+          left: 18%;
+          transform: rotate(19deg);
+          animation: beamMoveA 12s linear infinite;
+        }
+
+        .tech-beam-b {
+          left: 53%;
+          transform: rotate(-12deg);
+          opacity: 0.2;
+          animation: beamMoveB 18s linear infinite;
+        }
+
+        .tech-beam-c {
+          right: 14%;
+          transform: rotate(24deg);
+          opacity: 0.16;
+          animation: beamMoveC 15s linear infinite;
+        }
+
+        .tech-network {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0.55;
+          mix-blend-mode: screen;
+        }
+
+        .network-paths path {
+          stroke-dasharray: 18 24 3 32;
+          stroke-width: 1;
+          animation: networkFlow 13s linear infinite;
+        }
+
+        .network-paths path:nth-child(2) {
+          animation-duration: 17s;
+          animation-direction: reverse;
+        }
+
+        .network-paths path:nth-child(3) {
+          animation-duration: 21s;
+        }
+
+        .network-paths path:nth-child(4) {
+          animation-duration: 26s;
+          opacity: 0.5;
+        }
+
+        .network-packets circle {
+          fill: #9bddff;
+          stroke: #278cff;
+          stroke-width: 2;
+          filter: drop-shadow(0 0 8px #278cff);
+          animation: packetPulse 2.8s ease-in-out infinite;
+        }
+
+        .network-packets circle:nth-child(2n) {
+          animation-delay: -0.8s;
+        }
+
+        .network-packets circle:nth-child(3n) {
+          animation-delay: -1.5s;
+        }
+
+        .tech-stars {
+          position: absolute;
+          inset: 0;
+        }
+
+        .tech-star {
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: #a9ddff;
+          box-shadow: 0 0 8px #278cff;
+          animation: starPulse 3.8s ease-in-out infinite;
+        }
+
+        .tech-star:nth-child(3n) {
+          width: 3px;
+          height: 3px;
+        }
+
+        .tech-star-1 {
+          left: 8%;
+          top: 16%;
+        }
+
+        .tech-star-2 {
+          left: 17%;
+          top: 72%;
+          animation-delay: -1s;
+        }
+
+        .tech-star-3 {
+          left: 26%;
+          top: 38%;
+          animation-delay: -2.2s;
+        }
+
+        .tech-star-4 {
+          left: 35%;
+          top: 17%;
+          animation-delay: -0.8s;
+        }
+
+        .tech-star-5 {
+          left: 44%;
+          top: 79%;
+          animation-delay: -1.8s;
+        }
+
+        .tech-star-6 {
+          left: 52%;
+          top: 28%;
+          animation-delay: -2.7s;
+        }
+
+        .tech-star-7 {
+          left: 61%;
+          top: 65%;
+          animation-delay: -0.4s;
+        }
+
+        .tech-star-8 {
+          left: 69%;
+          top: 18%;
+          animation-delay: -1.6s;
+        }
+
+        .tech-star-9 {
+          left: 77%;
+          top: 48%;
+          animation-delay: -2.4s;
+        }
+
+        .tech-star-10 {
+          left: 86%;
+          top: 73%;
+          animation-delay: -0.9s;
+        }
+
+        .tech-star-11 {
+          left: 93%;
+          top: 28%;
+          animation-delay: -2.8s;
+        }
+
+        .tech-star-12 {
+          left: 12%;
+          top: 48%;
+          animation-delay: -1.3s;
+        }
+
+        .tech-star-13 {
+          left: 23%;
+          top: 88%;
+          animation-delay: -2s;
+        }
+
+        .tech-star-14 {
+          left: 31%;
+          top: 62%;
+          animation-delay: -0.5s;
+        }
+
+        .tech-star-15 {
+          left: 40%;
+          top: 46%;
+          animation-delay: -2.5s;
+        }
+
+        .tech-star-16 {
+          left: 49%;
+          top: 12%;
+          animation-delay: -1.1s;
+        }
+
+        .tech-star-17 {
+          left: 58%;
+          top: 88%;
+          animation-delay: -2.1s;
+        }
+
+        .tech-star-18 {
+          left: 66%;
+          top: 37%;
+          animation-delay: -0.7s;
+        }
+
+        .tech-star-19 {
+          left: 74%;
+          top: 84%;
+          animation-delay: -1.9s;
+        }
+
+        .tech-star-20 {
+          left: 83%;
+          top: 58%;
+          animation-delay: -2.9s;
+        }
+
+        .tech-star-21 {
+          left: 90%;
+          top: 11%;
+          animation-delay: -1.4s;
+        }
+
+        .tech-star-22 {
+          left: 5%;
+          top: 91%;
+          animation-delay: -2.6s;
+        }
+
+        .tech-star-23 {
+          left: 56%;
+          top: 53%;
+          animation-delay: -0.3s;
+        }
+
+        .tech-star-24 {
+          left: 96%;
+          top: 92%;
+          animation-delay: -1.7s;
+        }
+
+        .tech-data {
+          position: absolute;
+          color: rgba(102, 184, 255, 0.28);
+          font:
+            8px/1.4
+            ui-monospace,
+            SFMono-Regular,
+            Consolas,
+            monospace;
+          letter-spacing: 0.16em;
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
+
+        .data-stream-a {
+          top: 23%;
+          left: -20%;
+          animation: dataTravelA 26s linear infinite;
+        }
+
+        .data-stream-b {
+          top: 55%;
+          left: -30%;
+          animation: dataTravelB 34s linear infinite;
+          animation-delay: -10s;
+        }
+
+        .data-stream-c {
+          bottom: 18%;
+          right: -40%;
+          animation: dataTravelC 31s linear infinite;
+        }
+
+        .tech-hud {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 9px;
+          border: 1px solid rgba(105, 200, 255, 0.13);
+          border-radius: 6px;
+          background: rgba(5, 12, 20, 0.35);
+          color: rgba(154, 187, 219, 0.4);
+          font:
+            7px/1
+            ui-monospace,
+            SFMono-Regular,
+            Consolas,
+            monospace;
+          letter-spacing: 0.12em;
+          backdrop-filter: blur(6px);
+        }
+
+        .tech-hud b {
+          color: rgba(105, 200, 255, 0.62);
+          font-weight: 600;
+        }
+
+        .hud-top-left {
+          top: 18%;
+          left: 2%;
+        }
+
+        .hud-top-right {
+          top: 25%;
+          right: 2%;
+        }
+
+        .hud-bottom-left {
+          bottom: 15%;
+          left: 3%;
+        }
+
+        .hud-bottom-right {
+          right: 3%;
+          bottom: 9%;
+        }
+
+        /* =========================================================
+           AMBIENT
+           ========================================================= */
+
+        .ambient {
+          position: absolute;
+          z-index: -4;
+          pointer-events: none;
+          border-radius: 999px;
+          filter: blur(120px);
+          opacity: 0.14;
         }
 
         .ambient-one {
-          width: 400px;
-          height: 400px;
-          top: 160px;
-          right: -180px;
-          background: #1269d5;
-          animation: ambientFloat 14s ease-in-out infinite alternate;
+          width: 430px;
+          height: 430px;
+          top: 250px;
+          right: -230px;
+          background: #006eff;
+          animation: ambientFloat 16s ease-in-out infinite alternate;
         }
 
         .ambient-two {
-          width: 330px;
-          height: 330px;
-          top: 1000px;
-          left: -180px;
-          background: #0b80b9;
-          animation: ambientFloat 18s ease-in-out infinite alternate-reverse;
+          width: 380px;
+          height: 380px;
+          top: 1350px;
+          left: -220px;
+          background: #00a8ff;
+          animation: ambientFloatReverse 20s ease-in-out infinite alternate;
         }
 
-        .grid-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          pointer-events: none;
-          opacity: 0.13;
-          background-image:
-            linear-gradient(rgba(150, 190, 230, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(150, 190, 230, 0.08) 1px, transparent 1px);
-          background-size: 62px 62px;
-          mask-image: linear-gradient(to bottom, black, transparent 80%);
-        }
-
-        /* Header and navigation */
+        /* =========================================================
+           HEADER
+           ========================================================= */
 
         .site-header {
           position: sticky;
           top: 0;
           z-index: 50;
-          border-bottom: 1px solid rgba(220, 235, 255, 0.09);
-          background: rgba(7, 10, 16, 0.86);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
+          border-bottom: 1px solid rgba(220, 235, 255, 0.08);
+          background: rgba(5, 8, 14, 0.76);
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+        }
+
+        .site-header::after {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -1px;
+          height: 1px;
+          content: "";
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(69, 165, 255, 0.6),
+            transparent
+          );
+          opacity: 0.45;
         }
 
         .header-inner {
           width: min(1360px, calc(100% - 48px));
           min-height: 86px;
-          margin: auto;
+          margin-inline: auto;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -888,22 +1854,42 @@ export default function Home() {
         }
 
         .brand {
+          position: relative;
           display: inline-flex;
           align-items: center;
           flex-shrink: 0;
+          text-decoration: none;
+        }
+
+        .brand::before {
+          position: absolute;
+          inset: -15px -22px;
+          content: "";
+          border-radius: 20px;
+          background: radial-gradient(
+            circle,
+            rgba(39, 140, 255, 0.16),
+            transparent 68%
+          );
+          opacity: 0;
+          filter: blur(14px);
+          transition: opacity 0.3s ease;
+        }
+
+        .brand:hover::before {
+          opacity: 1;
         }
 
         .brand-logo {
+          position: relative;
+          z-index: 1;
           display: block;
           width: 190px;
           height: auto;
           max-height: 66px;
           object-fit: contain;
-          transition: filter 0.25s ease;
-        }
-
-        .brand:hover .brand-logo {
-          filter: drop-shadow(0 0 10px rgba(69, 165, 255, 0.24));
+          filter: drop-shadow(0 0 6px rgba(39, 140, 255, 0.18));
+          animation: logoAura 5s ease-in-out infinite;
         }
 
         .main-nav {
@@ -917,7 +1903,9 @@ export default function Home() {
           color: #b9c5d5;
           font-size: 13px;
           text-decoration: none;
-          transition: color 0.2s ease;
+          transition:
+            color 0.2s ease,
+            transform 0.2s ease;
           white-space: nowrap;
         }
 
@@ -930,31 +1918,13 @@ export default function Home() {
           padding-left: 8px;
         }
 
-        .main-nav .nav-admin {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 7px;
-          padding: 9px 12px;
-          border: 1px solid rgba(39, 140, 255, 0.35);
-          border-radius: 10px;
-          background: rgba(39, 140, 255, 0.08);
-          color: #8ecaff;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .main-nav .nav-admin:hover {
-          border-color: #278cff;
-          background: rgba(39, 140, 255, 0.16);
-          color: #ffffff;
-        }
-
         .menu-toggle {
           display: none;
         }
 
-        /* Buttons */
+        /* =========================================================
+           BUTTONS
+           ========================================================= */
 
         .button {
           position: relative;
@@ -967,8 +1937,14 @@ export default function Home() {
           overflow: hidden;
           border: 1px solid #278cff;
           border-radius: 999px;
-          background: linear-gradient(115deg, #1687ff, #1763ce);
-          box-shadow: 0 8px 28px rgba(22, 135, 255, 0.16);
+          background: linear-gradient(
+            115deg,
+            #1687ff,
+            #1763ce
+          );
+          box-shadow:
+            0 8px 28px rgba(22, 135, 255, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
           color: white;
           font-size: 13px;
           font-weight: 700;
@@ -981,13 +1957,34 @@ export default function Home() {
             background 0.25s ease;
         }
 
-        .button:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 34px rgba(22, 135, 255, 0.3);
+        .button::before {
+          position: absolute;
+          inset: 0;
+          content: "";
+          background: linear-gradient(
+            100deg,
+            transparent 25%,
+            rgba(255, 255, 255, 0.18) 50%,
+            transparent 75%
+          );
+          transform: translateX(-120%);
+          transition: transform 0.6s ease;
         }
 
-        .button:active {
-          transform: translateY(-1px) scale(0.99);
+        .button:hover::before {
+          transform: translateX(120%);
+        }
+
+        .button:hover {
+          transform: translateY(-3px);
+          box-shadow:
+            0 14px 40px rgba(22, 135, 255, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        }
+
+        .button > * {
+          position: relative;
+          z-index: 1;
         }
 
         .button-small {
@@ -1009,7 +2006,9 @@ export default function Home() {
           box-shadow: 0 8px 28px rgba(22, 135, 255, 0.1);
         }
 
-        /* Hero */
+        /* =========================================================
+           HERO
+           ========================================================= */
 
         .hero-section {
           position: relative;
@@ -1046,6 +2045,10 @@ export default function Home() {
           border: 1px solid rgba(132, 185, 242, 0.2);
           border-radius: 999px;
           background: rgba(20, 42, 68, 0.38);
+          box-shadow:
+            inset 0 0 20px rgba(39, 140, 255, 0.03),
+            0 0 25px rgba(39, 140, 255, 0.04);
+          backdrop-filter: blur(10px);
         }
 
         .status-dot {
@@ -1054,7 +2057,10 @@ export default function Home() {
           flex-shrink: 0;
           border-radius: 50%;
           background: #56d6a1;
-          box-shadow: 0 0 14px #56d6a1;
+          box-shadow:
+            0 0 10px #56d6a1,
+            0 0 24px rgba(86, 214, 161, 0.35);
+          animation: statusPulse 2s ease-in-out infinite;
         }
 
         .hero-title {
@@ -1108,9 +2114,12 @@ export default function Home() {
           height: 1px;
           flex-shrink: 0;
           background: #278cff;
+          box-shadow: 0 0 10px rgba(39, 140, 255, 0.55);
         }
 
-        /* Animated technology illustration */
+        /* =========================================================
+           HERO VISUAL
+           ========================================================= */
 
         .hero-visual {
           position: relative;
@@ -1148,6 +2157,7 @@ export default function Home() {
           max-width: 58%;
           aspect-ratio: 1;
           border-color: rgba(102, 199, 255, 0.34);
+          animation: orbitGlow 4s ease-in-out infinite;
         }
 
         .visual-core {
@@ -1156,12 +2166,16 @@ export default function Home() {
           width: 175px;
           height: 175px;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
           border: 1px solid rgba(127, 196, 255, 0.42);
           border-radius: 50%;
-          background: radial-gradient(circle at 35% 20%, #173d65, #0a1424 65%);
+          background:
+            radial-gradient(
+              circle at 35% 20%,
+              #173d65,
+              #0a1424 65%
+            );
           box-shadow:
             0 0 65px rgba(39, 140, 255, 0.22),
             inset 0 0 35px rgba(65, 155, 255, 0.12);
@@ -1186,7 +2200,9 @@ export default function Home() {
           border: 1px solid rgba(145, 190, 239, 0.22);
           border-radius: 10px;
           background: rgba(10, 19, 32, 0.9);
-          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+          box-shadow:
+            0 14px 40px rgba(0, 0, 0, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
           color: #bdcfe5;
           font-size: 8px;
           letter-spacing: 0.13em;
@@ -1229,6 +2245,7 @@ export default function Home() {
           border-radius: 50%;
           background: #91d7ff;
           box-shadow: 0 0 18px 5px rgba(39, 140, 255, 0.5);
+          animation: sparkPulse 2.5s ease-in-out infinite;
         }
 
         .spark-one {
@@ -1239,19 +2256,46 @@ export default function Home() {
         .spark-two {
           left: 17%;
           top: 58%;
+          animation-delay: -0.8s;
         }
 
         .spark-three {
           right: 22%;
           bottom: 16%;
+          animation-delay: -1.6s;
         }
 
-        /* Moving capabilities strip */
+        /* =========================================================
+           TICKER
+           ========================================================= */
 
         .ticker {
+          position: relative;
           overflow: hidden;
           border-block: 1px solid rgba(220, 235, 255, 0.08);
           background: rgba(255, 255, 255, 0.015);
+          backdrop-filter: blur(8px);
+        }
+
+        .ticker::before,
+        .ticker::after {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 110px;
+          z-index: 2;
+          content: "";
+          pointer-events: none;
+        }
+
+        .ticker::before {
+          left: 0;
+          background: linear-gradient(90deg, #060a11, transparent);
+        }
+
+        .ticker::after {
+          right: 0;
+          background: linear-gradient(270deg, #060a11, transparent);
         }
 
         .ticker-track {
@@ -1291,9 +2335,12 @@ export default function Home() {
           box-shadow: 0 0 12px #278cff;
         }
 
-        /* Section headings */
+        /* =========================================================
+           GENERAL SECTIONS
+           ========================================================= */
 
         .section {
+          position: relative;
           padding-block: 115px;
         }
 
@@ -1327,7 +2374,9 @@ export default function Home() {
           line-height: 1.9;
         }
 
-        /* Service cards */
+        /* =========================================================
+           SERVICES
+           ========================================================= */
 
         .service-grid {
           display: grid;
@@ -1346,17 +2395,22 @@ export default function Home() {
           padding: 25px;
           border: 1px solid rgba(163, 193, 231, 0.13);
           border-radius: 17px;
-          background: linear-gradient(
-            145deg,
-            rgba(18, 29, 45, 0.72),
-            rgba(9, 14, 23, 0.78)
-          );
+          background:
+            linear-gradient(
+              145deg,
+              rgba(18, 29, 45, 0.72),
+              rgba(9, 14, 23, 0.78)
+            );
           color: inherit;
           text-decoration: none;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.025),
+            0 16px 50px rgba(0, 0, 0, 0.08);
           transition:
             transform 0.3s ease,
             border-color 0.3s ease,
-            background 0.3s ease;
+            background 0.3s ease,
+            box-shadow 0.3s ease;
         }
 
         .service-card::before {
@@ -1377,11 +2431,15 @@ export default function Home() {
         .service-card:hover {
           transform: translateY(-7px);
           border-color: rgba(67, 155, 255, 0.55);
-          background: linear-gradient(
-            145deg,
-            rgba(22, 40, 63, 0.86),
-            rgba(9, 14, 23, 0.9)
-          );
+          background:
+            linear-gradient(
+              145deg,
+              rgba(22, 40, 63, 0.86),
+              rgba(9, 14, 23, 0.9)
+            );
+          box-shadow:
+            0 22px 60px rgba(0, 0, 0, 0.28),
+            0 0 30px rgba(39, 140, 255, 0.05);
         }
 
         .service-card:hover::before {
@@ -1410,6 +2468,349 @@ export default function Home() {
           background: rgba(39, 140, 255, 0.07);
           color: #9bd1ff;
           font-size: 17px;
+          box-shadow: 0 0 0 rgba(39, 140, 255, 0);
+          animation: iconGlow 3.2s ease-in-out infinite;
+          transition:
+            transform 0.3s ease,
+            border-color 0.3s ease;
+        }
+
+        .service-card:hover .service-symbol {
+          transform: translateY(-2px) rotate(-4deg);
+          border-color: rgba(105, 200, 255, 0.72);
+        }
+
+        .service-visual {
+          position: relative;
+          height: 108px;
+          margin-top: 18px;
+          padding: 12px 13px;
+          overflow: hidden;
+          border: 1px solid rgba(116, 174, 235, 0.15);
+          border-radius: 12px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(13, 30, 49, 0.92),
+              rgba(6, 13, 23, 0.78)
+            );
+          color: #67baff;
+          isolation: isolate;
+        }
+
+        .service-visual::after {
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          content: "";
+          pointer-events: none;
+          background:
+            linear-gradient(
+              110deg,
+              transparent 25%,
+              rgba(91, 176, 255, 0.08) 50%,
+              transparent 75%
+            );
+          transform: translateX(-120%);
+          animation: visualSweep 5.5s ease-in-out infinite;
+        }
+
+        .mini-window-bar {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 13px;
+          margin-bottom: 7px;
+          border-bottom: 1px solid rgba(143, 190, 242, 0.12);
+        }
+
+        .mini-window-bar > i {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #4f9fff;
+          opacity: 0.75;
+        }
+
+        .mini-window-bar > span {
+          margin-left: auto;
+          color: #7089a7;
+          font:
+            8px/1.2
+            ui-monospace,
+            SFMono-Regular,
+            Consolas,
+            monospace;
+        }
+
+        .code-row {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          height: 13px;
+          font:
+            8px/1
+            ui-monospace,
+            SFMono-Regular,
+            Consolas,
+            monospace;
+        }
+
+        .code-row b {
+          width: 12px;
+          color: #456787;
+          font-weight: 400;
+        }
+
+        .code-row i {
+          display: block;
+          height: 3px;
+          border-radius: 4px;
+          background: linear-gradient(90deg, #278cff, #7bd5ff);
+          opacity: 0.76;
+          animation: codeFlicker 2.8s ease-in-out infinite alternate;
+        }
+
+        .code-short {
+          width: 24px;
+        }
+
+        .code-medium {
+          width: 47px;
+        }
+
+        .code-long {
+          width: 82px;
+        }
+
+        .code-tiny {
+          width: 17px;
+          background: #8a9cff !important;
+        }
+
+        .code-cursor {
+          position: absolute;
+          right: 22%;
+          bottom: 18px;
+          width: 2px;
+          height: 10px;
+          background: #c3e7ff;
+          box-shadow: 0 0 9px #278cff;
+          animation: cursorBlink 1s steps(2, start) infinite;
+        }
+
+        .service-visual-security {
+          padding-top: 10px;
+          border-color: rgba(62, 206, 159, 0.22);
+          color: #7de6c0;
+          background:
+            radial-gradient(
+              ellipse at 85% 0%,
+              rgba(16, 111, 91, 0.16),
+              transparent 60%
+            ),
+            #071711;
+          font:
+            8px/1.5
+            ui-monospace,
+            SFMono-Regular,
+            Consolas,
+            monospace;
+        }
+
+        .terminal-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          padding-bottom: 6px;
+          margin-bottom: 6px;
+          border-bottom: 1px solid rgba(89, 223, 176, 0.17);
+          color: #a0cdbd;
+          font-size: 7px;
+          letter-spacing: 0.1em;
+        }
+
+        .terminal-top i {
+          color: #61e6b4;
+          font-style: normal;
+          animation: terminalBlink 1.8s ease-in-out infinite;
+        }
+
+        .terminal-line {
+          display: flex;
+          gap: 7px;
+          white-space: nowrap;
+          color: #78b8a4;
+          animation: terminalType 4s steps(1, end) infinite;
+        }
+
+        .terminal-line b {
+          color: #65e5b2;
+          font-weight: 600;
+        }
+
+        .terminal-line:nth-of-type(3) {
+          animation-delay: -1s;
+        }
+
+        .terminal-line:nth-of-type(4) {
+          animation-delay: -2s;
+        }
+
+        .terminal-line:nth-of-type(5) {
+          animation-delay: -3s;
+        }
+
+        .terminal-success span {
+          color: #c1f8e2;
+        }
+
+        .terminal-dim {
+          opacity: 0.62;
+        }
+
+        .terminal-scanline {
+          position: absolute;
+          top: 0;
+          right: 0;
+          left: 0;
+          height: 1px;
+          background: rgba(117, 255, 204, 0.55);
+          box-shadow: 0 0 9px rgba(117, 255, 204, 0.4);
+          animation: scanDown 4s linear infinite;
+          pointer-events: none;
+        }
+
+        .service-visual-network {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 5px 10px 7px;
+        }
+
+        .service-visual-network svg {
+          width: 100%;
+          height: 80px;
+          overflow: visible;
+        }
+
+        .network-lines {
+          opacity: 0.45;
+        }
+
+        .network-pulses circle {
+          fill: #a7dcff;
+          stroke: #278cff;
+          stroke-width: 2;
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: networkPulse 2.4s ease-in-out infinite;
+        }
+
+        .network-pulses circle:nth-child(2n) {
+          animation-delay: -0.7s;
+        }
+
+        .network-pulses circle:nth-child(3n) {
+          animation-delay: -1.4s;
+        }
+
+        .network-label {
+          position: absolute;
+          right: 10px;
+          bottom: 6px;
+          color: #6487a9;
+          font-size: 6px;
+          letter-spacing: 0.15em;
+        }
+
+        .service-visual-analytics {
+          padding: 11px 13px 7px;
+        }
+
+        .analytics-head,
+        .marketing-metric {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          color: #7e9dbd;
+          font-size: 7px;
+          letter-spacing: 0.1em;
+        }
+
+        .analytics-head b,
+        .marketing-metric b {
+          color: #83d8ff;
+          font-size: 9px;
+          letter-spacing: 0;
+        }
+
+        .analytics-chart {
+          display: flex;
+          height: 67px;
+          align-items: end;
+          gap: 5px;
+          padding-top: 6px;
+          border-bottom: 1px solid rgba(139, 190, 240, 0.16);
+        }
+
+        .analytics-chart i {
+          flex: 1;
+          min-width: 3px;
+          max-height: 56px;
+          border-radius: 3px 3px 0 0;
+          background:
+            linear-gradient(
+              180deg,
+              #7bd5ff,
+              #278cff 72%,
+              rgba(39, 140, 255, 0.25)
+            );
+          transform-origin: bottom;
+          animation: barRise 2.8s ease-in-out infinite alternate;
+        }
+
+        .analytics-baseline {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 4px;
+          color: #607b9b;
+          font-size: 6px;
+          letter-spacing: 0.08em;
+        }
+
+        .service-visual-marketing {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 4px;
+        }
+
+        .service-visual-marketing svg {
+          width: 100%;
+          height: 62px;
+          overflow: visible;
+        }
+
+        .marketing-line {
+          stroke-dasharray: 420;
+          stroke-dashoffset: 420;
+          animation: drawMarketing 3.6s ease-in-out infinite;
+        }
+
+        .marketing-tags {
+          display: flex;
+          gap: 6px;
+        }
+
+        .marketing-tags span {
+          padding: 3px 5px;
+          border: 1px solid rgba(100, 170, 238, 0.18);
+          border-radius: 4px;
+          color: #7598bd;
+          font-size: 6px;
+          letter-spacing: 0.08em;
         }
 
         .service-card h3 {
@@ -1475,16 +2876,19 @@ export default function Home() {
           color: white;
         }
 
-        /* About */
+        /* =========================================================
+           ABOUT
+           ========================================================= */
 
         .about-section {
           position: relative;
           border-block: 1px solid rgba(220, 235, 255, 0.07);
-          background: linear-gradient(
-            100deg,
-            rgba(12, 21, 34, 0.85),
-            rgba(8, 13, 22, 0.8)
-          );
+          background:
+            linear-gradient(
+              100deg,
+              rgba(12, 21, 34, 0.85),
+              rgba(8, 13, 22, 0.8)
+            );
         }
 
         .about-layout {
@@ -1510,21 +2914,33 @@ export default function Home() {
           overflow: hidden;
           border: 1px solid rgba(113, 181, 249, 0.25);
           border-radius: 25px;
-          background: radial-gradient(
-            circle at center,
-            rgba(28, 90, 151, 0.25),
-            rgba(8, 14, 24, 0.4) 65%
-          );
+          background:
+            radial-gradient(
+              circle at center,
+              rgba(28, 90, 151, 0.25),
+              rgba(8, 14, 24, 0.4) 65%
+            );
+          box-shadow:
+            0 30px 90px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
 
         .about-art-lines {
           position: absolute;
           inset: 0;
           background-image:
-            linear-gradient(rgba(125, 180, 237, 0.12) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(125, 180, 237, 0.12) 1px, transparent 1px);
+            linear-gradient(
+              rgba(125, 180, 237, 0.12) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(125, 180, 237, 0.12) 1px,
+              transparent 1px
+            );
           background-size: 28px 28px;
           mask-image: radial-gradient(circle, black, transparent 75%);
+          animation: aboutGrid 18s linear infinite;
         }
 
         .about-art-center {
@@ -1533,13 +2949,13 @@ export default function Home() {
           width: 175px;
           height: 175px;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
           border: 1px solid rgba(125, 194, 255, 0.45);
           border-radius: 50%;
           background: rgba(9, 19, 33, 0.9);
           box-shadow: 0 0 65px rgba(39, 140, 255, 0.15);
+          animation: corePulse 5s ease-in-out infinite;
         }
 
         .about-logo-image {
@@ -1600,7 +3016,9 @@ export default function Home() {
           margin-top: 14px;
         }
 
-        /* Academy */
+        /* =========================================================
+           ACADEMY
+           ========================================================= */
 
         .academy-section {
           padding-bottom: 120px;
@@ -1618,6 +3036,7 @@ export default function Home() {
           border: 1px solid rgba(163, 193, 231, 0.13);
           border-radius: 17px;
           background: rgba(13, 21, 33, 0.68);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
           transition:
             transform 0.3s ease,
             border-color 0.3s ease,
@@ -1640,6 +3059,7 @@ export default function Home() {
           background: rgba(39, 140, 255, 0.08);
           color: #a4d4ff;
           font-size: 18px;
+          animation: iconGlow 3.2s ease-in-out infinite;
         }
 
         .learning-label {
@@ -1675,11 +3095,12 @@ export default function Home() {
           padding: 30px;
           border: 1px solid rgba(78, 155, 242, 0.23);
           border-radius: 18px;
-          background: linear-gradient(
-            105deg,
-            rgba(17, 47, 79, 0.6),
-            rgba(12, 20, 33, 0.65)
-          );
+          background:
+            linear-gradient(
+              105deg,
+              rgba(17, 47, 79, 0.6),
+              rgba(12, 20, 33, 0.65)
+            );
         }
 
         .academy-banner .section-kicker {
@@ -1705,7 +3126,9 @@ export default function Home() {
           gap: 10px;
         }
 
-        /* Registration cards */
+        /* =========================================================
+           REGISTRATION
+           ========================================================= */
 
         .registration-section {
           padding-block: 100px;
@@ -1807,7 +3230,9 @@ export default function Home() {
           line-height: 1.7;
         }
 
-        /* Projects panel */
+        /* =========================================================
+           PROJECTS
+           ========================================================= */
 
         .projects-section {
           padding-block: 105px;
@@ -1823,7 +3248,15 @@ export default function Home() {
           padding: 55px;
           border: 1px solid rgba(105, 171, 243, 0.2);
           border-radius: 24px;
-          background: linear-gradient(110deg, #101e30, #0a111d 70%);
+          background:
+            linear-gradient(
+              110deg,
+              #101e30,
+              #0a111d 70%
+            );
+          box-shadow:
+            0 30px 90px rgba(0, 0, 0, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
         .project-panel-copy {
@@ -1888,9 +3321,6 @@ export default function Home() {
           border-radius: 22px;
           background: #102844;
           box-shadow: 0 0 55px rgba(39, 140, 255, 0.22);
-          color: #e2f2ff;
-          font-size: 30px;
-          font-weight: 800;
           transform: rotate(45deg);
           transition:
             box-shadow 0.3s ease,
@@ -1918,6 +3348,7 @@ export default function Home() {
           border-radius: 50%;
           background: #9bdcff;
           box-shadow: 0 0 18px 5px rgba(39, 140, 255, 0.4);
+          animation: packetPulse 2.6s ease-in-out infinite;
         }
 
         .cross-one {
@@ -1928,18 +3359,22 @@ export default function Home() {
         .cross-two {
           left: 18%;
           bottom: 17%;
+          animation-delay: -1s;
         }
 
-        /* Contact */
+        /* =========================================================
+           CONTACT
+           ========================================================= */
 
         .contact-section {
           padding-block: 95px;
           border-top: 1px solid rgba(220, 235, 255, 0.08);
-          background: linear-gradient(
-            110deg,
-            rgba(11, 24, 40, 0.85),
-            rgba(7, 10, 16, 0.95)
-          );
+          background:
+            linear-gradient(
+              110deg,
+              rgba(11, 24, 40, 0.85),
+              rgba(7, 10, 16, 0.95)
+            );
         }
 
         .contact-layout {
@@ -1962,11 +3397,13 @@ export default function Home() {
         }
 
         .contact-option {
+          position: relative;
           display: flex;
           align-items: center;
           min-width: 0;
           gap: 15px;
           padding: 17px;
+          overflow: hidden;
           border: 1px solid rgba(163, 193, 231, 0.14);
           border-radius: 13px;
           background: rgba(255, 255, 255, 0.025);
@@ -1978,6 +3415,26 @@ export default function Home() {
             background 0.2s ease;
         }
 
+        .contact-option::before {
+          position: absolute;
+          inset: 0;
+          content: "";
+          background:
+            linear-gradient(
+              110deg,
+              transparent 20%,
+              rgba(111, 190, 255, 0.08) 50%,
+              transparent 80%
+            );
+          transform: translateX(-120%);
+          transition: transform 0.65s ease;
+          pointer-events: none;
+        }
+
+        .contact-option:hover::before {
+          transform: translateX(120%);
+        }
+
         .contact-option:hover {
           transform: translateX(4px);
           border-color: rgba(75, 161, 255, 0.5);
@@ -1985,6 +3442,8 @@ export default function Home() {
         }
 
         .contact-option-icon {
+          position: relative;
+          z-index: 1;
           display: grid;
           width: 42px;
           height: 42px;
@@ -1996,6 +3455,8 @@ export default function Home() {
         }
 
         .contact-option > span:nth-child(2) {
+          position: relative;
+          z-index: 1;
           display: grid;
           min-width: 0;
           gap: 5px;
@@ -2015,11 +3476,224 @@ export default function Home() {
         }
 
         .contact-arrow {
+          position: relative;
+          z-index: 1;
           margin-left: auto;
           color: #83c5ff;
         }
 
-        /* Footer */
+        /* =========================================================
+           SOCIAL
+           ========================================================= */
+
+        .social-section {
+          position: relative;
+          padding-block: 92px;
+          border-top: 1px solid rgba(220, 235, 255, 0.08);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(7, 14, 24, 0.72),
+              rgba(5, 9, 15, 0.94)
+            );
+          overflow: hidden;
+        }
+
+        .social-section::before {
+          position: absolute;
+          content: "";
+          width: 520px;
+          height: 520px;
+          top: -280px;
+          right: -170px;
+          border-radius: 50%;
+          background: rgba(39, 140, 255, 0.12);
+          filter: blur(100px);
+          pointer-events: none;
+        }
+
+        .social-panel {
+          position: relative;
+          display: grid;
+          grid-template-columns: 0.82fr 1.18fr;
+          gap: 55px;
+          align-items: center;
+          padding: 42px;
+          border: 1px solid rgba(105, 171, 243, 0.18);
+          border-radius: 24px;
+          background:
+            linear-gradient(
+              125deg,
+              rgba(14, 29, 47, 0.78),
+              rgba(7, 13, 22, 0.72)
+            );
+          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+          overflow: hidden;
+        }
+
+        .social-panel::before {
+          position: absolute;
+          content: "";
+          inset: 0;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(105, 200, 255, 0.045),
+              transparent
+            );
+          transform: translateX(-100%);
+          animation: socialSweep 8s ease-in-out infinite;
+        }
+
+        .social-copy {
+          position: relative;
+          z-index: 1;
+        }
+
+        .social-copy h2 {
+          max-width: 600px;
+          margin: 0;
+          font-size: clamp(32px, 4vw, 48px);
+          line-height: 1.12;
+          letter-spacing: -0.05em;
+        }
+
+        .social-copy > p:last-child {
+          max-width: 510px;
+          margin: 19px 0 0;
+          color: #97a7bc;
+          font-size: 13px;
+          line-height: 1.9;
+        }
+
+        .social-links {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .social-link {
+          position: relative;
+          display: flex;
+          min-width: 0;
+          min-height: 88px;
+          align-items: center;
+          gap: 13px;
+          padding: 15px;
+          overflow: hidden;
+          border: 1px solid rgba(163, 193, 231, 0.13);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.025);
+          color: white;
+          text-decoration: none;
+          transition:
+            transform 0.3s ease,
+            border-color 0.3s ease,
+            background 0.3s ease,
+            box-shadow 0.3s ease;
+        }
+
+        .social-link::after {
+          position: absolute;
+          content: "";
+          inset: 0;
+          background:
+            linear-gradient(
+              115deg,
+              transparent 35%,
+              rgba(105, 200, 255, 0.08),
+              transparent 65%
+            );
+          transform: translateX(-100%);
+          transition: transform 0.5s ease;
+          pointer-events: none;
+        }
+
+        .social-link:hover {
+          transform: translateY(-4px);
+          border-color: rgba(69, 165, 255, 0.5);
+          background: rgba(39, 140, 255, 0.065);
+          box-shadow: 0 16px 42px rgba(0, 0, 0, 0.25);
+        }
+
+        .social-link:hover::after {
+          transform: translateX(100%);
+        }
+
+        .social-icon {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          width: 46px;
+          height: 46px;
+          flex-shrink: 0;
+          place-items: center;
+          border: 1px solid rgba(88, 165, 244, 0.24);
+          border-radius: 13px;
+          background: rgba(39, 140, 255, 0.07);
+          color: #8fcaff;
+          transition:
+            transform 0.3s ease,
+            border-color 0.3s ease,
+            color 0.3s ease,
+            background 0.3s ease;
+        }
+
+        .social-icon svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .social-link:hover .social-icon {
+          transform: scale(1.06);
+          border-color: rgba(105, 200, 255, 0.6);
+          background: rgba(39, 140, 255, 0.14);
+          color: #ffffff;
+        }
+
+        .social-link-copy {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          min-width: 0;
+          gap: 5px;
+        }
+
+        .social-link-copy strong {
+          color: #e1ebf8;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .social-link-copy small {
+          color: #6885a5;
+          font-size: 7px;
+          letter-spacing: 0.17em;
+        }
+
+        .social-arrow {
+          position: relative;
+          z-index: 1;
+          margin-left: auto;
+          color: #74bcff;
+          font-size: 15px;
+          transition:
+            transform 0.3s ease,
+            color 0.3s ease;
+        }
+
+        .social-link:hover .social-arrow {
+          transform: translate(3px, -3px);
+          color: #ffffff;
+        }
+
+        /* =========================================================
+           FOOTER
+           ========================================================= */
 
         .site-footer {
           border-top: 1px solid rgba(220, 235, 255, 0.08);
@@ -2045,6 +3719,7 @@ export default function Home() {
           height: auto;
           max-height: 56px;
           object-fit: contain;
+          filter: drop-shadow(0 0 7px rgba(39, 140, 255, 0.15));
         }
 
         .footer-main > p {
@@ -2082,7 +3757,9 @@ export default function Home() {
           color: white;
         }
 
-        /* Scroll reveal: visible by default unless observation is active */
+        /* =========================================================
+           REVEAL
+           ========================================================= */
 
         .reveal {
           opacity: 1;
@@ -2102,22 +3779,249 @@ export default function Home() {
             transform 0.7s cubic-bezier(0.2, 0.75, 0.25, 1);
         }
 
-        /* Keyboard focus */
+        /* =========================================================
+           FOCUS
+           ========================================================= */
 
         .vexora-site a:focus-visible,
         .vexora-site button:focus-visible {
           outline: 2px solid #69c8ff;
-          outline-offset: 4px;
+          outline-offset: 5px;
+          box-shadow: 0 0 0 5px rgba(39, 140, 255, 0.13);
         }
 
-        /* Animations */
+        .vexora-site ::selection {
+          color: #ffffff;
+          background: rgba(39, 140, 255, 0.42);
+        }
+
+        /* =========================================================
+           ANIMATIONS
+           ========================================================= */
+
+        @keyframes backgroundGridMove {
+          from {
+            background-position: 0 0;
+          }
+
+          to {
+            background-position: 90px 90px;
+          }
+        }
+
+        @keyframes gridPerspective {
+          from {
+            background-position: 0 0;
+          }
+
+          to {
+            background-position: 0 140px;
+          }
+        }
+
+        @keyframes gridPerspectiveReverse {
+          from {
+            background-position: 0 0;
+          }
+
+          to {
+            background-position: 140px 0;
+          }
+        }
+
+        @keyframes glowFloatA {
+          from {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          to {
+            transform: translate3d(100px, 90px, 0) scale(1.15);
+          }
+        }
+
+        @keyframes glowFloatB {
+          from {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          to {
+            transform: translate3d(-90px, -70px, 0) scale(1.2);
+          }
+        }
+
+        @keyframes glowFloatC {
+          from {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          to {
+            transform: translate3d(70px, -50px, 0) scale(1.1);
+          }
+        }
+
+        @keyframes scanVertical {
+          0% {
+            transform: translateY(-35vh);
+            opacity: 0;
+          }
+
+          15% {
+            opacity: 0.7;
+          }
+
+          50% {
+            opacity: 0.3;
+          }
+
+          100% {
+            transform: translateY(125vh);
+            opacity: 0;
+          }
+        }
+
+        @keyframes beamMoveA {
+          from {
+            transform: translateX(-18vw) rotate(19deg);
+          }
+
+          to {
+            transform: translateX(22vw) rotate(19deg);
+          }
+        }
+
+        @keyframes beamMoveB {
+          from {
+            transform: translateX(16vw) rotate(-12deg);
+          }
+
+          to {
+            transform: translateX(-20vw) rotate(-12deg);
+          }
+        }
+
+        @keyframes beamMoveC {
+          from {
+            transform: translateX(12vw) rotate(24deg);
+          }
+
+          to {
+            transform: translateX(-18vw) rotate(24deg);
+          }
+        }
+
+        @keyframes networkFlow {
+          from {
+            stroke-dashoffset: 0;
+          }
+
+          to {
+            stroke-dashoffset: -240;
+          }
+        }
+
+        @keyframes packetPulse {
+          0%,
+          100% {
+            opacity: 0.45;
+            transform: scale(0.8);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scale(1.35);
+          }
+        }
+
+        @keyframes starPulse {
+          0%,
+          100% {
+            opacity: 0.18;
+            transform: scale(0.65);
+          }
+
+          50% {
+            opacity: 0.9;
+            transform: scale(1.35);
+          }
+        }
+
+        @keyframes dataTravelA {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(155vw);
+          }
+        }
+
+        @keyframes dataTravelB {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(165vw);
+          }
+        }
+
+        @keyframes dataTravelC {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(-165vw);
+          }
+        }
+
+        @keyframes logoAura {
+          0%,
+          100% {
+            filter: drop-shadow(
+              0 0 3px rgba(39, 140, 255, 0.18)
+            );
+          }
+
+          50% {
+            filter:
+              drop-shadow(0 0 11px rgba(105, 200, 255, 0.48))
+              drop-shadow(0 0 20px rgba(39, 140, 255, 0.2));
+          }
+        }
+
+        @keyframes statusPulse {
+          0%,
+          100% {
+            transform: scale(0.8);
+            opacity: 0.6;
+          }
+
+          50% {
+            transform: scale(1.15);
+            opacity: 1;
+          }
+        }
 
         @keyframes orbitSpin {
           from {
             transform: rotateX(62deg) rotate(-25deg);
           }
+
           to {
             transform: rotateX(62deg) rotate(335deg);
+          }
+        }
+
+        @keyframes orbitGlow {
+          0%,
+          100% {
+            opacity: 0.55;
+          }
+
+          50% {
+            opacity: 1;
+            box-shadow: 0 0 30px rgba(39, 140, 255, 0.14);
           }
         }
 
@@ -2126,6 +4030,7 @@ export default function Home() {
           100% {
             translate: 0 0;
           }
+
           50% {
             translate: 0 -10px;
           }
@@ -2134,11 +4039,16 @@ export default function Home() {
         @keyframes logoBreath {
           0%,
           100% {
-            filter: drop-shadow(0 0 18px rgba(64, 158, 255, 0.2));
+            filter: drop-shadow(
+              0 0 18px rgba(64, 158, 255, 0.2)
+            );
             transform: scale(0.98);
           }
+
           50% {
-            filter: drop-shadow(0 0 28px rgba(64, 158, 255, 0.38));
+            filter: drop-shadow(
+              0 0 28px rgba(64, 158, 255, 0.38)
+            );
             transform: scale(1.02);
           }
         }
@@ -2150,6 +4060,7 @@ export default function Home() {
               0 0 50px rgba(39, 140, 255, 0.16),
               inset 0 0 35px rgba(65, 155, 255, 0.1);
           }
+
           50% {
             box-shadow:
               0 0 85px rgba(39, 140, 255, 0.28),
@@ -2157,10 +4068,24 @@ export default function Home() {
           }
         }
 
+        @keyframes sparkPulse {
+          0%,
+          100% {
+            opacity: 0.35;
+            transform: scale(0.7);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scale(1.4);
+          }
+        }
+
         @keyframes tickerMove {
           from {
             transform: translateX(0);
           }
+
           to {
             transform: translateX(-50%);
           }
@@ -2170,12 +4095,156 @@ export default function Home() {
           from {
             transform: translate3d(0, 0, 0) scale(1);
           }
+
           to {
             transform: translate3d(-30px, 45px, 0) scale(1.15);
           }
         }
 
-        /* Medium screens */
+        @keyframes ambientFloatReverse {
+          from {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          to {
+            transform: translate3d(35px, -50px, 0) scale(1.12);
+          }
+        }
+
+        @keyframes iconGlow {
+          0%,
+          100% {
+            box-shadow: 0 0 0 rgba(39, 140, 255, 0);
+            text-shadow: 0 0 0 rgba(105, 200, 255, 0);
+          }
+
+          50% {
+            box-shadow: 0 0 20px rgba(39, 140, 255, 0.13);
+            text-shadow: 0 0 12px rgba(105, 200, 255, 0.55);
+          }
+        }
+
+        @keyframes visualSweep {
+          0%,
+          45% {
+            transform: translateX(-120%);
+          }
+
+          80%,
+          100% {
+            transform: translateX(120%);
+          }
+        }
+
+        @keyframes codeFlicker {
+          from {
+            opacity: 0.36;
+            transform: scaleX(0.86);
+            transform-origin: left;
+          }
+
+          to {
+            opacity: 1;
+            transform: scaleX(1);
+            transform-origin: left;
+          }
+        }
+
+        @keyframes cursorBlink {
+          to {
+            opacity: 0;
+          }
+        }
+
+        @keyframes terminalBlink {
+          50% {
+            opacity: 0.35;
+          }
+        }
+
+        @keyframes terminalType {
+          0%,
+          20%,
+          100% {
+            opacity: 1;
+          }
+
+          10% {
+            opacity: 0.5;
+          }
+        }
+
+        @keyframes scanDown {
+          from {
+            transform: translateY(0);
+          }
+
+          to {
+            transform: translateY(108px);
+          }
+        }
+
+        @keyframes networkPulse {
+          0%,
+          100% {
+            opacity: 0.6;
+            transform: scale(0.85);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+        }
+
+        @keyframes barRise {
+          from {
+            transform: scaleY(0.72);
+            opacity: 0.55;
+          }
+
+          to {
+            transform: scaleY(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes drawMarketing {
+          0% {
+            stroke-dashoffset: 420;
+          }
+
+          70%,
+          100% {
+            stroke-dashoffset: 0;
+          }
+        }
+
+        @keyframes aboutGrid {
+          from {
+            background-position: 0 0;
+          }
+
+          to {
+            background-position: 28px 28px;
+          }
+        }
+
+        @keyframes socialSweep {
+          0%,
+          55% {
+            transform: translateX(-100%);
+          }
+
+          80%,
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        /* =========================================================
+           TABLET
+           ========================================================= */
 
         @media (max-width: 1120px) {
           .main-nav {
@@ -2207,7 +4276,9 @@ export default function Home() {
           }
         }
 
-        /* Mobile navigation and tablet layout */
+        /* =========================================================
+           MOBILE NAV + TABLET
+           ========================================================= */
 
         @media (max-width: 820px) {
           .page-width,
@@ -2271,8 +4342,9 @@ export default function Home() {
             gap: 0;
             padding: 12px 18px 18px;
             border-bottom: 1px solid rgba(220, 235, 255, 0.12);
-            background: rgba(7, 10, 16, 0.98);
+            background: rgba(5, 8, 14, 0.98);
             box-shadow: 0 20px 35px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(22px);
           }
 
           .main-nav-open {
@@ -2336,6 +4408,10 @@ export default function Home() {
             height: auto;
           }
 
+          .service-visual {
+            height: 104px;
+          }
+
           .about-layout {
             grid-template-columns: 1fr;
             gap: 25px;
@@ -2389,14 +4465,26 @@ export default function Home() {
             gap: 25px;
           }
 
+          .social-panel {
+            grid-template-columns: 1fr;
+            gap: 30px;
+            padding: 30px;
+          }
+
           .footer-main {
             align-items: flex-start;
             flex-direction: column;
             gap: 17px;
           }
+
+          .tech-hud {
+            display: none;
+          }
         }
 
-        /* Small phones */
+        /* =========================================================
+           SMALL PHONES
+           ========================================================= */
 
         @media (max-width: 520px) {
           .page-width,
@@ -2540,6 +4628,28 @@ export default function Home() {
             padding: 25px;
           }
 
+          .social-section {
+            padding-block: 66px;
+          }
+
+          .social-panel {
+            width: calc(100% - 32px);
+            padding: 23px;
+            border-radius: 20px;
+          }
+
+          .social-links {
+            grid-template-columns: 1fr;
+          }
+
+          .social-copy h2 {
+            font-size: 35px;
+          }
+
+          .social-link {
+            min-height: 80px;
+          }
+
           .project-visual {
             min-height: 215px;
           }
@@ -2573,56 +4683,40 @@ export default function Home() {
           .footer-links {
             gap: 14px;
           }
+
+          .tech-data {
+            font-size: 6px;
+          }
+
+          .data-stream-a {
+            top: 30%;
+          }
+
+          .data-stream-b {
+            top: 60%;
+          }
+
+          .tech-grid {
+            opacity: 0.11;
+          }
+
+          .tech-network {
+            opacity: 0.32;
+          }
         }
 
-        /* Premium interaction polish */
-
-        .vexora-site ::selection {
-          color: #ffffff;
-          background: rgba(39, 140, 255, 0.42);
-        }
-
-        .service-card,
-        .learning-card,
-        .registration-card,
-        .contact-option,
-        .project-panel {
-          -webkit-backface-visibility: hidden;
-          backface-visibility: hidden;
-        }
-
-        .contact-option {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .contact-option::before {
-          position: absolute;
-          inset: 0;
-          content: "";
-          pointer-events: none;
-          background: linear-gradient(110deg, transparent 20%, rgba(111, 190, 255, 0.08) 50%, transparent 80%);
-          transform: translateX(-120%);
-          transition: transform 0.65s ease;
-        }
-
-        .contact-option:hover::before {
-          transform: translateX(120%);
-        }
-
-        .vexora-site a:focus-visible,
-        .vexora-site button:focus-visible {
-          outline-offset: 5px;
-          box-shadow: 0 0 0 5px rgba(39, 140, 255, 0.13);
-        }
-
-        /* Accessibility */
+        /* =========================================================
+           REDUCED MOTION
+           ========================================================= */
 
         @media (prefers-reduced-motion: reduce) {
+          html {
+            scroll-behavior: auto;
+          }
+
           .vexora-site *,
           .vexora-site *::before,
           .vexora-site *::after {
-            scroll-behavior: auto !important;
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
