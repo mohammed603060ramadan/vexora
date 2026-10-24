@@ -1023,9 +1023,11 @@ export default function Home() {
                 Student registration <span aria-hidden="true">→</span>
               </Link>
 
-              <Link href="/academy" className="secondary-card-link">
-                Visit VEXORA Academy <span aria-hidden="true">→</span>
-              </Link>
+              {isAuthenticated && (
+                <Link href="/academy" className="secondary-card-link">
+                  Visit VEXORA Academy <span aria-hidden="true">→</span>
+                </Link>
+              )}
             </article>
           </div>
 
