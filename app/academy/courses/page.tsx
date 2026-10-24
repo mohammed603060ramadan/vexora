@@ -122,7 +122,7 @@ export default function AcademyCoursesPage() {
                   </div>
                   <h2 className="mt-4 text-xl font-semibold leading-snug">{course.title}</h2>
                   <p className="mt-3 min-h-16 text-sm leading-6 text-slate-400">{course.description || "Course details will be announced soon."}</p>
-                  <Link href={`/academy?course=${encodeURIComponent(course.slug)}#programs`} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">View course details <span aria-hidden="true">↗</span></Link>
+                  <Link href="/academy#programs" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">Open Academy catalogue <span aria-hidden="true">↗</span></Link>
                 </div>
               </article>
             ))}
