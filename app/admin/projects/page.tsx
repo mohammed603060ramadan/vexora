@@ -566,8 +566,15 @@ export default function AdminProjectsPage() {
         );
       }
 
-      const nextProjects = (projectsResult.data ?? []) as Project[];
       const nextClients = (clientsResult.data ?? []) as Client[];
+      const rawProjects = (projectsResult.data ?? []) as unknown as Array<Record<string, unknown>>;
+      const nextProjects = rawProjects.map((row) => ({
+        ...row,
+        title: String(row.name ?? ""),
+        deadline: typeof row.due_date === "string" ? row.due_date : null,
+        status: row.status === "planned" || row.status === "draft" ? "planning" : String(row.status ?? "planning"),
+        client_name: nextClients.find((client) => client.id === row.client_id)?.name ?? null,
+      })) as Project[];
       const mediaRows = (mediaResult.data ?? []) as ProjectMedia[];
 
       const mediaViews = await Promise.all(
@@ -923,18 +930,13 @@ export default function AdminProjectsPage() {
     const insertedMediaIds: string[] = [];
 
     try {
-      const client = clients.find(
-        (item) => item.id === form.client_id
-      );
-
       const payload = {
-        title,
+        name: title,
         client_id: form.client_id || null,
-        client_name: client?.name ?? null,
         description: description || null,
-        status: form.status,
+        status: form.status === "planning" ? "planned" : form.status,
         budget: budget ? Number(budget) : 0,
-        deadline: form.deadline || null,
+        due_date: form.deadline || null,
         updated_at: new Date().toISOString(),
       };
 
