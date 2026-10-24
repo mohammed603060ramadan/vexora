@@ -635,7 +635,7 @@ export default function ProjectsPage() {
     async function loadPublishedProjects() {
       const { data, error } = await supabase
         .from("projects")
-        .select("id,name,description,status,due_date,show_on_projects_page")
+        .select("id,title,description,status,deadline,show_on_projects_page")
         .eq("show_on_projects_page", true)
         .in("status", ["in_progress", "completed"])
         .order("name", { ascending: true })
@@ -2376,9 +2376,9 @@ export default function ProjectsPage() {
                 <article key={project.id} className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 transition hover:border-blue-400/30">
                   <div className="flex items-center justify-between gap-3">
                     <span className="rounded-full border border-blue-400/20 bg-blue-400/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-blue-200">{project.status.replaceAll("_", " ")}</span>
-                    {project.due_date && <span className="text-xs text-slate-500">Target: {project.due_date}</span>}
+                    {project.deadline && <span className="text-xs text-slate-500">Target: {project.deadline}</span>}
                   </div>
-                  <h3 className="mt-5 text-xl font-semibold text-white">{project.name}</h3>
+                  <h3 className="mt-5 text-xl font-semibold text-white">{project.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-400">{project.description || "Project details will be shared soon."}</p>
                 </article>
               ))}
