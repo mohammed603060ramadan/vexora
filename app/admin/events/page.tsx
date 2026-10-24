@@ -86,6 +86,8 @@ export default function AdminEventsPage() {
     setLoading(false);
   }, []);
 
+  // Initial loading is intentional: the effect starts the asynchronous database read.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadEvents(); }, [loadEvents]);
 
   const filtered = useMemo(() => {
