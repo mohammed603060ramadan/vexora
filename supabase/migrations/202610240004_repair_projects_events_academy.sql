@@ -92,6 +92,19 @@ CREATE POLICY events_admin_manage
   USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
+-- Public website can only read project fields explicitly approved for display.
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+GRANT SELECT (id, name, description, status, due_date, show_on_homepage, show_on_projects_page)
+  ON public.projects TO anon, authenticated;
+DROP POLICY IF EXISTS vexora_public_project_showcases_read ON public.projects;
+CREATE POLICY vexora_public_project_showcases_read
+  ON public.projects
+  FOR SELECT TO anon, authenticated
+  USING (
+    status IN ('in_progress', 'completed')
+    AND (show_on_homepage = TRUE OR show_on_projects_page = TRUE)
+  );
+
 -- Reload the REST schema cache after the repair so the API sees the new columns.
 NOTIFY pgrst, 'reload schema';
 
