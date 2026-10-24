@@ -59,6 +59,7 @@ type Project = {
   deadline?: string | null;
   show_on_homepage?: boolean;
   show_on_projects_page?: boolean;
+  portfolio_category?: string;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -87,6 +88,7 @@ type ProjectForm = {
   deadline: string;
   show_on_homepage: boolean;
   show_on_projects_page: boolean;
+  portfolio_category: "Cybersecurity" | "Software Development" | "Networks & Infrastructure" | "Data Analytics" | "Digital Marketing";
 };
 
 type Notice = {
@@ -103,6 +105,7 @@ const EMPTY_FORM: ProjectForm = {
   deadline: "",
   show_on_homepage: false,
   show_on_projects_page: false,
+  portfolio_category: "Software Development",
 };
 
 const STATUS_OPTIONS: {
@@ -580,6 +583,7 @@ export default function AdminProjectsPage() {
         deadline: typeof row.deadline === "string" ? row.deadline : null,
         show_on_homepage: row.show_on_homepage === true,
         show_on_projects_page: row.show_on_projects_page === true,
+        portfolio_category: String(row.portfolio_category ?? "Software Development"),
         status: row.status === "planned" || row.status === "draft" ? "planning" : String(row.status ?? "planning"),
         client_name: nextClients.find((client) => client.id === row.client_id)?.name ?? null,
       })) as Project[];
@@ -708,6 +712,7 @@ export default function AdminProjectsPage() {
       deadline: project.deadline?.slice(0, 10) ?? "",
       show_on_homepage: project.show_on_homepage === true,
       show_on_projects_page: project.show_on_projects_page === true,
+      portfolio_category: (project.portfolio_category ?? "Software Development") as ProjectForm["portfolio_category"],
     });
 
     setSelectedFiles([]);
@@ -949,6 +954,7 @@ export default function AdminProjectsPage() {
         deadline: form.deadline || null,
         show_on_homepage: form.show_on_homepage,
         show_on_projects_page: form.show_on_projects_page,
+        portfolio_category: form.portfolio_category,
         updated_at: new Date().toISOString(),
       };
 
@@ -1898,6 +1904,19 @@ export default function AdminProjectsPage() {
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-white">Website placement</h3>
                     <p className="mt-1 text-xs leading-5 text-slate-500">Choose where this project may be displayed publicly. Private by default; client information and project media remain protected.</p>
+                  </div>
+                  <div className="mb-4">
+                    <label className={fieldLabel}>
+                      Portfolio department
+                      <select value={form.portfolio_category} onChange={(event) => updateForm("portfolio_category", event.target.value as ProjectForm["portfolio_category"])} className={`${inputClass} project-field`}>
+                        <option value="Cybersecurity">Cybersecurity</option>
+                        <option value="Software Development">Software Development</option>
+                        <option value="Networks & Infrastructure">Networks & Infrastructure</option>
+                        <option value="Data Analytics">Data Analytics</option>
+                        <option value="Digital Marketing">Digital Marketing</option>
+                      </select>
+                      <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-slate-500">Select which of the five public portfolio sections should contain this work.</span>
+                    </label>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-200">
