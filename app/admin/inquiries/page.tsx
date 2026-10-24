@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
@@ -50,6 +50,7 @@ export default function InquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
@@ -227,6 +228,54 @@ export default function InquiriesPage() {
       )
     );
     setNotice("Inquiry status updated.");
+  }
+
+  async function convertInquiry(item: Inquiry) {
+    if (item.status === "converted") return;
+
+    const confirmed = window.confirm(
+      `Convert "${item.full_name}" into a client? This will create a client record and mark the inquiry as converted.`,
+    );
+
+    if (!confirmed) return;
+
+    setConvertingId(item.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `/api/admin/inquiries/${encodeURIComponent(item.id)}/convert`,
+        { method: "POST" },
+      );
+      const result = (await response.json()) as {
+        error?: string;
+        message?: string;
+        client?: { id: string; name: string };
+      };
+
+      if (!response.ok) {
+        setError(result.error || "Could not convert this inquiry.");
+        return;
+      }
+
+      setInquiries((current) =>
+        current.map((entry) =>
+          entry.id === item.id
+            ? { ...entry, status: "converted" }
+            : entry,
+        ),
+      );
+      setNotice(
+        result.message ||
+          `"${item.full_name}" was converted to a client successfully.`,
+      );
+      await loadInquiries();
+    } catch {
+      setError("A network error occurred while converting the inquiry.");
+    } finally {
+      setConvertingId(null);
+    }
   }
 
   async function deleteInquiry(item: Inquiry) {
@@ -549,6 +598,16 @@ export default function InquiriesPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
+                          {item.status !== "converted" && (
+                            <button
+                              type="button"
+                              className="rounded-xl border border-emerald-400/25 px-3 py-2 text-sm text-emerald-300 transition hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() => void convertInquiry(item)}
+                              disabled={convertingId === item.id}
+                            >
+                              {convertingId === item.id ? "Converting..." : "Convert to Client"}
+                            </button>
+                          )}
                           <button type="button" className={buttonClass} onClick={() => startEdit(item)}>
                             Edit
                           </button>
