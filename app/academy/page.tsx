@@ -3,13 +3,16 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/browser";
 import type { FormEvent } from "react";
 
 type TrainingMode = "online" | "inperson" | "recorded" | "workshops";
 type FilterMode = "all" | TrainingMode;
 
 type Course = {
-  id: number;
+  id: string;
+  slug: string;
   title: string;
   category: string;
   level: string;
@@ -31,8 +34,8 @@ const modes: { id: FilterMode; label: string }[] = [
 const categories = [
   "All",
   "Cybersecurity",
-  "Programming",
-  "Networking",
+  "Software Development",
+  "Networks & Infrastructure",
   "Data Analytics",
   "Digital Marketing",
 ];
@@ -44,188 +47,7 @@ const modeLabels: Record<TrainingMode, string> = {
   workshops: "Workshop",
 };
 
-const courses: Course[] = [
-  {
-    id: 1,
-    title: "Cybersecurity Fundamentals",
-    category: "Cybersecurity",
-    level: "Beginner",
-    duration: "6 weeks",
-    modes: ["online", "inperson", "workshops"],
-    image:
-      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Build a practical foundation in cybersecurity, common threats, secure systems, and defensive practices.",
-    topics: [
-      "Security principles and common threats",
-      "Networking and system security basics",
-      "Risk assessment and protection",
-      "Hands-on security exercises",
-    ],
-  },
-  {
-    id: 2,
-    title: "Web Development Bootcamp",
-    category: "Programming",
-    level: "Beginner",
-    duration: "8 weeks",
-    modes: ["online", "inperson", "workshops"],
-    image:
-      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Learn how modern websites are planned, built, and improved through practical development projects.",
-    topics: [
-      "HTML, CSS, and responsive design",
-      "JavaScript fundamentals",
-      "React and modern web concepts",
-      "Build and present a portfolio project",
-    ],
-  },
-  {
-    id: 3,
-    title: "Network Engineering Essentials",
-    category: "Networking",
-    level: "Beginner to Intermediate",
-    duration: "6 weeks",
-    modes: ["online", "inperson", "recorded"],
-    image:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Explore network architecture, connectivity, troubleshooting, and reliable IT infrastructure.",
-    topics: [
-      "Network models and addressing",
-      "Routing and switching concepts",
-      "Network troubleshooting",
-      "Infrastructure and security basics",
-    ],
-  },
-  {
-    id: 4,
-    title: "Data Analytics with Python",
-    category: "Data Analytics",
-    level: "Beginner",
-    duration: "7 weeks",
-    modes: ["online", "recorded", "workshops"],
-    image:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Turn raw data into useful insights using Python, visualization, and practical exercises.",
-    topics: [
-      "Working with structured data",
-      "Python analysis fundamentals",
-      "Data cleaning and visualization",
-      "Build an analytical report",
-    ],
-  },
-  {
-    id: 5,
-    title: "Digital Marketing & Analytics",
-    category: "Digital Marketing",
-    level: "Beginner",
-    duration: "5 weeks",
-    modes: ["online", "recorded", "workshops"],
-    image:
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Understand digital campaigns, content strategy, performance metrics, and data-informed decisions.",
-    topics: [
-      "Digital marketing fundamentals",
-      "Content and campaign planning",
-      "Paid media concepts",
-      "Performance measurement and reporting",
-    ],
-  },
-  {
-    id: 6,
-    title: "Practical Security Workshop",
-    category: "Cybersecurity",
-    level: "Intermediate",
-    duration: "2 days",
-    modes: ["online", "inperson", "workshops"],
-    image:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=85",
-    description:
-      "Practice defensive security thinking, safe lab exercises, and structured problem solving.",
-    topics: [
-      "Security lab orientation",
-      "Threat identification exercises",
-      "Defensive investigation workflows",
-      "Practical review and lessons learned",
-    ],
-  },
-];
-
-const backgroundCode = [
-  "const future = buildSkills();",
-  "import { Security } from 'vexora';",
-  "01001000 01010100 01001101 01001100",
-  "function learn() { return practice(); }",
-  "git commit -m 'build your future'",
-  "SELECT skills FROM experience;",
-  "npm run build",
-  "while (learning) { improve(); }",
-  "01010110 01000101 01011000 01001111",
-  "const data = analyze(insights);",
-  "interface Developer { skills: string[] }",
-  "await createSomethingGreat();",
-  "const security = protect(system);",
-  "export default YourFuture;",
-  "if (error) debug();",
-  "const network = connect(nodes);",
-  "return <Future skills={skills} />;",
-  "const result = await api.get('/learn');",
-  "git push origin main",
-  "npm run lint",
-  "class Developer extends Creator {}",
-  "const solution = solve(problem);",
-];
-
-const formats = [
-  {
-    icon: "globe",
-    title: "Live online",
-    description: "Learn remotely with guided sessions.",
-  },
-  {
-    icon: "users",
-    title: "In person",
-    description: "Learn together in a classroom setting when available.",
-  },
-  {
-    icon: "play",
-    title: "Self-paced",
-    description: "Study lessons at your own pace.",
-  },
-  {
-    icon: "terminal",
-    title: "Hands-on workshops",
-    description: "Practice skills through guided activities.",
-  },
-];
-
-const learningSteps = [
-  {
-    number: "01",
-    title: "Understand",
-    description: "Build a clear foundation in each subject.",
-  },
-  {
-    number: "02",
-    title: "Practice",
-    description: "Apply concepts through guided exercises.",
-  },
-  {
-    number: "03",
-    title: "Create",
-    description: "Work toward a practical project or outcome.",
-  },
-  {
-    number: "04",
-    title: "Improve",
-    description: "Review your progress and plan your next step.",
-  },
-];
-
+const initialCourses: Course[] = [];
 function Icon({
   name,
   size = 20,
@@ -348,6 +170,9 @@ function Icon({
 }
 
 export default function AcademyPage() {
+  const router = useRouter();
+  const [userReady, setUserReady] = useState(false);
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
   const [mode, setMode] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
@@ -359,6 +184,62 @@ export default function AcademyPage() {
   const [learnerName, setLearnerName] = useState("");
   const [learnerEmail, setLearnerEmail] = useState("");
   const [preferredFormat, setPreferredFormat] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function loadPublishedCourses() {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (!active) return;
+      if (authError || !authData.user) {
+        router.replace("/login?next=%2Facademy");
+        return;
+      }
+      setUserReady(true);
+      const { data, error: queryError } = await supabase
+        .from("courses")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at")
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+      if (!active) return;
+      if (queryError) {
+        console.error("Academy catalogue load failed:", queryError.message);
+        setCourses([]);
+        return;
+      }
+      const imageByCategory: Record<string, string> = {
+        Cybersecurity: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
+        "Software Development": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+        "Networks & Infrastructure": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
+        "Data Analytics": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
+        "Digital Marketing": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+      };
+      setCourses((data ?? []).map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        category: row.category || "Cybersecurity",
+        level: row.difficulty ? row.difficulty.charAt(0).toUpperCase() + row.difficulty.slice(1) : "All levels",
+        duration: row.estimated_hours ? `${row.estimated_hours} hours` : "Flexible schedule",
+        modes: row.course_type === "in_person" ? ["inperson"] : row.course_type === "hybrid" ? ["online", "inperson"] : ["online"],
+        image: imageByCategory[row.category] || imageByCategory.Cybersecurity,
+        description: row.description || "Course details will be announced soon.",
+        topics: [],
+      })) as Course[]);
+    }
+    void loadPublishedCourses();
+    return () => { active = false; };
+  }, [router]);
+
+  if (!userReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#05080e] px-5 text-white">
+        <div className="text-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-blue-400/20 border-t-blue-400" />
+          <p className="mt-4 text-sm text-slate-400">Verifying your VEXORA account...</p>
+        </div>
+      </main>
+    );
+  }
 
   const filteredCourses = useMemo(() => {
     const query = search.trim().toLowerCase();
