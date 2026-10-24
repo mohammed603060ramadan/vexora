@@ -373,6 +373,7 @@ export default function Home() {
         .from("events")
         .select("id,title,description,event_type,event_date,start_time,location")
         .eq("status", "published")
+        .eq("show_on_homepage", true)
         .order("event_date", { ascending: true, nullsFirst: false })
         .limit(3);
       if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
