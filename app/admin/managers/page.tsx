@@ -13,6 +13,7 @@ type Manager = {
 export default function AdminManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
@@ -107,6 +108,10 @@ export default function AdminManagersPage() {
       setError("Please enter an email address.");
       return;
     }
+    if (password.length < 12 || password.length > 128 || password.trim() !== password) {
+      setError("Use an initial password of 12–128 characters with no leading or trailing spaces.");
+      return;
+    }
 
     setSaving(true);
 
@@ -118,6 +123,7 @@ export default function AdminManagersPage() {
         },
         body: JSON.stringify({
           email: normalizedEmail,
+          password,
         }),
       });
 
@@ -129,8 +135,9 @@ export default function AdminManagersPage() {
         );
       }
 
-      setMessage("Administrator invitation sent successfully. The invitee must verify their email and set a password before signing in.");
+      setMessage("Administrator account created. Share the initial password through a secure channel and ask the new administrator to change it after signing in.");
       setEmail("");
+      setPassword("");
 
       await loadManagers(false);
     } catch (err) {
@@ -242,11 +249,11 @@ export default function AdminManagersPage() {
         <section className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-blue-950/20 sm:p-7">
           <div className="mb-6">
             <h2 className="text-xl font-bold">
-              Invite a Manager
+              Create Administrator Account
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Send a secure invitation to a new manager. They will verify their email and set their own password before signing in.
+              Create the account from the protected server endpoint and assign an initial password. Use a unique password and share it only through a secure channel.
             </p>
           </div>
 
@@ -254,7 +261,7 @@ export default function AdminManagersPage() {
             onSubmit={handleCreate}
             className="grid gap-5 sm:grid-cols-2"
           >
-            <div className="sm:col-span-2">
+            <div>
               <label
                 htmlFor="manager-email"
                 className="mb-2 block text-sm text-slate-300"
@@ -275,6 +282,12 @@ export default function AdminManagersPage() {
               />
             </div>
 
+            <div>
+              <label htmlFor="manager-password" className="mb-2 block text-sm text-slate-300">Initial Password</label>
+              <input id="manager-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 12 characters" className="w-full rounded-xl border border-white/10 bg-[#0b1020] px-4 py-3 outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+              <p className="mt-2 text-xs leading-5 text-slate-500">Minimum 12 characters. Never reuse your own password.</p>
+            </div>
+
             <div className="sm:col-span-2">
               <button
                 type="submit"
@@ -284,10 +297,10 @@ export default function AdminManagersPage() {
                 {saving ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Sending invitation...
+                    Creating account...
                   </>
                 ) : (
-                  "Send Manager Invitation"
+                  "Create Administrator"
                 )}
               </button>
             </div>
