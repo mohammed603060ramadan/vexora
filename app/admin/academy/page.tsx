@@ -24,8 +24,8 @@ type CourseForm = {
   title: string;
   slug: string;
   description: string;
-  difficulty: "" | "beginner" | "intermediate" | "advanced";
-  course_type: "" | "online" | "in_person" | "hybrid";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  course_type: "online" | "in_person" | "hybrid";
   estimated_hours: string;
   status: "draft" | "published" | "archived";
 };
@@ -177,8 +177,8 @@ export default function AcademyPage() {
         title,
         slug,
         description: form.description.trim() || null,
-        difficulty: form.difficulty || null,
-        course_type: form.course_type || null,
+        difficulty: form.difficulty,
+        course_type: form.course_type,
         estimated_hours: hours,
         status: form.status,
       });
@@ -412,7 +412,7 @@ export default function AcademyPage() {
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
                   <option value="advanced">Advanced</option>
-                  <option value="">Not specified</option>
+                  
                 </select>
               </div>
 
@@ -437,7 +437,7 @@ export default function AcademyPage() {
                   <option value="online">Online</option>
                   <option value="in_person">In person</option>
                   <option value="hybrid">Hybrid</option>
-                  <option value="">Not specified</option>
+                  
                 </select>
               </div>
 
