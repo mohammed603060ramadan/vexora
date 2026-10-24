@@ -12,6 +12,7 @@ const navigation = [
   { label: "Clients", href: "/admin/clients", icon: "♙" },
   { label: "Client Inquiries", href: "/admin/inquiries", icon: "✉" },
   { label: "Team & Roles", href: "/admin/team", icon: "♧" },
+  { label: "Managers", href: "/admin/managers", icon: "♙" },
   { label: "Services", href: "/admin/services", icon: "◇" },
   { label: "Website Pages", href: "/admin/pages", icon: "▤" },
   { label: "Technology News", href: "/admin/news", icon: "◉" },
