@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
 type EventStatus = "draft" | "published" | "completed" | "cancelled";
@@ -120,7 +121,7 @@ export default function AdminEventsPage() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function saveEvent(event: React.FormEvent<HTMLFormElement>) {
+  async function saveEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError("");
