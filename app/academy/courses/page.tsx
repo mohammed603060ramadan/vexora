@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
 
 type Course = {
@@ -34,7 +33,6 @@ const categoryImages: Record<string, string> = {
 };
 
 export default function AcademyCoursesPage() {
-  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
@@ -44,25 +42,19 @@ export default function AcademyCoursesPage() {
   useEffect(() => {
     let active = true;
     async function load() {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (!active) return;
-      if (authError || !authData.user) {
-        router.replace("/login?next=%2Facademy%2Fcourses");
-        return;
-      }
       const { data, error: queryError } = await supabase
         .from("courses")
         .select("id,title,slug,description,category,difficulty,course_type,estimated_hours")
         .eq("status", "published")
         .order("created_at", { ascending: false });
       if (!active) return;
-      if (queryError) setError(queryError.message);
+      if (queryError) setError("Published courses could not be loaded. Please refresh and try again.");
       else setCourses((data ?? []) as Course[]);
       setLoading(false);
     }
     void load();
     return () => { active = false; };
-  }, [router]);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
