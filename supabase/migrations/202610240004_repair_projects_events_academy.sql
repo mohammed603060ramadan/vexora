@@ -1,26 +1,12 @@
 BEGIN;
 
--- Repair existing projects tables created before the due_date column was added.
+-- Projects: preserve the live schema (title, deadline). Do not introduce
+-- duplicate name/due_date columns. Add only the public placement switches.
 ALTER TABLE public.projects
-  ADD COLUMN IF NOT EXISTS due_date DATE,
   ADD COLUMN IF NOT EXISTS show_on_homepage BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS show_on_projects_page BOOLEAN NOT NULL DEFAULT FALSE;
 
--- Keep existing legacy deadline data when that column is present.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'projects'
-      AND column_name = 'deadline'
-  ) THEN
-    EXECUTE 'UPDATE public.projects SET due_date = deadline WHERE due_date IS NULL AND deadline IS NOT NULL';
-  END IF;
-END
-$$;
-
--- The category column is required by both Academy management and the course catalogue.
+-- Academy: the current application expects a category on each course.
 ALTER TABLE public.courses
   ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'Cybersecurity';
 
@@ -40,15 +26,13 @@ ALTER TABLE public.courses
 CREATE INDEX IF NOT EXISTS courses_category_status_idx
   ON public.courses (category, status);
 
--- Make event storage complete even if an earlier partial table already existed.
+-- Events: create the table if it is missing, and safely complete a partial table.
 CREATE TABLE IF NOT EXISTS public.events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(220) NOT NULL,
   description TEXT,
-  event_type VARCHAR(30) NOT NULL DEFAULT 'webinar'
-    CHECK (event_type IN ('conference', 'webinar', 'workshop', 'meeting', 'other')),
-  status VARCHAR(20) NOT NULL DEFAULT 'draft'
-    CHECK (status IN ('draft', 'published', 'completed', 'cancelled')),
+  event_type VARCHAR(30) NOT NULL DEFAULT 'webinar',
+  status VARCHAR(20) NOT NULL DEFAULT 'draft',
   event_date DATE,
   start_time TIME,
   end_time TIME,
@@ -74,12 +58,8 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES au
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
-DO $
+DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_title_nonempty_check' AND conrelid = 'public.events'::regclass) THEN
-    ALTER TABLE public.events ADD CONSTRAINT events_title_nonempty_check
-      CHECK (length(trim(title)) > 0) NOT VALID;
-  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_type_valid_check' AND conrelid = 'public.events'::regclass) THEN
     ALTER TABLE public.events ADD CONSTRAINT events_type_valid_check
       CHECK (event_type IN ('conference', 'webinar', 'workshop', 'meeting', 'other')) NOT VALID;
@@ -97,7 +77,7 @@ BEGIN
       CHECK (registration_url IS NULL OR registration_url ~* '^https?://') NOT VALID;
   END IF;
 END
-$;
+$$;
 
 CREATE INDEX IF NOT EXISTS events_status_date_idx
   ON public.events (status, event_date);
@@ -109,7 +89,7 @@ GRANT INSERT, UPDATE, DELETE ON public.events TO authenticated;
 DROP POLICY IF EXISTS events_public_read ON public.events;
 CREATE POLICY events_public_read
   ON public.events FOR SELECT TO anon, authenticated
-  USING (status = 'published');
+  USING (status = 'published' AND show_on_homepage = TRUE);
 
 DROP POLICY IF EXISTS events_admin_manage ON public.events;
 CREATE POLICY events_admin_manage
@@ -117,20 +97,21 @@ CREATE POLICY events_admin_manage
   USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
   WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Public website can only read project fields explicitly approved for display.
+-- Public project access is limited to explicitly approved showcase records
+-- and only the columns used by the public pages.
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-GRANT SELECT (id, name, description, status, due_date, show_on_homepage, show_on_projects_page)
+GRANT SELECT (id, title, description, status, deadline, show_on_homepage, show_on_projects_page)
   ON public.projects TO anon, authenticated;
+
 DROP POLICY IF EXISTS vexora_public_project_showcases_read ON public.projects;
 CREATE POLICY vexora_public_project_showcases_read
-  ON public.projects
-  FOR SELECT TO anon, authenticated
+  ON public.projects FOR SELECT TO anon, authenticated
   USING (
     status IN ('in_progress', 'completed')
     AND (show_on_homepage = TRUE OR show_on_projects_page = TRUE)
   );
 
--- Reload the REST schema cache after the repair so the API sees the new columns.
+-- Refresh PostgREST's schema cache so newly added fields are discoverable.
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
