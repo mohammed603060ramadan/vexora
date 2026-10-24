@@ -44,7 +44,35 @@ export default function StudentRegistrationsAdminPage() {
     }
     setLoading(false);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialRegistrations() {
+      const { data, error: queryError } = await supabase
+        .from("student_registrations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (queryError) {
+        setError(queryError.message);
+        setItems([]);
+      } else {
+        const rows = (data ?? []) as Registration[];
+        setItems(rows);
+        setNotes(Object.fromEntries(rows.map((row) => [row.id, row.admin_notes ?? ""])));
+      }
+
+      setLoading(false);
+    }
+
+    void loadInitialRegistrations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
