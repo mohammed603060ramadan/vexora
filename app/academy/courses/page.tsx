@@ -42,6 +42,8 @@ export default function AcademyCoursesPage() {
   useEffect(() => {
     const requestedCategory = new URLSearchParams(window.location.search).get("category");
     if (requestedCategory && categories.includes(requestedCategory)) {
+      // URL-driven initial filter is intentional; the value comes from browser navigation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCategory(requestedCategory);
     }
   }, []);
