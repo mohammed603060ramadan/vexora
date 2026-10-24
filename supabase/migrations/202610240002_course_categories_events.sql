@@ -65,6 +65,12 @@ CREATE POLICY lessons_read
     OR (
       is_preview = true
       AND status = 'published'
+      AND EXISTS (
+        SELECT 1
+        FROM public.courses AS c
+        WHERE c.id = course_id
+          AND c.status = 'published'
+      )
     )
   );
 
