@@ -468,6 +468,14 @@ export default function LoginPage() {
                     : "At least 8 characters"
                 }
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="mt-2 text-xs font-medium text-cyan-300 transition hover:text-white"
+              >
+                {showPassword ? "Hide password" : "Show password"}
+              </button>
             </div>
           )}
 
