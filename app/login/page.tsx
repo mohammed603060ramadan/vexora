@@ -166,6 +166,21 @@ export default function LoginPage() {
       return;
     }
 
+    const requestedNext = new URLSearchParams(window.location.search).get("next");
+    const safeNext =
+      requestedNext &&
+      requestedNext.startsWith("/") &&
+      !requestedNext.startsWith("//") &&
+      !requestedNext.startsWith("/admin")
+        ? requestedNext
+        : null;
+
+    if (safeNext) {
+      router.replace(safeNext);
+      router.refresh();
+      return;
+    }
+
     const { data: client, error: clientError } = await supabase
       .from("clients")
       .select("id")
