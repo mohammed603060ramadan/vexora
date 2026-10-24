@@ -106,6 +106,12 @@ function CourseDetailsContent() {
       setError("");
 
       try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError || !authData.user) {
+          window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+          return;
+        }
+
         const {
           data: courseData,
           error: courseError,
