@@ -45,7 +45,243 @@ const modeLabels: Record<TrainingMode, string> = {
   hybrid: "Hybrid",
 };
 
-const initialCourses: Course[] = [];
+const initialCourses: Course[] = [
+  {
+    "id": "sample-cybersecurity-fundamentals",
+    "slug": "cybersecurity-fundamentals",
+    "title": "Cybersecurity Fundamentals",
+    "category": "Cybersecurity",
+    "level": "Beginner",
+    "duration": "24 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
+    "description": "Security principles, common threats, risk awareness and defensive practices.",
+    "topics": []
+  },
+  {
+    "id": "sample-ethical-hacking",
+    "slug": "ethical-hacking",
+    "title": "Ethical Hacking & Penetration Testing",
+    "category": "Cybersecurity",
+    "level": "Intermediate",
+    "duration": "40 hours",
+    "modes": [
+      "online",
+      "inperson"
+    ],
+    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
+    "description": "Authorized assessment workflows, reconnaissance, vulnerability validation and reporting.",
+    "topics": []
+  },
+  {
+    "id": "sample-soc-blue-team",
+    "slug": "soc-blue-team",
+    "title": "SOC Analyst & Blue Team Operations",
+    "category": "Cybersecurity",
+    "level": "Intermediate",
+    "duration": "32 hours",
+    "modes": [
+      "online"
+    ],
+    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
+    "description": "Security monitoring, alert triage, incident handling and defensive workflows.",
+    "topics": []
+  },
+  {
+    "id": "sample-web-development",
+    "slug": "web-development",
+    "title": "Modern Web Development",
+    "category": "Software Development",
+    "level": "Beginner",
+    "duration": "36 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+    "description": "Responsive websites, HTML, CSS, JavaScript, accessibility and modern tooling.",
+    "topics": []
+  },
+  {
+    "id": "sample-react-nextjs",
+    "slug": "react-nextjs",
+    "title": "React & Next.js Engineering",
+    "category": "Software Development",
+    "level": "Intermediate",
+    "duration": "42 hours",
+    "modes": [
+      "online",
+      "inperson"
+    ],
+    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+    "description": "React interfaces and full-stack Next.js application development.",
+    "topics": []
+  },
+  {
+    "id": "sample-python-programming",
+    "slug": "python-programming",
+    "title": "Python Programming & Automation",
+    "category": "Software Development",
+    "level": "Beginner",
+    "duration": "30 hours",
+    "modes": [
+      "online"
+    ],
+    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+    "description": "Python fundamentals, functions, file handling, APIs and automation.",
+    "topics": []
+  },
+  {
+    "id": "sample-database-engineering",
+    "slug": "database-engineering",
+    "title": "SQL & Database Engineering",
+    "category": "Software Development",
+    "level": "Intermediate",
+    "duration": "28 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+    "description": "Relational schemas, queries, joins, constraints and SQL fundamentals.",
+    "topics": []
+  },
+  {
+    "id": "sample-networking-fundamentals",
+    "slug": "networking-fundamentals",
+    "title": "Networking Fundamentals",
+    "category": "Networks & Infrastructure",
+    "level": "Beginner",
+    "duration": "26 hours",
+    "modes": [
+      "online",
+      "inperson"
+    ],
+    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
+    "description": "TCP/IP, addressing, switching, routing and troubleshooting.",
+    "topics": []
+  },
+  {
+    "id": "sample-network-security",
+    "slug": "network-security",
+    "title": "Network Security & Hardening",
+    "category": "Networks & Infrastructure",
+    "level": "Intermediate",
+    "duration": "34 hours",
+    "modes": [
+      "online"
+    ],
+    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
+    "description": "Secure network design, segmentation, access control and hardening.",
+    "topics": []
+  },
+  {
+    "id": "sample-cloud-infrastructure",
+    "slug": "cloud-infrastructure",
+    "title": "Cloud & Infrastructure Essentials",
+    "category": "Networks & Infrastructure",
+    "level": "Intermediate",
+    "duration": "30 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
+    "description": "Cloud architecture, deployment, monitoring and infrastructure operations.",
+    "topics": []
+  },
+  {
+    "id": "sample-data-analysis-excel-sql",
+    "slug": "data-analysis-excel-sql",
+    "title": "Data Analysis with Excel & SQL",
+    "category": "Data Analytics",
+    "level": "Beginner",
+    "duration": "24 hours",
+    "modes": [
+      "online",
+      "inperson"
+    ],
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
+    "description": "Clean, transform, query and interpret data for business questions.",
+    "topics": []
+  },
+  {
+    "id": "sample-power-bi-dashboards",
+    "slug": "power-bi-dashboards",
+    "title": "Power BI & Business Dashboards",
+    "category": "Data Analytics",
+    "level": "Intermediate",
+    "duration": "32 hours",
+    "modes": [
+      "online"
+    ],
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
+    "description": "Data models and clear dashboards for business performance metrics.",
+    "topics": []
+  },
+  {
+    "id": "sample-python-data-analysis",
+    "slug": "python-data-analysis",
+    "title": "Python for Data Analysis",
+    "category": "Data Analytics",
+    "level": "Intermediate",
+    "duration": "38 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
+    "description": "Explore datasets, summarize findings and communicate data insights with Python.",
+    "topics": []
+  },
+  {
+    "id": "sample-digital-marketing",
+    "slug": "digital-marketing",
+    "title": "Digital Marketing Foundations",
+    "category": "Digital Marketing",
+    "level": "Beginner",
+    "duration": "22 hours",
+    "modes": [
+      "online",
+      "inperson"
+    ],
+    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+    "description": "Digital channels, audience planning, content strategy and measurement.",
+    "topics": []
+  },
+  {
+    "id": "sample-seo-content-strategy",
+    "slug": "seo-content-strategy",
+    "title": "SEO & Content Strategy",
+    "category": "Digital Marketing",
+    "level": "Intermediate",
+    "duration": "26 hours",
+    "modes": [
+      "online"
+    ],
+    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+    "description": "Search intent, on-page SEO, content planning and performance review.",
+    "topics": []
+  },
+  {
+    "id": "sample-performance-marketing",
+    "slug": "performance-marketing",
+    "title": "Performance Marketing & Analytics",
+    "category": "Digital Marketing",
+    "level": "Intermediate",
+    "duration": "30 hours",
+    "modes": [
+      "online",
+      "hybrid"
+    ],
+    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+    "description": "Measurable campaigns, paid-channel metrics and campaign optimization.",
+    "topics": []
+  }
+];
 
 const backgroundCode = [
   "const secure = true;",
@@ -195,6 +431,7 @@ function Icon({
 
 export default function AcademyPage() {
   const [userReady, setUserReady] = useState(false);
+  const [usingSampleCourses, setUsingSampleCourses] = useState(false);
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
   const [mode, setMode] = useState<FilterMode>("all");
@@ -221,7 +458,8 @@ export default function AcademyPage() {
       if (!active) return;
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
-        setCourses([]);
+        setCourses(initialCourses);
+        setUsingSampleCourses(true);
         setUserReady(true);
         return;
       }
@@ -232,7 +470,7 @@ export default function AcademyPage() {
         "Data Analytics": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
         "Digital Marketing": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
       };
-      setCourses((data ?? []).map((row) => ({
+      const mappedCourses = (data ?? []).map((row) => ({
         id: row.id,
         slug: row.slug,
         title: row.title,
@@ -243,7 +481,9 @@ export default function AcademyPage() {
         image: imageByCategory[row.category] || imageByCategory.Cybersecurity,
         description: row.description || "Course details will be announced soon.",
         topics: [],
-      })) as Course[]);
+      })) as Course[];
+      setCourses(mappedCourses.length ? mappedCourses : initialCourses);
+      setUsingSampleCourses(mappedCourses.length === 0);
       setUserReady(true);
     }
     void loadPublishedCourses();
@@ -912,6 +1152,7 @@ export default function AcademyPage() {
                 Explore sample learning paths across technology and business.
                 Filter the catalog to find a subject and format that fit you.
               </p>
+              {usingSampleCourses && <p className="mt-4 max-w-xl rounded-lg border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3 text-xs leading-6 text-amber-100/80">Preview catalogue: these example learning paths remain visible while no courses are published. Courses added and published by an administrator replace this preview automatically.</p>}
               <div className="mt-5 flex flex-wrap gap-3"><Link href="/academy/categories" className="inline-flex items-center gap-2 rounded-xl border border-blue-300/25 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/50 hover:bg-blue-400/10">Explore 5 learning tracks <span aria-hidden="true">↗</span></Link><Link href="/academy/courses" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">Open full course directory <span aria-hidden="true">↗</span></Link></div>
             </div>
 
