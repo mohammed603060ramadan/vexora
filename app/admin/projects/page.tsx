@@ -57,6 +57,8 @@ type Project = {
   status: string;
   budget?: number | string | null;
   deadline?: string | null;
+  show_on_homepage?: boolean;
+  show_on_projects_page?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -83,6 +85,8 @@ type ProjectForm = {
   status: ProjectStatus;
   budget: string;
   deadline: string;
+  show_on_homepage: boolean;
+  show_on_projects_page: boolean;
 };
 
 type Notice = {
@@ -97,6 +101,8 @@ const EMPTY_FORM: ProjectForm = {
   status: "planning",
   budget: "",
   deadline: "",
+  show_on_homepage: false,
+  show_on_projects_page: false,
 };
 
 const STATUS_OPTIONS: {
@@ -572,6 +578,8 @@ export default function AdminProjectsPage() {
         ...row,
         title: String(row.name ?? ""),
         deadline: typeof row.due_date === "string" ? row.due_date : null,
+        show_on_homepage: row.show_on_homepage === true,
+        show_on_projects_page: row.show_on_projects_page === true,
         status: row.status === "planned" || row.status === "draft" ? "planning" : String(row.status ?? "planning"),
         client_name: nextClients.find((client) => client.id === row.client_id)?.name ?? null,
       })) as Project[];
@@ -698,6 +706,8 @@ export default function AdminProjectsPage() {
           ? ""
           : String(project.budget),
       deadline: project.deadline?.slice(0, 10) ?? "",
+      show_on_homepage: project.show_on_homepage === true,
+      show_on_projects_page: project.show_on_projects_page === true,
     });
 
     setSelectedFiles([]);
@@ -937,6 +947,8 @@ export default function AdminProjectsPage() {
         status: form.status === "planning" ? "planned" : form.status,
         budget: budget ? Number(budget) : 0,
         due_date: form.deadline || null,
+        show_on_homepage: form.show_on_homepage,
+        show_on_projects_page: form.show_on_projects_page,
         updated_at: new Date().toISOString(),
       };
 
@@ -1878,6 +1890,23 @@ export default function AdminProjectsPage() {
                         }
                         className={`${inputClass} [color-scheme:dark]`}
                       />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mb-7 border-t border-white/[0.07] pt-6">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-white">Website placement</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Choose where this project may be displayed publicly. Private by default; client information and project media remain protected.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-200">
+                      <input type="checkbox" checked={form.show_on_homepage} onChange={(event) => updateForm("show_on_homepage", event.target.checked)} className="mt-1 h-4 w-4 accent-blue-500" />
+                      <span><span className="block font-medium">Homepage featured projects</span><span className="mt-1 block text-xs leading-5 text-slate-500">Allow this project to appear in a public homepage showcase.</span></span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-200">
+                      <input type="checkbox" checked={form.show_on_projects_page} onChange={(event) => updateForm("show_on_projects_page", event.target.checked)} className="mt-1 h-4 w-4 accent-blue-500" />
+                      <span><span className="block font-medium">Public projects page</span><span className="mt-1 block text-xs leading-5 text-slate-500">Mark this project for the public projects directory.</span></span>
                     </label>
                   </div>
                 </div>
