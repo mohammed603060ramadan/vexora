@@ -562,7 +562,7 @@ export default function AdminSettingsPage() {
                     </label>
                     <label className="block text-sm text-slate-300">Default language
                       <select value={company.language} onChange={(event) => updateCompany("language", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
-                        <option value="en">English</option><option value="ar">العربية</option>
+                        <option value="en">English</option><option value="ar">Arabic</option>
                       </select>
                     </label>
                     <label className="block text-sm text-slate-300 sm:col-span-2">Time zone
