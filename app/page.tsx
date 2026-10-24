@@ -1251,7 +1251,7 @@ export default function Home() {
               </article>
             ))}
           </div>
-          <div className="mt-7 text-center"><Link href="/projects" className="button button-small">Explore selected projects <span aria-hidden="true">↗</span></Link></div>
+          <div className="mt-7 flex flex-wrap justify-center gap-3"><Link href="/projects" className="button button-small">Explore selected projects <span aria-hidden="true">↗</span></Link><Link href="/portfolio" className="button button-small button-outline">View portfolio gallery <span aria-hidden="true">↗</span></Link></div>
         </section>
       )}
 
