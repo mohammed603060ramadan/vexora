@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
 type Course = {
+  category: string;
   id: string;
   title: string;
   slug: string;
@@ -19,6 +20,7 @@ type Course = {
 };
 
 type CourseForm = {
+  category: "Cybersecurity" | "Software Development" | "Networks & Infrastructure" | "Data Analytics" | "Digital Marketing";
   title: string;
   slug: string;
   description: string;
@@ -29,6 +31,7 @@ type CourseForm = {
 };
 
 const initialForm: CourseForm = {
+  category: "Cybersecurity",
   title: "",
   slug: "",
   description: "",
@@ -96,7 +99,7 @@ export default function AcademyPage() {
       const { data, error: queryError } = await supabase
         .from("courses")
         .select(
-          "id, title, slug, description, difficulty, course_type, estimated_hours, status, created_at, updated_at"
+          "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at"
         )
         .order("created_at", { ascending: false });
 
@@ -170,6 +173,7 @@ export default function AcademyPage() {
 
     try {
       const { error: insertError } = await supabase.from("courses").insert({
+        category: form.category,
         title,
         slug,
         description: form.description.trim() || null,
@@ -364,6 +368,26 @@ export default function AcademyPage() {
                 placeholder="اكتب وصفًا يوضح محتوى الكورس وما سيتعلمه الطالب..."
                 className={`${fieldClass} resize-y`}
               />
+            </div>
+
+            <div className="mb-5">
+              <label htmlFor="course-category" className="mb-2 block text-sm font-medium text-gray-300">
+                Course department
+              </label>
+              <select
+                id="course-category"
+                required
+                value={form.category}
+                onChange={(event) => updateForm("category", event.target.value as CourseForm["category"])}
+                className={fieldClass}
+              >
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Software Development">Software Development</option>
+                <option value="Networks & Infrastructure">Networks &amp; Infrastructure</option>
+                <option value="Data Analytics">Data Analytics</option>
+                <option value="Digital Marketing">Digital Marketing</option>
+              </select>
+              <p className="mt-2 text-xs text-gray-500">Published courses appear automatically in the matching Academy track.</p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
