@@ -102,6 +102,9 @@ CREATE INDEX IF NOT EXISTS events_status_date_idx
 
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
+GRANT SELECT ON public.events TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.events TO authenticated;
+
 DROP POLICY IF EXISTS events_public_read ON public.events;
 CREATE POLICY events_public_read
   ON public.events
