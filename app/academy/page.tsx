@@ -230,17 +230,6 @@ export default function AcademyPage() {
     return () => { active = false; };
   }, [router]);
 
-  if (!userReady) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#05080e] px-5 text-white">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-blue-400/20 border-t-blue-400" />
-          <p className="mt-4 text-sm text-slate-400">Verifying your VEXORA account...</p>
-        </div>
-      </main>
-    );
-  }
-
   const filteredCourses = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -267,7 +256,7 @@ export default function AcademyPage() {
         (!query || searchableText.includes(query))
       );
     });
-  }, [category, mode, search]);
+  }, [courses, category, mode, search]);
 
   const hasActiveFilters =
     category !== "All" || mode !== "all" || search.trim() !== "";
@@ -374,6 +363,17 @@ export default function AcademyPage() {
 
   function printCertificate() {
     window.print();
+  }
+
+  if (!userReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#05080e] px-5 text-white">
+        <div className="text-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-blue-400/20 border-t-blue-400" />
+          <p className="mt-4 text-sm text-slate-400">Verifying your VEXORA account...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
