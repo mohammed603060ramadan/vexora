@@ -923,7 +923,19 @@ export default function AcademyPage() {
                       : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/25 hover:text-white"
                   }`}
                 >
-                  {item}
+                  <span className="inline-flex items-center gap-2">
+                    <Icon
+                      size={16}
+                      name={
+                        item === "Cybersecurity" ? "shield" :
+                        item === "Software Development" ? "terminal" :
+                        item === "Networks & Infrastructure" ? "globe" :
+                        item === "Data Analytics" ? "sparkles" :
+                        item === "Digital Marketing" ? "arrow" : "check"
+                      }
+                    />
+                    {item}
+                  </span>
                 </button>
               );
             })}
