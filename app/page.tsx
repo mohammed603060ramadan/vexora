@@ -3,6 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/browser";
+
+type HomepageEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: string;
+  event_date: string | null;
+  start_time: string | null;
+  location: string | null;
+};
 
 const CLIENT_FORM_URL = "/register/client";
 
@@ -350,6 +361,31 @@ function SocialIcon({ name }: { name: string }) {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [publishedEvents, setPublishedEvents] = useState<HomepageEvent[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadPublicEventsAndSession() {
+      const { data: authData } = await supabase.auth.getUser();
+      if (active) setIsAuthenticated(Boolean(authData.user));
+      const { data, error } = await supabase
+        .from("events")
+        .select("id,title,description,event_type,event_date,start_time,location")
+        .eq("status", "published")
+        .order("event_date", { ascending: true, nullsFirst: false })
+        .limit(3);
+      if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
+    }
+    void loadPublicEventsAndSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".vexora-site");
@@ -593,12 +629,18 @@ export default function Home() {
               About
             </Link>
 
-            <Link href="/academy" onClick={closeMenu}>
-              Academy
-            </Link>
+            {isAuthenticated && (
+              <Link href="/academy" onClick={closeMenu}>
+                Academy
+              </Link>
+            )}
 
             <Link href="/projects" onClick={closeMenu}>
               Projects
+            </Link>
+
+            <Link href="/events" onClick={closeMenu}>
+              Events
             </Link>
 
             <Link href="/contact" onClick={closeMenu}>
@@ -1171,6 +1213,31 @@ export default function Home() {
         </div>
       </section>
 
+      {publishedEvents.length > 0 && (
+        <section className="section page-width" aria-labelledby="homepage-events-title">
+          <div className="section-heading">
+            <p className="eyebrow">VEXORA CALENDAR</p>
+            <h2 id="homepage-events-title">Events that move ideas forward.</h2>
+            <p>Explore the latest published VEXORA sessions, workshops and community events.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {publishedEvents.map((event) => (
+              <article key={event.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition hover:border-blue-400/30">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{event.event_type}</p>
+                <h3 className="mt-3 text-xl font-semibold text-white">{event.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{event.description || "More details will be announced soon."}</p>
+                <div className="mt-5 space-y-2 text-xs text-slate-500">
+                  {event.event_date && <p>{new Intl.DateTimeFormat("en", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(event.event_date + "T12:00:00"))}</p>}
+                  {event.start_time && <p>{event.start_time.slice(0, 5)}{event.location ? ` · ${event.location}` : ""}</p>}
+                  {!event.start_time && event.location && <p>{event.location}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-7 text-center"><Link href="/events" className="button button-small">Explore all events <span aria-hidden="true">↗</span></Link></div>
+        </section>
+      )}
+
       {/* Footer */}
 
       <footer className="site-footer">
@@ -1195,7 +1262,8 @@ export default function Home() {
           <div className="footer-links">
             <Link href="/services">Services</Link>
             <Link href="/about">About</Link>
-            <Link href="/academy">Academy</Link>
+            {isAuthenticated && <Link href="/academy">Academy</Link>}
+            <Link href="/events">Events</Link>
             <Link href="/projects">Projects</Link>
             <Link href="/contact">Contact</Link>
           </div>
