@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const dynamic = "force-dynamic";
-
 const BUCKET = "project-media";
 const SIGNED_URL_SECONDS = 60 * 15;
 
