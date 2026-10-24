@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
 type PublicEvent = {
@@ -26,7 +27,7 @@ function formatDate(value: string | null) {
 }
 
 function EventGlyph({ type }: { type: string }) {
-  const paths: Record<string, React.ReactNode> = {
+  const paths: Record<string, ReactNode> = {
     conference: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8M8 11h8M8 15h5" /></>,
     webinar: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="m10 8 5 2.5-5 2.5zM8 21h8M12 17v4" /></>,
     workshop: <><path d="m14 6 4-4 4 4-4 4zM2 22l8-8M7 5l12 12M3 9l6-6" /></>,
