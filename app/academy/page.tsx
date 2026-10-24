@@ -4,7 +4,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
 import type { FormEvent } from "react";
 
@@ -195,7 +194,6 @@ function Icon({
 }
 
 export default function AcademyPage() {
-  const router = useRouter();
   const [userReady, setUserReady] = useState(false);
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
@@ -215,13 +213,6 @@ export default function AcademyPage() {
   useEffect(() => {
     let active = true;
     async function loadPublishedCourses() {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (!active) return;
-      if (authError || !authData.user) {
-        router.replace("/login?next=%2Facademy");
-        return;
-      }
-      setUserReady(true);
       const { data, error: queryError } = await supabase
         .from("courses")
         .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at")
@@ -231,6 +222,7 @@ export default function AcademyPage() {
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
         setCourses([]);
+        setUserReady(true);
         return;
       }
       const imageByCategory: Record<string, string> = {
@@ -252,10 +244,11 @@ export default function AcademyPage() {
         description: row.description || "Course details will be announced soon.",
         topics: [],
       })) as Course[]);
+      setUserReady(true);
     }
     void loadPublishedCourses();
     return () => { active = false; };
-  }, [router]);
+  }, []);
 
   const filteredCourses = useMemo(() => {
     const query = search.trim().toLowerCase();
