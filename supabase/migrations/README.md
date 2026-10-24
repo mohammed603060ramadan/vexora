@@ -36,7 +36,7 @@ Apply migrations through the team's chosen Supabase migration workflow, in versi
 ## Important verification notes
 
 - GitHub stores migration files; it does not apply them to Supabase automatically.
-- Before deploying 202610240004, verify the live projects table has the expected columns (id, name, description, status) and that existing RLS policies are compatible with public showcase access.
+- Before deploying 202610240004, verify the live projects table has the expected columns (id, title, description, status, deadline) and that existing RLS policies are compatible with public showcase access.
 - Before deploying 202610240005, check whether public.vexora_admins already exists and whether the live manager API uses that table. The migration intentionally preserves existing registry rows.
 - Test administrator invitation/removal, project save/media upload, event create/publish, and course create/publish against a non-production/test record before relying on production behavior.
 - Use Supabase CLI migration commands only after the repository and linked project are confirmed and pending migrations have been reviewed. Do not reset the production database to make migration history match.
