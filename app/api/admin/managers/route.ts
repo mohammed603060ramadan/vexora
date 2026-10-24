@@ -142,15 +142,18 @@ export async function POST(request: Request) {
     typeof body !== "object" ||
     Array.isArray(body) ||
     !("email" in body) ||
-    typeof body.email !== "string"
+    typeof body.email !== "string" ||
+    !("password" in body) ||
+    typeof body.password !== "string"
   ) {
     return NextResponse.json(
-      { error: "A valid email address is required." },
+      { error: "A valid email address and initial password are required." },
       { status: 400 }
     );
   }
 
   const email = body.email.trim().toLowerCase();
+  const password = body.password;
 
   if (
     email.length > 254 ||
@@ -158,6 +161,13 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json(
       { error: "Enter a valid email address." },
+      { status: 400 }
+    );
+  }
+
+  if (password.length < 12 || password.length > 128 || password.trim() !== password) {
+    return NextResponse.json(
+      { error: "The initial password must be 12–128 characters and cannot start or end with spaces." },
       { status: 400 }
     );
   }
@@ -217,83 +227,39 @@ export async function POST(request: Request) {
     );
   }
 
-  const redirectTo = new URL(
-    "/login?recovery=1",
-    request.url
-  ).toString();
-
-  const { data: inviteData, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
+  const { data: createdData, error: createError } =
+    await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      app_metadata: { role: "admin" },
     });
 
-  if (inviteError || !inviteData.user) {
-    console.error(
-      "Manager invitation failed:",
-      inviteError?.message ?? "No user returned."
-    );
-
+  if (createError || !createdData.user) {
+    console.error("Manager account creation failed:", createError?.message ?? "No user returned.");
     return NextResponse.json(
-      {
-        error:
-          "Could not send the invitation. Check Supabase email settings and try again.",
-      },
+      { error: "Could not create the administrator account. Check Supabase Auth settings and try again." },
       { status: 400 }
     );
   }
 
-  const invitedUser = inviteData.user;
-
-  const { error: roleError } =
-    await admin.auth.admin.updateUserById(invitedUser.id, {
-      app_metadata: {
-        ...(invitedUser.app_metadata ?? {}),
-        role: "admin",
-      },
-    });
-
-  if (roleError) {
-    console.error("Manager role assignment failed:", roleError.message);
-
-    return NextResponse.json(
-      {
-        error:
-          "The invitation was sent, but administrator access could not be assigned. Check this account before retrying.",
-      },
-      { status: 500 }
-    );
-  }
-
+  const createdUser = createdData.user;
   const { error: registryError } = await admin
     .from("vexora_admins")
-    .insert({ user_id: invitedUser.id } as never);
+    .insert({ user_id: createdUser.id } as never);
 
   if (registryError) {
-    const { error: rollbackError } =
-      await admin.auth.admin.updateUserById(invitedUser.id, {
-        app_metadata: invitedUser.app_metadata ?? {},
-      });
-
+    const { error: rollbackError } = await admin.auth.admin.deleteUser(createdUser.id);
     console.error("Admin registry insert failed:", registryError.message);
-
-    if (rollbackError) {
-      console.error("Admin role rollback failed:", rollbackError.message);
-    }
-
+    if (rollbackError) console.error("Admin account rollback failed:", rollbackError.message);
     return NextResponse.json(
-      {
-        error:
-          "The invitation was sent, but administrator registration failed. Check the account before retrying.",
-      },
+      { error: "The account was created but administrator registration failed. The system attempted to remove the new account; verify the administrator list before retrying." },
       { status: 500 }
     );
   }
 
   return NextResponse.json(
-    {
-      success: true,
-      message: "Manager invitation sent successfully.",
-    },
+    { success: true, message: "Administrator account created successfully." },
     { status: 201 }
   );
 }
