@@ -89,7 +89,7 @@ GRANT INSERT, UPDATE, DELETE ON public.events TO authenticated;
 DROP POLICY IF EXISTS events_public_read ON public.events;
 CREATE POLICY events_public_read
   ON public.events FOR SELECT TO anon, authenticated
-  USING (status = 'published' AND show_on_homepage = TRUE);
+  USING (status = 'published');
 
 DROP POLICY IF EXISTS events_admin_manage ON public.events;
 CREATE POLICY events_admin_manage
