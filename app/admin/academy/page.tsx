@@ -42,21 +42,21 @@ const initialForm: CourseForm = {
 };
 
 const difficultyLabels: Record<string, string> = {
-  beginner: "مبتدئ",
-  intermediate: "متوسط",
-  advanced: "متقدم",
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
 };
 
 const typeLabels: Record<string, string> = {
-  online: "أونلاين",
-  in_person: "حضوري",
-  hybrid: "هجين",
+  online: "Online",
+  in_person: "In person",
+  hybrid: "Hybrid",
 };
 
 const statusLabels: Record<string, string> = {
-  draft: "مسودة",
-  published: "منشور",
-  archived: "مؤرشف",
+  draft: "Draft",
+  published: "Published",
+  archived: "Archived",
 };
 
 const statusStyles: Record<string, string> = {
@@ -110,7 +110,7 @@ export default function AcademyPage() {
         setCourses((data ?? []) as Course[]);
       }
     } catch {
-      setError("حدث خطأ غير متوقع أثناء تحميل الكورسات.");
+      setError("An unexpected error occurred while loading courses.");
       setCourses([]);
     } finally {
       setLoading(false);
@@ -140,7 +140,7 @@ export default function AcademyPage() {
     const title = form.title.trim();
 
     if (!title) {
-      setFormError("اكتب عنوان الكورس أولًا.");
+      setFormError("Enter a course title first.");
       return;
     }
 
@@ -151,7 +151,7 @@ export default function AcademyPage() {
 
     if (!slug) {
       setFormError(
-        "تعذر إنشاء رابط مختصر. اكتب Slug باللغة الإنجليزية والأرقام."
+        "Could not generate a valid slug. Use English letters and numbers."
       );
       return;
     }
@@ -165,7 +165,7 @@ export default function AcademyPage() {
       hours !== null &&
       (!Number.isInteger(hours) || hours < 1)
     ) {
-      setFormError("عدد الساعات يجب أن يكون رقمًا صحيحًا أكبر من صفر.");
+      setFormError("Estimated hours must be a positive whole number.");
       return;
     }
 
@@ -186,28 +186,28 @@ export default function AcademyPage() {
       if (insertError) {
         if (insertError.code === "23505") {
           setFormError(
-            "هذا الرابط المختصر مستخدم بالفعل. اختر Slug مختلفًا."
+            "This slug is already in use. Choose a different slug."
           );
         } else if (
           insertError.code === "42501" ||
           insertError.message.toLowerCase().includes("row-level security")
         ) {
           setFormError(
-            "ليست لديك صلاحية إضافة الكورسات. تحقق من دور المدير وسياسات RLS في Supabase."
+            "You do not have permission to add courses. Check the administrator role and Supabase RLS policies."
           );
         } else {
-          setFormError(`تعذر حفظ الكورس: ${insertError.message}`);
+          setFormError(`تعذر Save course: ${insertError.message}`);
         }
         return;
       }
 
       setForm(initialForm);
       setShowForm(false);
-      setSuccessMessage("تم إنشاء الكورس وحفظه بنجاح.");
+      setSuccessMessage("Course created and saved successfully.");
 
       await loadCourses();
     } catch {
-      setFormError("حدث خطأ غير متوقع أثناء حفظ الكورس. حاول مرة أخرى.");
+      setFormError("An unexpected error occurred while saving the course. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -248,11 +248,11 @@ export default function AcademyPage() {
           </p>
 
           <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            إدارة الأكاديمية
+            Academy Management
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-400">
-            إدارة الدورات التدريبية وإنشاء الكورسات ومتابعة حالاتها من لوحة تحكم VEXORA.
+            إدارة الدورات التدريبية وإنشاء Courseات ومتابعة حالاتها من لوحة تحكم VEXORA.
           </p>
         </div>
 
@@ -267,7 +267,7 @@ export default function AcademyPage() {
             className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold transition hover:bg-blue-500"
           >
             <span aria-hidden="true">{showForm ? "×" : "+"}</span>
-            {showForm ? "إغلاق النموذج" : "إضافة كورس جديد"}
+            {showForm ? "Close form" : "Add new course"}
           </button>
 
           <button
@@ -299,8 +299,8 @@ export default function AcademyPage() {
             </p>
             <h2 className="mt-2 text-xl font-bold">إنشاء كورس جديد</h2>
             <p className="mt-2 text-sm leading-7 text-gray-400">
-              أدخل بيانات الكورس واحفظه في قاعدة البيانات. المسودة لن تظهر للطلاب
-              باعتبارها كورسًا منشورًا.
+              أدخل بيانات Course واحفظه في قاعدة البيانات. الDraft لن تظهر للطلاب
+              باعتبارها كورسًا Publishedًا.
             </p>
           </div>
 
@@ -311,7 +311,7 @@ export default function AcademyPage() {
                   htmlFor="course-title"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  عنوان الكورس <span className="text-red-400">*</span>
+                  Course title <span className="text-red-400">*</span>
                 </label>
                 <input
                   id="course-title"
@@ -321,7 +321,7 @@ export default function AcademyPage() {
                   onChange={(event) =>
                     updateForm("title", event.target.value)
                   }
-                  placeholder="مثال: أساسيات الأمن السيبراني"
+                  placeholder="e.g. Cybersecurity Fundamentals"
                   className={fieldClass}
                 />
               </div>
@@ -331,7 +331,7 @@ export default function AcademyPage() {
                   htmlFor="course-slug"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  الرابط المختصر (Slug)
+                  Course slug
                 </label>
                 <input
                   id="course-slug"
@@ -355,7 +355,7 @@ export default function AcademyPage() {
                 htmlFor="course-description"
                 className="mb-2 block text-sm font-medium text-gray-300"
               >
-                وصف الكورس
+                Course description
               </label>
               <textarea
                 id="course-description"
@@ -365,7 +365,7 @@ export default function AcademyPage() {
                 onChange={(event) =>
                   updateForm("description", event.target.value)
                 }
-                placeholder="اكتب وصفًا يوضح محتوى الكورس وما سيتعلمه الطالب..."
+                placeholder="Describe the course content and learning outcomes..."
                 className={`${fieldClass} resize-y`}
               />
             </div>
@@ -396,7 +396,7 @@ export default function AcademyPage() {
                   htmlFor="course-difficulty"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  المستوى
+                  Difficulty
                 </label>
                 <select
                   id="course-difficulty"
@@ -409,10 +409,10 @@ export default function AcademyPage() {
                   }
                   className={fieldClass}
                 >
-                  <option value="beginner">مبتدئ</option>
-                  <option value="intermediate">متوسط</option>
-                  <option value="advanced">متقدم</option>
-                  <option value="">غير محدد</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="">Not specified</option>
                 </select>
               </div>
 
@@ -421,7 +421,7 @@ export default function AcademyPage() {
                   htmlFor="course-type"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  نوع الكورس
+                  Course format
                 </label>
                 <select
                   id="course-type"
@@ -434,10 +434,10 @@ export default function AcademyPage() {
                   }
                   className={fieldClass}
                 >
-                  <option value="online">أونلاين</option>
-                  <option value="in_person">حضوري</option>
-                  <option value="hybrid">هجين</option>
-                  <option value="">غير محدد</option>
+                  <option value="online">Online</option>
+                  <option value="in_person">In person</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="">Not specified</option>
                 </select>
               </div>
 
@@ -446,7 +446,7 @@ export default function AcademyPage() {
                   htmlFor="course-hours"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  عدد الساعات
+                  Estimated hours
                 </label>
                 <input
                   id="course-hours"
@@ -457,7 +457,7 @@ export default function AcademyPage() {
                   onChange={(event) =>
                     updateForm("estimated_hours", event.target.value)
                   }
-                  placeholder="مثال: 20"
+                  placeholder="e.g. 20"
                   className={fieldClass}
                 />
               </div>
@@ -467,7 +467,7 @@ export default function AcademyPage() {
                   htmlFor="course-status"
                   className="mb-2 block text-sm font-medium text-gray-300"
                 >
-                  حالة الكورس
+                  Course status
                 </label>
                 <select
                   id="course-status"
@@ -480,9 +480,9 @@ export default function AcademyPage() {
                   }
                   className={fieldClass}
                 >
-                  <option value="draft">مسودة</option>
-                  <option value="published">منشور</option>
-                  <option value="archived">مؤرشف</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function AcademyPage() {
                 disabled={saving}
                 className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "جاري الحفظ..." : "حفظ الكورس"}
+                {saving ? "Saving..." : "Save course"}
               </button>
 
               <button
@@ -524,10 +524,10 @@ export default function AcademyPage() {
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "إجمالي الكورسات", value: courses.length },
-          { label: "الكورسات المنشورة", value: publishedCount },
-          { label: "المسودات", value: draftCount },
-          { label: "الكورسات المؤرشفة", value: archivedCount },
+          { label: "Total courses", value: courses.length },
+          { label: "Courseات الPublishedة", value: publishedCount },
+          { label: "Drafts", value: draftCount },
+          { label: "Courseات الArchivedة", value: archivedCount },
         ].map((item) => (
           <div
             key={item.label}
@@ -544,9 +544,9 @@ export default function AcademyPage() {
       <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5 sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-bold">الكورسات المسجلة</h2>
+            <h2 className="text-xl font-bold">Courseات المسجلة</h2>
             <p className="mt-2 text-sm text-gray-400">
-              ابحث بالاسم أو الرابط التعريفي، أو صفِّ النتائج حسب الحالة.
+              اSearch بالاسم أو الرابط التعريفي، أو صفِّ النتائج حسب الحالة.
             </p>
           </div>
 
@@ -555,21 +555,21 @@ export default function AcademyPage() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="ابحث عن كورس..."
-              aria-label="البحث عن كورس"
+              placeholder="Search courses..."
+              aria-label="Search courses"
               className={fieldClass}
             />
 
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              aria-label="تصفية الكورسات حسب الحالة"
+              aria-label="Filter courses by status"
               className={fieldClass}
             >
               <option value="all">كل الحالات</option>
-              <option value="draft">مسودة</option>
-              <option value="published">منشور</option>
-              <option value="archived">مؤرشف</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
             </select>
           </div>
         </div>
@@ -579,7 +579,7 @@ export default function AcademyPage() {
             role="alert"
             className="mt-6 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm leading-7 text-red-300"
           >
-            <p className="font-semibold">تعذر تحميل الكورسات</p>
+            <p className="font-semibold">تعذر تحميل Courseات</p>
             <p className="mt-1 break-words">{error}</p>
             <p className="mt-2 text-red-200/80">
               تحقق من تسجيل الدخول وصلاحيات قراءة جدول courses وسياسات RLS.
@@ -589,7 +589,7 @@ export default function AcademyPage() {
 
         {loading ? (
           <div className="py-16 text-center text-sm text-gray-400">
-            جاري تحميل الكورسات...
+            جاري تحميل Courseات...
           </div>
         ) : error ? (
           <div className="py-8 text-center text-sm text-gray-500">
@@ -602,13 +602,13 @@ export default function AcademyPage() {
             </div>
             <p className="mt-4 font-semibold">
               {courses.length === 0
-                ? "لا توجد كورسات مسجلة حتى الآن"
-                : "لا توجد نتائج مطابقة للبحث"}
+                ? "No courses have been created yet"
+                : "No courses match your search"}
             </p>
             <p className="mt-2 text-sm text-gray-500">
               {courses.length === 0
-                ? "اضغط على «إضافة كورس جديد» لإنشاء أول كورس."
-                : "جرّب تغيير كلمات البحث أو فلتر الحالة."}
+                ? "اضغط على «Add new course» لإنشاء أول كورس."
+                : "Try changing your search term or status filter."}
             </p>
           </div>
         ) : (
@@ -624,6 +624,9 @@ export default function AcademyPage() {
                       <h3 className="text-lg font-semibold">
                         {course.title}
                       </h3>
+                      <span className="rounded-full border border-blue-400/20 bg-blue-400/5 px-2.5 py-1 text-xs text-blue-200">
+                        {course.category}
+                      </span>
 
                       <span
                         className={`rounded-full border px-2.5 py-1 text-xs ${
@@ -648,13 +651,13 @@ export default function AcademyPage() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       {course.difficulty && (
                         <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-gray-300">
-                          المستوى: {difficultyLabels[course.difficulty]}
+                          Difficulty: {difficultyLabels[course.difficulty]}
                         </span>
                       )}
 
                       {course.course_type && (
                         <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-gray-300">
-                          النوع: {typeLabels[course.course_type]}
+                          Format: {typeLabels[course.course_type]}
                         </span>
                       )}
 
