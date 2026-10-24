@@ -33,6 +33,15 @@ CREATE POLICY courses_read
     OR instructor_id = (SELECT auth.uid())
   );
 
+-- Match the application's server-side admin role for course administration.
+-- Existing permission-based policies remain in place for other authorized roles.
+DROP POLICY IF EXISTS vexora_app_admin_courses_manage ON public.courses;
+CREATE POLICY vexora_app_admin_courses_manage
+  ON public.courses
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
 DROP POLICY IF EXISTS course_sections_read ON public.course_sections;
 CREATE POLICY course_sections_read
   ON public.course_sections
@@ -46,6 +55,13 @@ CREATE POLICY course_sections_read
         AND c.status = 'published'
     )
   );
+
+DROP POLICY IF EXISTS vexora_app_admin_course_sections_manage ON public.course_sections;
+CREATE POLICY vexora_app_admin_course_sections_manage
+  ON public.course_sections
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS lessons_read ON public.lessons;
 CREATE POLICY lessons_read
@@ -73,6 +89,13 @@ CREATE POLICY lessons_read
       )
     )
   );
+
+DROP POLICY IF EXISTS vexora_app_admin_lessons_manage ON public.lessons;
+CREATE POLICY vexora_app_admin_lessons_manage
+  ON public.lessons
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Persist events created in Admin > Events and publish them to the website.
 CREATE TABLE IF NOT EXISTS public.events (
