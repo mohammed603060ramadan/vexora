@@ -1,28 +1,10 @@
 ﻿
 import Link from "next/link";
+import AdminNavigation from "@/app/admin/admin-navigation";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-
-const navigation = [
-  { label: "Overview", href: "/admin", icon: "◫" },
-  { label: "Analytics", href: "/admin/analytics", icon: "▥" },
-  { label: "Projects", href: "/admin/projects", icon: "▦" },
-  { label: "Clients", href: "/admin/clients", icon: "♙" },
-  { label: "Client Inquiries", href: "/admin/inquiries", icon: "✉" },
-  { label: "Team & Roles", href: "/admin/team", icon: "♧" },
-  { label: "Managers", href: "/admin/managers", icon: "♙" },
-  { label: "Services", href: "/admin/services", icon: "◇" },
-  { label: "Website Pages", href: "/admin/pages", icon: "▤" },
-  { label: "Technology News", href: "/admin/news", icon: "◉" },
-  { label: "Events", href: "/admin/events", icon: "◷" },
-  { label: "Academy", href: "/admin/academy", icon: "▣" },
-  { label: "Student Registrations", href: "/admin/registrations", icon: "♧" },
-  { label: "Messages", href: "/admin/messages", icon: "✉" },
-  { label: "Users", href: "/admin/users", icon: "♙" },
-  { label: "Settings", href: "/admin/settings", icon: "⚙" },
-];
 
 function AdminLoading() {
   return (
@@ -77,25 +59,7 @@ async function AdminWorkspace({
           ADMINISTRATION
         </p>
 
-        <nav className="flex-1 space-y-1.5">
-          {navigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition ${
-                item.href === "/admin"
-                  ? "border-blue-400/15 bg-blue-500/10 font-medium text-blue-300"
-                  : "border-transparent text-gray-400 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <span className="flex h-6 w-6 items-center justify-center text-lg">
-                {item.icon}
-              </span>
-
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <AdminNavigation />
 
         <div className="mt-8 rounded-2xl border border-blue-400/10 bg-gradient-to-br from-blue-500/10 to-transparent p-4">
           <p className="text-sm font-semibold">
