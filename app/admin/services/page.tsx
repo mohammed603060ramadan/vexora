@@ -327,8 +327,8 @@ export default function AdminServicesPage() {
       service.status === "active" ? "inactive" : "active";
 
     const confirmed = window.confirm(
-      `Change the status of service "${service.name}" إلى ${
-        nextStatus === "active" ? "Active" : "غير Active"
+      `Change the status of service "${service.name}" to ${
+        nextStatus === "active" ? "Active" : "Inactive"
       }?`,
     );
 
@@ -366,7 +366,7 @@ export default function AdminServicesPage() {
     if (busyId) return;
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete service "${service.name}"؟ This deletion cannot be undone.`,
+      `Are you sure you want to delete service "${service.name}"? This deletion cannot be undone.`,
     );
 
     if (!confirmed) return;
