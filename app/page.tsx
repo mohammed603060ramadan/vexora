@@ -5,6 +5,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
+type HomepageProject = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  show_on_homepage: boolean;
+};
+
 type HomepageEvent = {
   id: string;
   title: string;
@@ -363,6 +371,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [publishedEvents, setPublishedEvents] = useState<HomepageEvent[]>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<HomepageProject[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -377,6 +386,14 @@ export default function Home() {
         .order("event_date", { ascending: true, nullsFirst: false })
         .limit(3);
       if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
+      const { data: projectData, error: projectError } = await supabase
+        .from("projects")
+        .select("id,name,description,status,show_on_homepage")
+        .eq("show_on_homepage", true)
+        .in("status", ["in_progress", "completed"])
+        .order("name", { ascending: true })
+        .limit(3);
+      if (active && !projectError) setFeaturedProjects((projectData ?? []) as HomepageProject[]);
     }
     void loadPublicEventsAndSession();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -1217,6 +1234,26 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {featuredProjects.length > 0 && (
+        <section className="section page-width" aria-labelledby="homepage-projects-title">
+          <div className="section-heading">
+            <p className="eyebrow">SELECTED WORK</p>
+            <h2 id="homepage-projects-title">Projects approved for public showcase.</h2>
+            <p>Explore selected work published by the VEXORA team.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {featuredProjects.map((project) => (
+              <article key={project.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition hover:border-blue-400/30">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{project.status.replaceAll("_", " ")}</p>
+                <h3 className="mt-3 text-xl font-semibold text-white">{project.name}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{project.description || "Project details will be shared soon."}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-7 text-center"><Link href="/projects" className="button button-small">Explore selected projects <span aria-hidden="true">↗</span></Link></div>
+        </section>
+      )}
 
       {publishedEvents.length > 0 && (
         <section className="section page-width" aria-labelledby="homepage-events-title">
