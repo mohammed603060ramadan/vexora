@@ -884,6 +884,7 @@ export default function Home() {
 
       {/* Academy */}
 
+      {isAuthenticated && (
       <section id="academy" className="section page-width academy-section">
         <div className="section-heading reveal">
           <div>
@@ -956,6 +957,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      </section>
+      )}
 
       {/* Registration */}
 
