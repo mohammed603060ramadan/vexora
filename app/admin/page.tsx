@@ -79,6 +79,7 @@ export default async function AdminPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/admin/projects" className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold transition hover:bg-blue-400">Open projects <span aria-hidden="true">↗</span></Link>
+              <Link href="/admin/managers" className="rounded-xl border border-blue-300/20 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/40 hover:bg-blue-400/[0.1]">Manage administrators <span aria-hidden="true">↗</span></Link>
               <Link href="/admin/settings" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-200 transition hover:bg-white/[0.07]">System settings</Link>
             </div>
           </div>
