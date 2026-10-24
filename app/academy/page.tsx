@@ -46,6 +46,32 @@ const modeLabels: Record<TrainingMode, string> = {
 };
 
 const initialCourses: Course[] = [];
+
+const backgroundCode = [
+  "const secure = true;",
+  "await verifyIdentity();",
+  "if (accessGranted) {",
+  "  return <Dashboard />;",
+  "encrypt(payload);",
+  "SELECT status FROM courses;",
+  "const threat = scan();",
+  "export default function VEXORA() {",
+  "const data = await analyze();",
+  "network.monitor({ active: true });",
+];
+
+const formats = [
+  { title: "Live online", description: "Learn with guided sessions and instructor support.", icon: "globe" },
+  { title: "In person", description: "Build skills through direct, hands-on practice.", icon: "users" },
+  { title: "Hybrid learning", description: "Combine flexible online study with practical sessions.", icon: "sparkles" },
+  { title: "Practical projects", description: "Apply concepts to realistic technology challenges.", icon: "terminal" },
+];
+
+const learningSteps = [
+  { number: "01", title: "Understand the fundamentals", description: "Start with clear explanations and a structured learning path." },
+  { number: "02", title: "Practise with guidance", description: "Strengthen your understanding through exercises and practical tasks." },
+  { number: "03", title: "Build real projects", description: "Apply new skills to projects that demonstrate your progress." },
+];
 function Icon({
   name,
   size = 20,
