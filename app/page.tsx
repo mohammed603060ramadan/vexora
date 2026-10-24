@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase/browser";
 
 type HomepageProject = {
   id: string;
-  name: string;
+  title: string;
   description: string | null;
   status: string;
   show_on_homepage: boolean;
@@ -388,7 +388,7 @@ export default function Home() {
       if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
       const { data: projectData, error: projectError } = await supabase
         .from("projects")
-        .select("id,name,description,status,show_on_homepage")
+        .select("id,title,description,status,show_on_homepage")
         .eq("show_on_homepage", true)
         .in("status", ["in_progress", "completed"])
         .order("name", { ascending: true })
@@ -1246,7 +1246,7 @@ export default function Home() {
             {featuredProjects.map((project) => (
               <article key={project.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition hover:border-blue-400/30">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{project.status.replaceAll("_", " ")}</p>
-                <h3 className="mt-3 text-xl font-semibold text-white">{project.name}</h3>
+                <h3 className="mt-3 text-xl font-semibold text-white">{project.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-400">{project.description || "Project details will be shared soon."}</p>
               </article>
             ))}
