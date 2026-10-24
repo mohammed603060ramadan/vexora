@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
 import type { FormEvent } from "react";
 
-type TrainingMode = "online" | "inperson" | "recorded" | "workshops";
+type TrainingMode = "online" | "inperson" | "hybrid";
 type FilterMode = "all" | TrainingMode;
 
 type Course = {
@@ -25,10 +25,9 @@ type Course = {
 
 const modes: { id: FilterMode; label: string }[] = [
   { id: "all", label: "All formats" },
-  { id: "online", label: "Live online" },
+  { id: "online", label: "Online" },
   { id: "inperson", label: "In person" },
-  { id: "recorded", label: "Self-paced" },
-  { id: "workshops", label: "Workshops" },
+  { id: "hybrid", label: "Hybrid" },
 ];
 
 const categories = [
@@ -43,8 +42,7 @@ const categories = [
 const modeLabels: Record<TrainingMode, string> = {
   online: "Live online",
   inperson: "In person",
-  recorded: "Self-paced",
-  workshops: "Workshop",
+  hybrid: "Hybrid",
 };
 
 const initialCourses: Course[] = [];
@@ -220,7 +218,7 @@ export default function AcademyPage() {
         category: row.category || "Cybersecurity",
         level: row.difficulty ? row.difficulty.charAt(0).toUpperCase() + row.difficulty.slice(1) : "All levels",
         duration: row.estimated_hours ? `${row.estimated_hours} hours` : "Flexible schedule",
-        modes: row.course_type === "in_person" ? ["inperson"] : row.course_type === "hybrid" ? ["online", "inperson"] : ["online"],
+        modes: row.course_type === "in_person" ? ["inperson"] : row.course_type === "hybrid" ? ["hybrid", "online", "inperson"] : ["online"],
         image: imageByCategory[row.category] || imageByCategory.Cybersecurity,
         description: row.description || "Course details will be announced soon.",
         topics: [],
