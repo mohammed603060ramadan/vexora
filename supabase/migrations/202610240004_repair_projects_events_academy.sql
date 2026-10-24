@@ -74,6 +74,31 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES au
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_title_nonempty_check' AND conrelid = 'public.events'::regclass) THEN
+    ALTER TABLE public.events ADD CONSTRAINT events_title_nonempty_check
+      CHECK (length(trim(title)) > 0) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_type_valid_check' AND conrelid = 'public.events'::regclass) THEN
+    ALTER TABLE public.events ADD CONSTRAINT events_type_valid_check
+      CHECK (event_type IN ('conference', 'webinar', 'workshop', 'meeting', 'other')) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_status_valid_check' AND conrelid = 'public.events'::regclass) THEN
+    ALTER TABLE public.events ADD CONSTRAINT events_status_valid_check
+      CHECK (status IN ('draft', 'published', 'completed', 'cancelled')) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_time_order_check' AND conrelid = 'public.events'::regclass) THEN
+    ALTER TABLE public.events ADD CONSTRAINT events_time_order_check
+      CHECK (start_time IS NULL OR end_time IS NULL OR end_time > start_time) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'events_registration_url_check' AND conrelid = 'public.events'::regclass) THEN
+    ALTER TABLE public.events ADD CONSTRAINT events_registration_url_check
+      CHECK (registration_url IS NULL OR registration_url ~* '^https?://') NOT VALID;
+  END IF;
+END
+$;
+
 CREATE INDEX IF NOT EXISTS events_status_date_idx
   ON public.events (status, event_date);
 
