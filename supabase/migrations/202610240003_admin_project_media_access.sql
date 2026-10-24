@@ -1,5 +1,22 @@
 BEGIN;
 
+-- Keep the project-media metadata table aligned with the admin uploader.
+CREATE TABLE IF NOT EXISTS public.project_media (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  path TEXT NOT NULL UNIQUE,
+  mime_type TEXT NOT NULL,
+  size_bytes BIGINT NOT NULL CHECK (size_bytes >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS project_media_project_created_idx
+  ON public.project_media (project_id, created_at DESC);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.projects TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.project_media TO authenticated;
+
 -- Align project administration with the same server-verified admin role
 -- already enforced by app/admin/layout.tsx and protected API routes.
 -- These additive policies do not remove the existing permission-based rules.
