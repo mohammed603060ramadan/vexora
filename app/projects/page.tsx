@@ -1,5 +1,18 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/browser";
+
+type PublicProject = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  due_date: string | null;
+  show_on_projects_page: boolean;
+};
 
 const COMPANY_WHATSAPP = "201115449868";
 
@@ -615,6 +628,23 @@ function whatsappLink(title: string) {
 }
 
 export default function ProjectsPage() {
+  const [publishedProjects, setPublishedProjects] = useState<PublicProject[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadPublishedProjects() {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id,name,description,status,due_date,show_on_projects_page")
+        .eq("show_on_projects_page", true)
+        .in("status", ["in_progress", "completed"])
+        .order("name", { ascending: true })
+        .limit(12);
+      if (active && !error) setPublishedProjects((data ?? []) as PublicProject[]);
+    }
+    void loadPublishedProjects();
+    return () => { active = false; };
+  }, []);
   return (
     <main className="projects-page min-h-screen overflow-hidden bg-[#04070b] text-white">
       <style>{`
@@ -2334,6 +2364,28 @@ export default function ProjectsPage() {
           </div>
         </div>
       </section>
+
+      {publishedProjects.length > 0 && (
+        <section className="border-y border-white/[0.07] bg-[#080d14]">
+          <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-24">
+            <span className="section-label">03 / FEATURED WORK</span>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#e6f1fb] sm:text-4xl">Selected VEXORA projects</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7e8ea1]">A selection of projects approved by the VEXORA team for public display.</p>
+            <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {publishedProjects.map((project) => (
+                <article key={project.id} className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 transition hover:border-blue-400/30">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="rounded-full border border-blue-400/20 bg-blue-400/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-blue-200">{project.status.replaceAll("_", " ")}</span>
+                    {project.due_date && <span className="text-xs text-slate-500">Target: {project.due_date}</span>}
+                  </div>
+                  <h3 className="mt-5 text-xl font-semibold text-white">{project.name}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-400">{project.description || "Project details will be shared soon."}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Final CTA */}
       <section className="px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
