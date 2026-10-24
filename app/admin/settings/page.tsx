@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type TabId =
@@ -423,6 +424,24 @@ export default function AdminSettingsPage() {
             <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification" className="shrink-0 text-blue-200 hover:text-white">✕</button>
           </div>
         )}
+
+        <section className="rounded-2xl border border-blue-400/15 bg-[#0c111b] p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">Public form inboxes</p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Registration & inquiry submissions</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Open the database-backed inboxes to review submissions from the VEXORA website.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <Link href="/admin/inquiries" className="rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-blue-400/40 hover:bg-blue-400/[0.05]">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300">Business</span>
+              <span className="mt-2 block font-medium text-white">Client inquiries ↗</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-400">Review requests, contact details, priorities and follow-up status.</span>
+            </Link>
+            <Link href="/admin/registrations" className="rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-cyan-400/40 hover:bg-cyan-400/[0.05]">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Academy</span>
+              <span className="mt-2 block font-medium text-white">Student registrations ↗</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-400">Review student interest, learning track and registration status.</span>
+            </Link>
+          </div>
+        </section>
 
         <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[

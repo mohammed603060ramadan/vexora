@@ -4,11 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const CLIENT_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSdwOFGJ0DlD6vSoxeJatKi8SPrHKZCZnTR8yMy4CvA0Jly8-g/viewform?usp=dialog";
+const CLIENT_FORM_URL = "/register/client";
 
-const STUDENT_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLScxhSiUQJ2gG6w7Mh6nzpd__2Cf7N1qTbLjviyUiWMNmB7HVw/viewform?usp=publish-editor";
+const STUDENT_FORM_URL = "/register/student";
 
 const WHATSAPP_URL = "https://wa.me/201115449868";
 const EMAIL = "vexore.mr@gmail.com";
@@ -906,15 +904,13 @@ export default function Home() {
               Explore Academy <span aria-hidden="true">↗</span>
             </Link>
 
-            <a
+            <Link
               href={STUDENT_FORM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
               className="button button-outline"
-              aria-label="Open student registration form in a new tab"
+              aria-label="Open student registration form"
             >
-              Student registration <span aria-hidden="true">↗</span>
-            </a>
+              Student registration <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -955,14 +951,9 @@ export default function Home() {
                 form.
               </p>
 
-              <a
-                href={CLIENT_FORM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button"
-              >
-                Client inquiry form <span aria-hidden="true">↗</span>
-              </a>
+              <Link href={CLIENT_FORM_URL} className="button">
+                Client inquiry form <span aria-hidden="true">→</span>
+              </Link>
 
               <Link href="/client" className="secondary-card-link">
                 Visit client area <span aria-hidden="true">→</span>
@@ -984,14 +975,9 @@ export default function Home() {
                 through the Academy.
               </p>
 
-              <a
-                href={STUDENT_FORM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button"
-              >
-                Student registration <span aria-hidden="true">↗</span>
-              </a>
+              <Link href={STUDENT_FORM_URL} className="button">
+                Student registration <span aria-hidden="true">→</span>
+              </Link>
 
               <Link href="/academy" className="secondary-card-link">
                 Visit VEXORA Academy <span aria-hidden="true">→</span>
@@ -1000,8 +986,8 @@ export default function Home() {
           </div>
 
           <p className="form-note reveal">
-            Registration forms open on Google Forms in a new tab. If a form
-            does not open, check its public responder link and sharing settings.
+            Submit either form directly on VEXORA. Your submission is saved
+            for the team to review in the administration workspace.
           </p>
         </div>
       </section>

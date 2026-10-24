@@ -12,6 +12,7 @@ type ContactPayload = {
   phone?: unknown;
   company?: unknown;
   service?: unknown;
+  website?: unknown;
 };
 
 function cleanText(value: unknown, maxLength: number): string {
@@ -73,6 +74,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Invalid JSON body." },
       { status: 400 },
+    );
+  }
+
+  // Honeypot: return a generic success response without storing bot submissions.
+  if (cleanText(payload.website, 200)) {
+    return NextResponse.json(
+      { success: true, message: "Your inquiry has been received." },
+      { status: 201 },
     );
   }
 
