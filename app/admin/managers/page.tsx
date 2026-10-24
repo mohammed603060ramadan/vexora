@@ -246,8 +246,7 @@ export default function AdminManagersPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Enter a unique email address and a strong password. A new user
-              account will be created and granted administrator privileges.
+              Send a secure invitation to a new manager. They will verify their email and set their own password before signing in.
             </p>
           </div>
 
