@@ -10,7 +10,7 @@ type PublicProject = {
   name: string;
   description: string | null;
   status: string;
-  due_date: string | null;
+  deadline: string | null;
   show_on_projects_page: boolean;
 };
 
