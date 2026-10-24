@@ -18,6 +18,7 @@ type EventRecord = {
   end_time: string | null;
   location: string | null;
   registration_url: string | null;
+  show_on_homepage: boolean;
   created_at: string;
 };
 type EventForm = {
@@ -30,10 +31,11 @@ type EventForm = {
   end_time: string;
   location: string;
   registration_url: string;
+  show_on_homepage: boolean;
 };
 const emptyForm: EventForm = {
   title: "", description: "", event_type: "webinar", status: "draft",
-  event_date: "", start_time: "", end_time: "", location: "", registration_url: "",
+  event_date: "", start_time: "", end_time: "", location: "", registration_url: "", show_on_homepage: true,
 };
 const inputClass = "w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/15";
 const statusStyle: Record<EventStatus, string> = {
@@ -73,7 +75,7 @@ export default function AdminEventsPage() {
     setError("");
     const { data, error: queryError } = await supabase
       .from("events")
-      .select("id,title,description,event_type,status,event_date,start_time,end_time,location,registration_url,created_at")
+      .select("id,title,description,event_type,status,event_date,start_time,end_time,location,registration_url,show_on_homepage,created_at")
       .order("event_date", { ascending: true, nullsFirst: false });
     if (queryError) {
       setError(queryError.message.includes("does not exist")
@@ -113,6 +115,7 @@ export default function AdminEventsPage() {
       event_date: event.event_date ?? "", start_time: event.start_time?.slice(0, 5) ?? "",
       end_time: event.end_time?.slice(0, 5) ?? "", location: event.location ?? "",
       registration_url: event.registration_url ?? "",
+      show_on_homepage: event.show_on_homepage ?? true,
     });
     setEditingId(event.id);
     setEditorOpen(true);
@@ -149,6 +152,7 @@ export default function AdminEventsPage() {
       event_date: form.event_date || null, start_time: form.start_time || null,
       end_time: form.end_time || null, location: form.location.trim() || null,
       registration_url: form.registration_url.trim() || null,
+      show_on_homepage: form.show_on_homepage,
       updated_at: new Date().toISOString(),
     };
     const result = editingId
@@ -219,6 +223,7 @@ export default function AdminEventsPage() {
             <div className="grid grid-cols-2 gap-3"><label className="text-sm text-slate-300">Start time<input type="time" className={`${inputClass} mt-2`} value={form.start_time} onChange={(e) => change("start_time", e.target.value)} /></label><label className="text-sm text-slate-300">End time<input type="time" className={`${inputClass} mt-2`} value={form.end_time} onChange={(e) => change("end_time", e.target.value)} /></label></div>
             <label className="text-sm text-slate-300">Location<input maxLength={300} className={`${inputClass} mt-2`} value={form.location} onChange={(e) => change("location", e.target.value)} placeholder="Online / venue" /></label>
             <label className="text-sm text-slate-300">Registration URL<input type="url" className={`${inputClass} mt-2`} value={form.registration_url} onChange={(e) => change("registration_url", e.target.value)} placeholder="https://..." /></label>
+            <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-200 md:col-span-2"><input type="checkbox" checked={form.show_on_homepage} onChange={(e) => change("show_on_homepage", e.target.checked)} className="h-4 w-4 accent-blue-500" /><span><span className="block font-medium">Feature on homepage</span><span className="mt-1 block text-xs text-slate-500">When published, this event can also appear in the homepage events section.</span></span></label>
             <label className="text-sm text-slate-300 md:col-span-2">Description<textarea rows={4} maxLength={5000} className={`${inputClass} mt-2 resize-y`} value={form.description} onChange={(e) => change("description", e.target.value)} placeholder="Describe the event, audience and key topics." /></label>
             <div className="flex flex-wrap gap-3 md:col-span-2"><button disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold disabled:opacity-50">{saving ? "Saving..." : editingId ? "Save changes" : "Create event"}</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm text-slate-300 hover:bg-white/5">Cancel</button></div>
           </form>
