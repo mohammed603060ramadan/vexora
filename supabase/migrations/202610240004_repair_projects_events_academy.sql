@@ -2,7 +2,9 @@ BEGIN;
 
 -- Repair existing projects tables created before the due_date column was added.
 ALTER TABLE public.projects
-  ADD COLUMN IF NOT EXISTS due_date DATE;
+  ADD COLUMN IF NOT EXISTS due_date DATE,
+  ADD COLUMN IF NOT EXISTS show_on_homepage BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS show_on_projects_page BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Keep existing legacy deadline data when that column is present.
 DO $$
