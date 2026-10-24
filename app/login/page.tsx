@@ -2,6 +2,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -352,14 +354,18 @@ export default function LoginPage() {
   }[mode];
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-white">
-      <section className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
-        <Link
-          href="/"
-          className="text-sm font-semibold tracking-[0.25em] text-cyan-400"
-        >
-          VEXORA
-        </Link>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05080e] px-4 py-12 text-white">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_10%,rgba(22,135,255,0.17),transparent_35%),radial-gradient(ellipse_at_90%_85%,rgba(69,165,255,0.08),transparent_35%)]" />
+      <section className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#0a111d]/95 p-6 shadow-[0_25px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-9">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" aria-label="VEXORA home" className="inline-flex items-center">
+            <Image src="/vexora-logo.png" alt="VEXORA" width={150} height={56} priority className="h-12 w-auto object-contain" />
+          </Link>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 3 19 6v5c0 4.5-3 7.5-7 10-4-2.5-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            Secure access
+          </span>
+        </div>
 
         <h1 className="mt-8 text-3xl font-bold">{heading}</h1>
 
@@ -447,7 +453,7 @@ export default function LoginPage() {
 
               <input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete={
                   mode === "login" ? "current-password" : "new-password"
                 }
