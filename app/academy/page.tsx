@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
@@ -918,6 +919,7 @@ export default function AcademyPage() {
                 Explore sample learning paths across technology and business.
                 Filter the catalog to find a subject and format that fit you.
               </p>
+              <Link href="/academy/courses" className="mt-5 inline-flex items-center gap-2 rounded-xl border border-blue-300/25 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/50 hover:bg-blue-400/10">Open the full course directory <span aria-hidden="true">↗</span></Link>
             </div>
 
             <div className="w-full lg:max-w-sm">
