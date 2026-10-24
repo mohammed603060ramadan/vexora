@@ -63,21 +63,21 @@ function getErrorMessage(error: unknown) {
     const message = String(error.message);
 
     if (/permission|row-level security|\brls\b/i.test(message)) {
-      return "تم رفض العملية بسبب صلاحيات قاعدة البيانات. راجع سياسات الوصول وصلاحيات حسابك.";
+      return "The database rejected this operation. Review the access policies and your account permissions.";
     }
 
     if (/duplicate key|unique constraint/i.test(message)) {
-      return "الرابط المختصر مستخدم بالفعل. اختر رابطًا آخر.";
+      return "This slug is already in use. Choose another slug.";
     }
 
     if (/foreign key constraint/i.test(message)) {
-      return "لا يمكن تنفيذ العملية لوجود سجلات مرتبطة بهذه الخدمة.";
+      return "This service cannot be changed because related records exist.";
     }
 
     return message;
   }
 
-  return "حدث خطأ غير متوقع. حاول مرة أخرى.";
+  return "An unexpected error occurred. Please try again.";
 }
 
 export default function AdminServicesPage() {
@@ -225,13 +225,13 @@ export default function AdminServicesPage() {
     const slug = slugify(form.slug);
 
     if (!name) {
-      setError("اكتب اسم الخدمة.");
+      setError("Enter a service name.");
       return;
     }
 
     if (!slug) {
       setError(
-        "أدخل رابطًا مختصرًا صالحًا باستخدام الحروف الإنجليزية أو الأرقام.",
+        "Enter a valid slug using English letters or numbers.",
       );
       return;
     }
@@ -249,29 +249,29 @@ export default function AdminServicesPage() {
     const displayOrder = Number(form.display_order);
 
     if (price !== null && (!Number.isFinite(price) || price < 0)) {
-      setError("السعر يجب أن يكون رقمًا يساوي صفرًا أو أكبر.");
+      setError("Price must be a number greater than or equal to zero.");
       return;
     }
 
     if (days !== null && (!Number.isInteger(days) || days < 0)) {
-      setError("المدة يجب أن تكون عدد أيام صحيحًا يساوي صفرًا أو أكبر.");
+      setError("Duration must be a whole number of days greater than or equal to zero.");
       return;
     }
 
     if (!Number.isInteger(displayOrder)) {
-      setError("ترتيب العرض يجب أن يكون عددًا صحيحًا.");
+      setError("Display order must be a whole number.");
       return;
     }
 
     const currency = form.currency.trim().toUpperCase();
 
     if (!/^[A-Z]{3}$/.test(currency)) {
-      setError("العملة يجب أن تكون رمزًا من 3 أحرف، مثل USD أو EGP.");
+      setError("Currency must be a three-letter code, such as USD or EGP.");
       return;
     }
 
     if (!["active", "inactive"].includes(form.status)) {
-      setError("حالة الخدمة غير صالحة.");
+      setError("Invalid service status.");
       return;
     }
 
@@ -297,7 +297,7 @@ export default function AdminServicesPage() {
 
         if (updateError) throw updateError;
 
-        setMessage("تم تحديث الخدمة بنجاح.");
+        setMessage("Service updated successfully.");
       } else {
         const { error: insertError } = await supabase
           .from("services")
@@ -305,7 +305,7 @@ export default function AdminServicesPage() {
 
         if (insertError) throw insertError;
 
-        setMessage("تمت إضافة الخدمة بنجاح.");
+        setMessage("Service created successfully.");
       }
 
       setShowForm(false);
@@ -327,9 +327,9 @@ export default function AdminServicesPage() {
       service.status === "active" ? "inactive" : "active";
 
     const confirmed = window.confirm(
-      `هل تريد تغيير حالة الخدمة "${service.name}" إلى ${
-        nextStatus === "active" ? "نشطة" : "غير نشطة"
-      }؟`,
+      `Change the status of service "${service.name}" إلى ${
+        nextStatus === "active" ? "Active" : "غير Active"
+      }?`,
     );
 
     if (!confirmed) return;
@@ -354,7 +354,7 @@ export default function AdminServicesPage() {
         ),
       );
 
-      setMessage("تم تحديث حالة الخدمة.");
+      setMessage("Service status updated.");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -366,7 +366,7 @@ export default function AdminServicesPage() {
     if (busyId) return;
 
     const confirmed = window.confirm(
-      `هل أنت متأكد من حذف الخدمة "${service.name}"؟ لا يمكن التراجع عن الحذف.`,
+      `Are you sure you want to delete service "${service.name}"؟ This deletion cannot be undone.`,
     );
 
     if (!confirmed) return;
@@ -387,7 +387,7 @@ export default function AdminServicesPage() {
         current.filter((item) => item.id !== service.id),
       );
 
-      setMessage("تم حذف الخدمة.");
+      setMessage("Service deleted.");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
