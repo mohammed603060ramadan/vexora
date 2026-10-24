@@ -106,7 +106,7 @@ DROP POLICY IF EXISTS events_admin_manage ON public.events;
 CREATE POLICY events_admin_manage
   ON public.events
   FOR ALL TO authenticated
-  USING (public.has_permission('events.manage'))
-  WITH CHECK (public.has_permission('events.manage'));
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 COMMIT;
