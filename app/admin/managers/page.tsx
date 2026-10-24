@@ -13,8 +13,6 @@ type Manager = {
 export default function AdminManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
@@ -110,16 +108,6 @@ export default function AdminManagersPage() {
       return;
     }
 
-    if (password.length < 12 || password.length > 128) {
-      setError("The password must contain between 12 and 128 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("The passwords do not match.");
-      return;
-    }
-
     setSaving(true);
 
     try {
@@ -130,7 +118,6 @@ export default function AdminManagersPage() {
         },
         body: JSON.stringify({
           email: normalizedEmail,
-          password,
         }),
       });
 
@@ -142,10 +129,8 @@ export default function AdminManagersPage() {
         );
       }
 
-      setMessage("Administrator account created successfully.");
+      setMessage("Administrator invitation sent successfully. The invitee must verify their email and set a password before signing in.");
       setEmail("");
-      setPassword("");
-      setConfirmPassword("");
 
       await loadManagers(false);
     } catch (err) {
@@ -257,7 +242,7 @@ export default function AdminManagersPage() {
         <section className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-blue-950/20 sm:p-7">
           <div className="mb-6">
             <h2 className="text-xl font-bold">
-              Create a New Administrator
+              Invite a Manager
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-400">
@@ -291,54 +276,6 @@ export default function AdminManagersPage() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="manager-password"
-                className="mb-2 block text-sm text-slate-300"
-              >
-                Password
-              </label>
-
-              <input
-                id="manager-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={128}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 12 characters"
-                className="w-full rounded-xl border border-white/10 bg-[#0b1020] px-4 py-3 outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-
-              <p className="mt-2 text-xs text-slate-500">
-                Use a unique password that is difficult to guess.
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="manager-confirm-password"
-                className="mb-2 block text-sm text-slate-300"
-              >
-                Confirm Password
-              </label>
-
-              <input
-                id="manager-confirm-password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={128}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Re-enter your password"
-                className="w-full rounded-xl border border-white/10 bg-[#0b1020] px-4 py-3 outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
             <div className="sm:col-span-2">
               <button
                 type="submit"
@@ -348,10 +285,10 @@ export default function AdminManagersPage() {
                 {saving ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Creating Account...
+                    Sending invitation...
                   </>
                 ) : (
-                  "Create Administrator Account"
+                  "Send Manager Invitation"
                 )}
               </button>
             </div>
