@@ -1,483 +1,230 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase/browser";
 
-type EventStatus = "Draft" | "Published" | "Completed" | "Cancelled";
-type EventType = "Conference" | "Webinar" | "Workshop" | "Meeting" | "Other";
-
-type EventItem = {
+type EventStatus = "draft" | "published" | "completed" | "cancelled";
+type EventType = "conference" | "webinar" | "workshop" | "meeting" | "other";
+type EventRecord = {
   id: string;
   title: string;
-  description: string;
-  type: EventType;
+  description: string | null;
+  event_type: EventType;
   status: EventStatus;
-  date: string;
-  startTime: string;
-  endTime: string;
+  event_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  registration_url: string | null;
+  created_at: string;
+};
+type EventForm = {
+  title: string;
+  description: string;
+  event_type: EventType;
+  status: EventStatus;
+  event_date: string;
+  start_time: string;
+  end_time: string;
   location: string;
-  registrationUrl: string;
+  registration_url: string;
 };
-
-const initialEvents: EventItem[] = [];
-
-const statusClasses: Record<EventStatus, string> = {
-  Draft: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-  Published: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-  Completed: "border-blue-400/20 bg-blue-400/10 text-blue-300",
-  Cancelled: "border-red-400/20 bg-red-400/10 text-red-300",
+const emptyForm: EventForm = {
+  title: "", description: "", event_type: "webinar", status: "draft",
+  event_date: "", start_time: "", end_time: "", location: "", registration_url: "",
 };
-
-function formatDate(date: string) {
-  if (!date) return "Date not set";
-
-  const parsed = new Date(`${date}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return date;
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(parsed);
-}
-
-function eventTiming(event: EventItem) {
-  if (event.status === "Cancelled") return "Cancelled";
-  if (!event.date) return "Unscheduled";
-
-  const today = new Date();
-  const eventDate = new Date(`${event.date}T23:59:59`);
-  if (eventDate < today) return "Past event";
-  if (event.date === today.toISOString().slice(0, 10)) return "Today";
-  return "Upcoming";
+const inputClass = "w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/15";
+const statusStyle: Record<EventStatus, string> = {
+  draft: "border-amber-400/20 bg-amber-400/10 text-amber-200",
+  published: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+  completed: "border-blue-400/20 bg-blue-400/10 text-blue-200",
+  cancelled: "border-rose-400/20 bg-rose-400/10 text-rose-200",
+};
+const eventTypes: { value: EventType; label: string }[] = [
+  { value: "conference", label: "Conference" }, { value: "webinar", label: "Webinar" },
+  { value: "workshop", label: "Workshop" }, { value: "meeting", label: "Meeting" },
+  { value: "other", label: "Other" },
+];
+function formatDate(value: string | null) {
+  if (!value) return "Date not set";
+  const date = new Date(value + "T12:00:00");
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en", {
+    day: "2-digit", month: "short", year: "numeric",
+  }).format(date);
 }
 
 export default function AdminEventsPage() {
-  const [events, setEvents] = useState<EventItem[]>(initialEvents);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [view, setView] = useState<"list" | "cards">("list");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [form, setForm] = useState<EventForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [type, setType] = useState<EventType>("Webinar");
-  const [status, setStatus] = useState<EventStatus>("Draft");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("10:00");
-  const [endTime, setEndTime] = useState("11:00");
-  const [location, setLocation] = useState("");
-  const [registrationUrl, setRegistrationUrl] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | EventStatus>("all");
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
 
-  const filteredEvents = useMemo(() => {
+  const loadEvents = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const { data, error: queryError } = await supabase
+      .from("events")
+      .select("id,title,description,event_type,status,event_date,start_time,end_time,location,registration_url,created_at")
+      .order("event_date", { ascending: true, nullsFirst: false });
+    if (queryError) {
+      setError(queryError.message.includes("does not exist")
+        ? "The events database migration has not been applied yet."
+        : queryError.message);
+      setEvents([]);
+    } else {
+      setEvents((data ?? []) as EventRecord[]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void loadEvents(); }, [loadEvents]);
+
+  const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-
-    return events.filter((event) => {
-      const matchesSearch =
-        !query ||
-        event.title.toLowerCase().includes(query) ||
-        event.description.toLowerCase().includes(query) ||
-        event.location.toLowerCase().includes(query);
-
-      const matchesStatus =
-        statusFilter === "All" || event.status === statusFilter;
-
-      const matchesType = typeFilter === "All" || event.type === typeFilter;
-
-      return matchesSearch && matchesStatus && matchesType;
-    }).sort((a, b) => {
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return a.date.localeCompare(b.date);
-    });
-  }, [events, search, statusFilter, typeFilter]);
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  const upcomingCount = events.filter(
-    (event) =>
-      event.status === "Published" &&
-      Boolean(event.date) &&
-      event.date >= today
-  ).length;
-
-  const completedCount = events.filter(
-    (event) => event.status === "Completed" || (
-      Boolean(event.date) &&
-      event.date < today &&
-      event.status === "Published"
-    )
-  ).length;
-
-  const draftCount = events.filter((event) => event.status === "Draft").length;
-  const cancelledCount = events.filter((event) => event.status === "Cancelled").length;
+    return events.filter((event) =>
+      (statusFilter === "all" || event.status === statusFilter) &&
+      (!query || [event.title, event.description, event.location, event.event_type]
+        .some((value) => value?.toLowerCase().includes(query)))
+    );
+  }, [events, search, statusFilter]);
 
   function openCreate() {
+    setForm(emptyForm);
     setEditingId(null);
-    setTitle("");
-    setDescription("");
-    setType("Webinar");
-    setStatus("Draft");
-    setDate("");
-    setStartTime("10:00");
-    setEndTime("11:00");
-    setLocation("");
-    setRegistrationUrl("");
-    setNotice("");
     setEditorOpen(true);
+    setNotice("");
+    setError("");
   }
-
-  function openEdit(event: EventItem) {
+  function openEdit(event: EventRecord) {
+    setForm({
+      title: event.title, description: event.description ?? "",
+      event_type: event.event_type, status: event.status,
+      event_date: event.event_date ?? "", start_time: event.start_time?.slice(0, 5) ?? "",
+      end_time: event.end_time?.slice(0, 5) ?? "", location: event.location ?? "",
+      registration_url: event.registration_url ?? "",
+    });
     setEditingId(event.id);
-    setTitle(event.title);
-    setDescription(event.description);
-    setType(event.type);
-    setStatus(event.status);
-    setDate(event.date);
-    setStartTime(event.startTime);
-    setEndTime(event.endTime);
-    setLocation(event.location);
-    setRegistrationUrl(event.registrationUrl);
-    setNotice("");
     setEditorOpen(true);
+    setNotice("");
+    setError("");
+  }
+  function change<K extends keyof EventForm>(key: K, value: EventForm[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function saveEvent(formEvent: React.FormEvent<HTMLFormElement>) {
-    formEvent.preventDefault();
-
-    if (!title.trim()) {
-      setNotice("Enter an event title.");
+  async function saveEvent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setNotice("");
+    if (form.start_time && form.end_time && form.end_time <= form.start_time) {
+      setError("The end time must be later than the start time.");
+      setSaving(false);
       return;
     }
-
-    if (startTime && endTime && endTime <= startTime) {
-      setNotice("The end time must be later than the start time.");
-      return;
-    }
-
-    if (registrationUrl) {
+    if (form.registration_url) {
       try {
-        const url = new URL(registrationUrl);
-        if (!["http:", "https:"].includes(url.protocol)) {
-          setNotice("Registration links must use HTTP or HTTPS.");
-          return;
-        }
+        const url = new URL(form.registration_url);
+        if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error();
       } catch {
-        setNotice("Enter a valid registration URL including https://.");
+        setError("Enter a valid registration URL starting with https:// or http://.");
+        setSaving(false);
         return;
       }
     }
-
-    const nextEvent: EventItem = {
-      id: editingId || `event-${Date.now()}`,
-      title: title.trim(),
-      description: description.trim(),
-      type,
-      status,
-      date,
-      startTime,
-      endTime,
-      location: location.trim(),
-      registrationUrl: registrationUrl.trim(),
+    const payload = {
+      title: form.title.trim(), description: form.description.trim() || null,
+      event_type: form.event_type, status: form.status,
+      event_date: form.event_date || null, start_time: form.start_time || null,
+      end_time: form.end_time || null, location: form.location.trim() || null,
+      registration_url: form.registration_url.trim() || null,
+      updated_at: new Date().toISOString(),
     };
-
-    setEvents((current) =>
-      editingId
-        ? current.map((item) => item.id === editingId ? nextEvent : item)
-        : [...current, nextEvent]
-    );
-
+    const result = editingId
+      ? await supabase.from("events").update(payload).eq("id", editingId).select("id").single()
+      : await supabase.from("events").insert(payload).select("id").single();
+    if (result.error) {
+      setError(result.error.message.includes("row-level security")
+        ? "Your account does not have permission to manage events."
+        : result.error.message);
+      setSaving(false);
+      return;
+    }
+    setNotice(editingId ? "Event updated successfully." : "Event created successfully.");
     setEditorOpen(false);
-    setNotice("");
+    setSaving(false);
+    await loadEvents();
   }
 
-  function deleteEvent(event: EventItem) {
-    if (!window.confirm(`Delete "${event.title}" from this preview?`)) return;
-    setEvents((current) => current.filter((item) => item.id !== event.id));
+  async function deleteEvent(event: EventRecord) {
+    if (!window.confirm(`Delete "${event.title}"? This action cannot be undone.`)) return;
+    setDeletingId(event.id);
+    setError("");
+    const { error: deleteError } = await supabase.from("events").delete().eq("id", event.id);
+    if (deleteError) setError(deleteError.message);
+    else {
+      setNotice("Event deleted.");
+      await loadEvents();
+    }
+    setDeletingId(null);
   }
+
+  const counts = {
+    total: events.length,
+    published: events.filter((item) => item.status === "published").length,
+    drafts: events.filter((item) => item.status === "draft").length,
+  };
 
   return (
-    <main className="min-h-screen bg-[#080b10] px-4 py-6 text-white sm:px-7 sm:py-8">
+    <main className="min-h-screen bg-[#070b12] px-4 py-7 text-white sm:px-7 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <Link href="/admin" className="text-sm text-blue-400 transition hover:text-blue-300">
-          ← Back to dashboard
-        </Link>
-
-        <header className="mt-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <Link href="/admin" className="text-sm text-blue-300 transition hover:text-blue-200">← Back to dashboard</Link>
+        <header className="mt-7 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">
-              Planning & engagement
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Events Management
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Organize VEXORA events, manage schedules, and keep every engagement on track.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-300">Content operations / Events</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Events Management</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Create, publish and manage VEXORA events. Published events are displayed on the public website.</p>
           </div>
-
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold transition hover:bg-blue-400"
-          >
-            <span className="text-lg">+</span> Create event
-          </button>
+          <button onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">＋ Create event</button>
         </header>
 
-        <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4 text-sm leading-6 text-amber-100/90">
-          Preview mode: events are stored in page state only. They will not persist after a reload or appear on the public website until database integration is completed.
-        </div>
+        {(notice || error) && <div role="status" className={`mt-6 rounded-xl border px-4 py-3 text-sm ${error ? "border-rose-400/25 bg-rose-400/10 text-rose-200" : "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"}`}>{error || notice}</div>}
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: "Total events", value: events.length, icon: "▦", tint: "bg-blue-500/10" },
-            { label: "Upcoming & published", value: upcomingCount, icon: "◷", tint: "bg-emerald-500/10" },
-            { label: "Completed", value: completedCount, icon: "✓", tint: "bg-violet-500/10" },
-            { label: "Drafts", value: draftCount, icon: "✎", tint: "bg-amber-500/10" },
-          ].map((item) => (
-            <div key={item.label} className="relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d121b] p-5">
-              <div className={`absolute -right-6 -top-8 h-24 w-24 rounded-full blur-2xl ${item.tint}`} />
-              <div className="relative flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-400">{item.label}</p>
-                  <p className="mt-3 text-3xl font-semibold tabular-nums">{item.value}</p>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg text-blue-300">
-                  {item.icon}
-                </span>
-              </div>
+        <section className="mt-7 grid gap-3 sm:grid-cols-3">
+          {[["Total events", counts.total, "All saved events"], ["Published", counts.published, "Visible on the website"], ["Drafts", counts.drafts, "Not public yet"]].map(([label, value, helper]) => (
+            <div key={String(label)} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+              <p className="text-sm text-slate-400">{label}</p><p className="mt-3 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-slate-500">{helper}</p>
             </div>
           ))}
         </section>
 
-        <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d121b]">
-          <div className="flex flex-col gap-4 border-b border-white/[0.07] p-5 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <h2 className="font-semibold">Event calendar & schedule</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Search events and filter the schedule by status or type.
-              </p>
-            </div>
+        {editorOpen && <section className="mt-6 rounded-2xl border border-blue-400/20 bg-[#0b1220] p-5 sm:p-7">
+          <div className="mb-6 flex items-center justify-between gap-4"><div><h2 className="text-xl font-semibold">{editingId ? "Edit event" : "Create event"}</h2><p className="mt-1 text-sm text-slate-400">Use English content for a consistent VEXORA experience.</p></div><button onClick={() => setEditorOpen(false)} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/5">Close</button></div>
+          <form onSubmit={saveEvent} className="grid gap-5 md:grid-cols-2">
+            <label className="text-sm text-slate-300 md:col-span-2">Event title *<input required maxLength={220} className={`${inputClass} mt-2`} value={form.title} onChange={(e) => change("title", e.target.value)} placeholder="e.g. VEXORA Cybersecurity Summit" /></label>
+            <label className="text-sm text-slate-300">Event type<select className={`${inputClass} mt-2`} value={form.event_type} onChange={(e) => change("event_type", e.target.value as EventType)}>{eventTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+            <label className="text-sm text-slate-300">Publication status<select className={`${inputClass} mt-2`} value={form.status} onChange={(e) => change("status", e.target.value as EventStatus)}><option value="draft">Draft</option><option value="published">Published</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+            <label className="text-sm text-slate-300">Date<input type="date" className={`${inputClass} mt-2`} value={form.event_date} onChange={(e) => change("event_date", e.target.value)} /></label>
+            <div className="grid grid-cols-2 gap-3"><label className="text-sm text-slate-300">Start time<input type="time" className={`${inputClass} mt-2`} value={form.start_time} onChange={(e) => change("start_time", e.target.value)} /></label><label className="text-sm text-slate-300">End time<input type="time" className={`${inputClass} mt-2`} value={form.end_time} onChange={(e) => change("end_time", e.target.value)} /></label></div>
+            <label className="text-sm text-slate-300">Location<input maxLength={300} className={`${inputClass} mt-2`} value={form.location} onChange={(e) => change("location", e.target.value)} placeholder="Online / venue" /></label>
+            <label className="text-sm text-slate-300">Registration URL<input type="url" className={`${inputClass} mt-2`} value={form.registration_url} onChange={(e) => change("registration_url", e.target.value)} placeholder="https://..." /></label>
+            <label className="text-sm text-slate-300 md:col-span-2">Description<textarea rows={4} maxLength={5000} className={`${inputClass} mt-2 resize-y`} value={form.description} onChange={(e) => change("description", e.target.value)} placeholder="Describe the event, audience and key topics." /></label>
+            <div className="flex flex-wrap gap-3 md:col-span-2"><button disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold disabled:opacity-50">{saving ? "Saving..." : editingId ? "Save changes" : "Create event"}</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm text-slate-300 hover:bg-white/5">Cancel</button></div>
+          </form>
+        </section>}
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:flex">
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search events..."
-                aria-label="Search events"
-                className="min-w-0 rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400/50 xl:w-60"
-              />
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                aria-label="Filter by event status"
-                className="rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50"
-              >
-                <option>All</option>
-                <option>Draft</option>
-                <option>Published</option>
-                <option>Completed</option>
-                <option>Cancelled</option>
-              </select>
-              <select
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
-                aria-label="Filter by event type"
-                className="rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50"
-              >
-                <option>All</option>
-                <option>Conference</option>
-                <option>Webinar</option>
-                <option>Workshop</option>
-                <option>Meeting</option>
-                <option>Other</option>
-              </select>
-              <div className="flex rounded-xl border border-white/10 bg-[#080b10] p-1">
-                <button
-                  type="button"
-                  onClick={() => setView("list")}
-                  aria-pressed={view === "list"}
-                  className={`rounded-lg px-3 py-2 text-xs ${view === "list" ? "bg-blue-500 text-white" : "text-slate-400 hover:text-white"}`}
-                >
-                  List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setView("cards")}
-                  aria-pressed={view === "cards"}
-                  className={`rounded-lg px-3 py-2 text-xs ${view === "cards" ? "bg-blue-500 text-white" : "text-slate-400 hover:text-white"}`}
-                >
-                  Cards
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {filteredEvents.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-2xl text-blue-300">▦</div>
-              <p className="mt-4 font-medium">No events found</p>
-              <p className="mt-2 text-sm text-slate-400">
-                Create your first event or adjust your search filters.
-              </p>
-              <button type="button" onClick={openCreate} className="mt-5 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-semibold hover:bg-blue-400">
-                Create first event
-              </button>
-            </div>
-          ) : view === "list" ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[950px] text-left text-sm">
-                <thead className="bg-white/[0.025] text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-5 py-4">Event</th>
-                    <th className="px-5 py-4">Date & time</th>
-                    <th className="px-5 py-4">Type</th>
-                    <th className="px-5 py-4">Status</th>
-                    <th className="px-5 py-4">Location</th>
-                    <th className="px-5 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.06]">
-                  {filteredEvents.map((event) => (
-                    <tr key={event.id} className="transition hover:bg-white/[0.02]">
-                      <td className="max-w-xs px-5 py-4">
-                        <p className="font-medium">{event.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{event.description || "No description added"}</p>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4">
-                        <p className="text-slate-200">{formatDate(event.date)}</p>
-                        <p className="mt-1 text-xs text-slate-500">{event.startTime || "—"}{event.endTime ? ` – ${event.endTime}` : ""}</p>
-                        <p className="mt-1 text-xs text-blue-300">{eventTiming(event)}</p>
-                      </td>
-                      <td className="px-5 py-4 text-slate-400">{event.type}</td>
-                      <td className="px-5 py-4">
-                        <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs ${statusClasses[event.status]}`}>{event.status}</span>
-                      </td>
-                      <td className="max-w-[180px] px-5 py-4 text-slate-400">
-                        <span className="line-clamp-2">{event.location || "Not specified"}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button type="button" onClick={() => openEdit(event)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:border-blue-400/40 hover:text-white">Edit</button>
-                          <button type="button" onClick={() => deleteEvent(event)} className="rounded-lg border border-red-400/15 px-3 py-2 text-xs text-red-300 hover:bg-red-400/10">Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredEvents.map((event) => (
-                <article key={event.id} className="rounded-2xl border border-white/[0.08] bg-[#080b10] p-5 transition hover:border-blue-400/25">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="rounded-lg border border-blue-400/15 bg-blue-400/[0.07] px-3 py-2 text-xs text-blue-300">{event.type}</span>
-                    <span className={`rounded-full border px-2.5 py-1 text-xs ${statusClasses[event.status]}`}>{event.status}</span>
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold">{event.title}</h3>
-                  <p className="mt-2 line-clamp-3 min-h-[60px] text-sm leading-6 text-slate-400">{event.description || "No description added."}</p>
-                  <div className="mt-5 space-y-3 border-t border-white/[0.07] pt-4 text-sm">
-                    <p className="text-slate-300">◷ <span className="ml-2">{formatDate(event.date)}</span></p>
-                    <p className="text-slate-400">⌚ <span className="ml-2">{event.startTime || "—"}{event.endTime ? ` – ${event.endTime}` : ""}</span></p>
-                    <p className="break-words text-slate-400">⌖ <span className="ml-2">{event.location || "Location not specified"}</span></p>
-                  </div>
-                  <div className="mt-5 flex gap-2">
-                    <button type="button" onClick={() => openEdit(event)} className="flex-1 rounded-xl border border-white/10 px-3 py-2.5 text-sm hover:border-blue-400/40">Edit event</button>
-                    <button type="button" onClick={() => deleteEvent(event)} className="rounded-xl border border-red-400/15 px-3 py-2.5 text-sm text-red-300 hover:bg-red-400/10">Delete</button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-
-          <div className="border-t border-white/[0.07] px-5 py-3 text-xs text-slate-500">
-            Showing {filteredEvents.length} of {events.length} events
-            <span className="ml-3">· {cancelledCount} cancelled</span>
-          </div>
+        <section className="mt-7 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+          <div className="flex flex-col gap-3 border-b border-white/[0.07] p-4 sm:flex-row sm:items-center sm:justify-between"><h2 className="font-semibold">Event directory <span className="ml-2 text-sm font-normal text-slate-500">{filtered.length} records</span></h2><div className="flex flex-col gap-3 sm:flex-row"><input aria-label="Search events" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search events..." className={`${inputClass} sm:w-64`} /><select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className={`${inputClass} sm:w-44`}><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div></div>
+          {loading ? <div className="p-12 text-center text-sm text-slate-400">Loading events...</div> : filtered.length === 0 ? <div className="p-12 text-center"><p className="font-medium">No events found</p><p className="mt-2 text-sm text-slate-500">Create an event to start publishing updates to the website.</p></div> : <div className="divide-y divide-white/[0.06]">{filtered.map((event) => <article key={event.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{event.title}</h3><span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${statusStyle[event.status]}`}>{event.status}</span><span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-slate-400">{event.event_type}</span></div><p className="mt-2 text-sm text-slate-400">{event.description || "No description provided."}</p><p className="mt-2 text-xs text-slate-500">{formatDate(event.event_date)}{event.start_time ? ` · ${event.start_time.slice(0, 5)}` : ""}{event.location ? ` · ${event.location}` : ""}</p></div><div className="flex shrink-0 gap-2"><button onClick={() => openEdit(event)} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5">Edit</button><button disabled={deletingId === event.id} onClick={() => void deleteEvent(event)} className="rounded-lg border border-rose-400/20 px-3 py-2 text-sm text-rose-300 hover:bg-rose-400/10 disabled:opacity-50">{deletingId === event.id ? "Deleting..." : "Delete"}</button></div></article>)}</div>}
         </section>
-
-        {editorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm">
-            <form onSubmit={saveEvent} className="my-auto w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d121b] p-5 shadow-2xl sm:p-7">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">Event workspace</p>
-                  <h2 className="mt-2 text-xl font-semibold">{editingId ? "Edit event" : "Create event"}</h2>
-                </div>
-                <button type="button" onClick={() => setEditorOpen(false)} aria-label="Close editor" className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 hover:text-white">✕</button>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label htmlFor="event-title" className="mb-2 block text-sm text-slate-300">Event title *</label>
-                  <input id="event-title" required maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. VEXORA Technology Webinar" className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50" />
-                </div>
-
-                <div>
-                  <label htmlFor="event-description" className="mb-2 block text-sm text-slate-300">Description</label>
-                  <textarea id="event-description" rows={3} maxLength={1500} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the purpose and details of this event..." className="w-full resize-y rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400/50" />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="event-type" className="mb-2 block text-sm text-slate-300">Event type</label>
-                    <select id="event-type" value={type} onChange={(event) => setType(event.target.value as EventType)} className="w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50">
-                      <option>Conference</option><option>Webinar</option><option>Workshop</option><option>Meeting</option><option>Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="event-status" className="mb-2 block text-sm text-slate-300">Status</label>
-                    <select id="event-status" value={status} onChange={(event) => setStatus(event.target.value as EventStatus)} className="w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50">
-                      <option>Draft</option><option>Published</option><option>Completed</option><option>Cancelled</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="event-date" className="mb-2 block text-sm text-slate-300">Event date</label>
-                  <input id="event-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm text-slate-200 outline-none focus:border-blue-400/50" />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="event-start" className="mb-2 block text-sm text-slate-300">Start time</label>
-                    <input id="event-start" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50" />
-                  </div>
-                  <div>
-                    <label htmlFor="event-end" className="mb-2 block text-sm text-slate-300">End time</label>
-                    <input id="event-end" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50" />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="event-location" className="mb-2 block text-sm text-slate-300">Location or meeting link</label>
-                  <input id="event-location" maxLength={300} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Office, online, or venue address" className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50" />
-                </div>
-
-                <div>
-                  <label htmlFor="event-registration" className="mb-2 block text-sm text-slate-300">Registration URL</label>
-                  <input id="event-registration" type="url" value={registrationUrl} onChange={(event) => setRegistrationUrl(event.target.value)} placeholder="https://example.com/register" className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50" />
-                </div>
-
-                {notice && <p role="alert" className="rounded-lg border border-red-400/20 bg-red-400/[0.06] p-3 text-sm text-red-300">{notice}</p>}
-
-                <p className="text-xs leading-5 text-slate-500">
-                  Changes are currently local to this page and will reset after a reload. Database persistence and public publishing are not enabled yet.
-                </p>
-              </div>
-
-              <div className="mt-7 flex justify-end gap-3">
-                <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:text-white">Cancel</button>
-                <button type="submit" className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold transition hover:bg-blue-400">Save event</button>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
     </main>
   );
