@@ -40,6 +40,13 @@ export default function AcademyCoursesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("category");
+    if (requestedCategory && categories.includes(requestedCategory)) {
+      setCategory(requestedCategory);
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     async function load() {
       const { data, error: queryError } = await supabase
