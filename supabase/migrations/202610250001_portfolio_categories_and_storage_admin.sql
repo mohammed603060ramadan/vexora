@@ -41,6 +41,18 @@ $function$;
 REVOKE ALL ON FUNCTION public.is_vexora_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_vexora_admin() TO authenticated;
 
+DROP POLICY IF EXISTS vexora_app_admin_projects_access ON public.projects;
+CREATE POLICY vexora_app_admin_projects_access
+  ON public.projects FOR ALL TO authenticated
+  USING (public.is_vexora_admin())
+  WITH CHECK (public.is_vexora_admin());
+
+DROP POLICY IF EXISTS vexora_app_admin_project_media_access ON public.project_media;
+CREATE POLICY vexora_app_admin_project_media_access
+  ON public.project_media FOR ALL TO authenticated
+  USING (public.is_vexora_admin())
+  WITH CHECK (public.is_vexora_admin());
+
 DROP POLICY IF EXISTS vexora_app_admin_project_media_storage_insert ON storage.objects;
 CREATE POLICY vexora_app_admin_project_media_storage_insert
   ON storage.objects FOR INSERT TO authenticated
