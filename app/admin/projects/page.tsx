@@ -576,8 +576,8 @@ export default function AdminProjectsPage() {
       const rawProjects = (projectsResult.data ?? []) as unknown as Array<Record<string, unknown>>;
       const nextProjects = rawProjects.map((row) => ({
         ...row,
-        title: String(row.name ?? ""),
-        deadline: typeof row.due_date === "string" ? row.due_date : null,
+        title: String(row.title ?? ""),
+        deadline: typeof row.deadline === "string" ? row.deadline : null,
         show_on_homepage: row.show_on_homepage === true,
         show_on_projects_page: row.show_on_projects_page === true,
         status: row.status === "planned" || row.status === "draft" ? "planning" : String(row.status ?? "planning"),
@@ -941,12 +941,12 @@ export default function AdminProjectsPage() {
 
     try {
       const payload = {
-        name: title,
+        title,
         client_id: form.client_id || null,
         description: description || null,
         status: form.status === "planning" ? "planned" : form.status,
         budget: budget ? Number(budget) : 0,
-        due_date: form.deadline || null,
+        deadline: form.deadline || null,
         show_on_homepage: form.show_on_homepage,
         show_on_projects_page: form.show_on_projects_page,
         updated_at: new Date().toISOString(),
