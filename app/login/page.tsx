@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+
 
 "use client";
 
@@ -24,22 +24,130 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (
-      new URLSearchParams(window.location.search).get("recovery") === "1"
-    ) {
-      setMode("reset");
+    let active = true;
+
+    async function handleAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(
+        window.location.hash.replace(/^#/, "")
+      );
+
+      const code = params.get("code");
+      const tokenType =
+        hashParams.get("type") ?? params.get("type");
+
+      const isInvite = tokenType === "invite";
+      const isRecovery = tokenType === "recovery";
+      const hasPasswordFlow = params.get("recovery") === "1";
+
+      if (code) {
+        const { error } =
+          await supabase.auth.exchangeCodeForSession(code);
+
+        if (!active) return;
+
+        if (error) {
+          console.error(
+            "Authentication callback failed:",
+            error.message
+          );
+
+          setMode("login");
+          setMessage(
+            "This invitation or password reset link is invalid, expired, or already used. Request a new link and try again."
+          );
+          return;
+        }
+
+        // Remove the one-time code from the address bar.
+        window.history.replaceState(
+          {},
+          document.title,
+          `${window.location.pathname}?recovery=1`
+        );
+
+        setMode("reset");
+        setMessage(
+          isInvite
+            ? "Welcome to VEXORA. Create a password for your administrator account."
+            : "Verify your new password below."
+        );
+
+        return;
+      }
+
+      if (isInvite || isRecovery) {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!active) return;
+
+        if (error || !session) {
+          setMode("login");
+          setMessage(
+            "This invitation or reset link could not be verified. Request a new link and try again."
+          );
+          return;
+        }
+
+        setMode("reset");
+        setMessage(
+          isInvite
+            ? "Welcome to VEXORA. Create a password for your administrator account."
+            : "Create and confirm your new password."
+        );
+
+        return;
+      }
+
+      if (hasPasswordFlow) {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!active) return;
+
+        if (error || !session) {
+          setMode("login");
+          setMessage(
+            "The password setup link is invalid or expired. Request a new link and try again."
+          );
+          return;
+        }
+
+        setMode("reset");
+        setMessage("Create and confirm your new password.");
+      }
     }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+      if (!active) return;
+
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
-        setMessage("");
+        setMessage("Create and confirm your new password.");
       }
     });
 
-    return () => subscription.unsubscribe();
+    void handleAuthCallback().catch((error: unknown) => {
+      if (!active) return;
+
+      console.error("Authentication callback error:", error);
+      setMode("login");
+      setMessage(
+        "We could not verify this link. Request a new invitation or password reset link."
+      );
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function routeUser() {
@@ -52,7 +160,12 @@ export default function LoginPage() {
       throw userError ?? new Error("Please sign in again.");
     }
 
-    // Existing linked client accounts keep access to the client portal.
+    if (user.app_metadata?.role === "admin") {
+      router.replace("/admin");
+      router.refresh();
+      return;
+    }
+
     const { data: client, error: clientError } = await supabase
       .from("clients")
       .select("id")
@@ -78,7 +191,6 @@ export default function LoginPage() {
     if (profile?.account_type === "student") {
       router.replace("/student");
     } else {
-      // Keep legacy accounts working even if their profile type is null.
       router.replace("/client");
     }
 
@@ -95,9 +207,12 @@ export default function LoginPage() {
     try {
       if (mode === "forgot") {
         const { error } =
-          await supabase.auth.resetPasswordForEmail(email.trim(), {
-            redirectTo: `${window.location.origin}/login?recovery=1`,
-          });
+          await supabase.auth.resetPasswordForEmail(
+            email.trim(),
+            {
+              redirectTo: `${window.location.origin}/login?recovery=1`,
+            }
+          );
 
         if (error) throw error;
 
@@ -126,10 +241,28 @@ export default function LoginPage() {
 
         setPassword("");
         setConfirmPassword("");
-        setMessage("Password updated successfully. You can now sign in.");
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) throw userError;
+
+        if (user?.app_metadata?.role === "admin") {
+          setMessage(
+            "Password updated successfully. Redirecting to the admin dashboard..."
+          );
+          await routeUser();
+          return;
+        }
 
         await supabase.auth.signOut();
+
         setMode("login");
+        setMessage(
+          "Password updated successfully. You can now sign in with your new password."
+        );
         return;
       }
 
@@ -191,14 +324,16 @@ export default function LoginPage() {
     login: "Welcome back",
     signup: "Create your account",
     forgot: "Reset your password",
-    reset: "Choose a new password",
+    reset: "Set your password",
   }[mode];
 
   const description = {
     login: "Sign in to access your VEXORA account.",
     signup: "Join VEXORA by creating a student or client account.",
-    forgot: "Enter your email and we’ll send you a password reset link if an account matches.",
-    reset: "Enter and confirm your new password below.",
+    forgot:
+      "Enter your email and we’ll send you a password reset link if an account matches.",
+    reset:
+      "Create and confirm a new password below. Use at least 8 characters.",
   }[mode];
 
   return (
@@ -235,7 +370,9 @@ export default function LoginPage() {
                   required
                   minLength={2}
                   value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
+                  onChange={(event) =>
+                    setFullName(event.target.value)
+                  }
                   className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400"
                   placeholder="Your full name"
                 />
@@ -374,7 +511,7 @@ export default function LoginPage() {
                   login: "Sign in",
                   signup: "Create account",
                   forgot: "Send reset link",
-                  reset: "Update password",
+                  reset: "Save password",
                 }[mode]}
           </button>
         </form>

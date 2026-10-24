@@ -868,13 +868,6 @@ export default function ClientPage() {
         )
       : 0;
 
-  const projectCompletionRate =
-    projects.length > 0
-      ? Math.round(
-          (completedProjects.length / projects.length) * 100
-        )
-      : 0;
-
   const currentProjectDistribution = [
     {
       label: "Active",

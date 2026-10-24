@@ -1,4 +1,5 @@
-﻿"use client";
+﻿
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -26,6 +27,22 @@ type MemberForm = {
   department: string;
   status: TeamStatus;
   notes: string;
+};
+
+type AdminManager = {
+  id: string;
+  user_id: string;
+  email: string | null;
+  created_at: string | null;
+  email_confirmed?: boolean;
+};
+
+type AdminManagerResponse = {
+  id?: unknown;
+  user_id?: unknown;
+  email?: unknown;
+  created_at?: unknown;
+  email_confirmed?: unknown;
 };
 
 const emptyForm: MemberForm = {
@@ -74,10 +91,47 @@ const departments = [
   "Other",
 ];
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : "An unexpected error occurred. Please try again.";
+}
+
+function normalizeAdminManagers(value: unknown): AdminManager[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Unexpected administrator list response.");
+  }
+
+  return value.map((item: AdminManagerResponse) => {
+    const id =
+      typeof item.id === "string" ? item.id : "";
+    const userId =
+      typeof item.user_id === "string" ? item.user_id : "";
+    const resolvedId = userId || id;
+
+    if (!UUID_PATTERN.test(resolvedId)) {
+      throw new Error(
+        "An administrator record has an invalid user ID. Refresh the list and try again."
+      );
+    }
+
+    return {
+      id: id || resolvedId,
+      user_id: resolvedId,
+      email: typeof item.email === "string" ? item.email : null,
+      created_at:
+        typeof item.created_at === "string"
+          ? item.created_at
+          : null,
+      email_confirmed:
+        typeof item.email_confirmed === "boolean"
+          ? item.email_confirmed
+          : undefined,
+    };
+  });
 }
 
 export default function TeamPage() {
@@ -92,6 +146,16 @@ export default function TeamPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  const [managers, setManagers] = useState<AdminManager[]>([]);
+  const [managerEmail, setManagerEmail] = useState("");
+  const [managersLoading, setManagersLoading] = useState(true);
+  const [managerSaving, setManagerSaving] = useState(false);
+  const [removingManagerId, setRemovingManagerId] = useState<string | null>(
+    null
+  );
+  const [managerError, setManagerError] = useState("");
+  const [managerMessage, setManagerMessage] = useState("");
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -288,6 +352,173 @@ export default function TeamPage() {
     }
   }
 
+  const loadManagers = useCallback(async () => {
+    setManagersLoading(true);
+    setManagerError("");
+
+    try {
+      const response = await fetch("/api/admin/managers", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "Could not load administrator accounts."
+        );
+      }
+
+      const rows =
+        payload.managers ?? payload.data ?? payload.records ?? [];
+
+      setManagers(normalizeAdminManagers(rows));
+    } catch (loadError) {
+      setManagerError(getErrorMessage(loadError));
+    } finally {
+      setManagersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchManagers() {
+      try {
+        const response = await fetch("/api/admin/managers", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            payload.error || "Could not load administrator accounts."
+          );
+        }
+
+        const rows =
+          payload.managers ?? payload.data ?? payload.records ?? [];
+        const normalized = normalizeAdminManagers(rows);
+
+        if (!cancelled) {
+          setManagers(normalized);
+          setManagerError("");
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setManagerError(getErrorMessage(loadError));
+        }
+      } finally {
+        if (!cancelled) {
+          setManagersLoading(false);
+        }
+      }
+    }
+
+    void fetchManagers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function inviteManager(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (managerSaving || removingManagerId) return;
+
+    const email = managerEmail.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setManagerError("Please enter a valid email address.");
+      return;
+    }
+
+    setManagerSaving(true);
+    setManagerError("");
+    setManagerMessage("");
+
+    try {
+      const response = await fetch("/api/admin/managers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "Could not invite this administrator."
+        );
+      }
+
+      setManagerMessage(
+        payload.message || `Invitation request processed for ${email}.`
+      );
+      setManagerEmail("");
+      await loadManagers();
+    } catch (inviteError) {
+      setManagerError(getErrorMessage(inviteError));
+    } finally {
+      setManagerSaving(false);
+    }
+  }
+
+  async function removeManager(manager: AdminManager) {
+    if (removingManagerId || managerSaving) return;
+
+    // Resolve the canonical Auth user ID before making a request.
+    const targetId = manager.user_id || manager.id;
+
+    if (!targetId || !UUID_PATTERN.test(targetId)) {
+      setManagerError(
+        "A valid administrator ID is required. Refresh the administrator list and try again."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove administrator privileges from ${manager.email || targetId}? The user account will not be deleted.`
+    );
+
+    if (!confirmed) return;
+
+    setRemovingManagerId(targetId);
+    setManagerError("");
+    setManagerMessage("");
+
+    try {
+      const response = await fetch("/api/admin/managers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: targetId }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "Could not remove administrator privileges."
+        );
+      }
+
+      setManagerMessage(
+        payload.message ||
+          "Administrator privileges were removed. The account was not deleted."
+      );
+
+      await loadManagers();
+    } catch (removeError) {
+      setManagerError(getErrorMessage(removeError));
+    } finally {
+      setRemovingManagerId(null);
+    }
+  }
+
   const query = search.trim().toLowerCase();
 
   const filteredMembers = members.filter((member) => {
@@ -391,6 +622,218 @@ export default function TeamPage() {
           </button>
         </header>
 
+        <section style={{ ...cardStyle, marginBottom: "24px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "14px",
+              marginBottom: "18px",
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: "21px", margin: "0 0 8px" }}>
+                Admin Accounts
+              </h2>
+              <p style={{ color: "#94a3b8", margin: 0, fontSize: "14px" }}>
+                Invite administrators and manage their access separately from
+                team members.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void loadManagers()}
+              disabled={
+                managersLoading ||
+                managerSaving ||
+                Boolean(removingManagerId)
+              }
+              style={buttonStyle}
+            >
+              {managersLoading ? "Loading..." : "Refresh Admins"}
+            </button>
+          </div>
+
+          <form
+            onSubmit={inviteManager}
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              marginBottom: "20px",
+            }}
+          >
+            <input
+              type="email"
+              required
+              maxLength={254}
+              autoComplete="email"
+              aria-label="Email address for new administrator"
+              placeholder="manager@example.com"
+              value={managerEmail}
+              onChange={(event) => setManagerEmail(event.target.value)}
+              style={{ ...inputStyle, flex: "1 1 260px" }}
+            />
+
+            <button
+              type="submit"
+              disabled={managerSaving || Boolean(removingManagerId)}
+              style={{
+                ...buttonStyle,
+                background: "#1677ee",
+                borderColor: "#1677ee",
+                opacity: managerSaving || removingManagerId ? 0.6 : 1,
+              }}
+            >
+              {managerSaving ? "Sending..." : "Invite Administrator"}
+            </button>
+          </form>
+
+          {managerMessage && (
+            <p
+              role="status"
+              style={{
+                padding: "12px 14px",
+                borderRadius: "9px",
+                background: "#123326",
+                color: "#86efac",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {managerMessage}
+            </p>
+          )}
+
+          {managerError && (
+            <p
+              role="alert"
+              style={{
+                padding: "12px 14px",
+                borderRadius: "9px",
+                background: "#3a171b",
+                color: "#fca5a5",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {managerError}
+            </p>
+          )}
+
+          {managersLoading ? (
+            <p style={{ color: "#94a3b8" }}>
+              Loading administrator accounts...
+            </p>
+          ) : managers.length === 0 ? (
+            <p style={{ color: "#94a3b8" }}>
+              No administrator records were returned.
+            </p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "left",
+                  minWidth: "600px",
+                }}
+              >
+                <thead>
+                  <tr style={{ color: "#94a3b8", fontSize: "13px" }}>
+                    {["Email", "Administrator Since", "Access"].map(
+                      (heading) => (
+                        <th
+                          key={heading}
+                          style={{
+                            padding: "12px",
+                            borderBottom: "1px solid #293548",
+                          }}
+                        >
+                          {heading}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {managers.map((manager) => (
+                    <tr key={manager.user_id}>
+                      <td
+                        style={{
+                          padding: "14px 12px",
+                          borderBottom: "1px solid #202b3b",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        <strong>
+                          {manager.email || "Email unavailable"}
+                        </strong>
+                      </td>
+                      <td
+                        style={{
+                          padding: "14px 12px",
+                          borderBottom: "1px solid #202b3b",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {manager.created_at
+                          ? new Date(
+                              manager.created_at
+                            ).toLocaleDateString("en-GB")
+                          : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "14px 12px",
+                          borderBottom: "1px solid #202b3b",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          disabled={
+                            managerSaving ||
+                            Boolean(removingManagerId) ||
+                            managers.length <= 1
+                          }
+                          title={
+                            managers.length <= 1
+                              ? "The last administrator cannot be removed."
+                              : "Remove administrator privileges without deleting the account."
+                          }
+                          onClick={() => void removeManager(manager)}
+                          style={{
+                            ...buttonStyle,
+                            color: "#fca5a5",
+                            borderColor: "#71343b",
+                            opacity:
+                              managerSaving ||
+                              removingManagerId ||
+                              managers.length <= 1
+                                ? 0.5
+                                : 1,
+                          }}
+                        >
+                          {removingManagerId === manager.user_id
+                            ? "Removing..."
+                            : "Remove Admin Access"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: 0 }}>
+            Removing access must not delete the user account. Never share the
+            service-role key with the browser.
+          </p>
+        </section>
+
         <div
           style={{
             display: "grid",
@@ -403,8 +846,14 @@ export default function TeamPage() {
             [
               ["Total Members", members.length],
               ["Active", members.filter((m) => m.status === "active").length],
-              ["On Leave", members.filter((m) => m.status === "on_leave").length],
-              ["Inactive", members.filter((m) => m.status === "inactive").length],
+              [
+                "On Leave",
+                members.filter((m) => m.status === "on_leave").length,
+              ],
+              [
+                "Inactive",
+                members.filter((m) => m.status === "inactive").length,
+              ],
             ] as [string, number][]
           ).map(([label, value]) => (
             <section key={label} style={cardStyle}>
@@ -463,7 +912,8 @@ export default function TeamPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(220px, 1fr))",
                   gap: "18px",
                 }}
               >
@@ -806,9 +1256,9 @@ export default function TeamPage() {
                         }}
                       >
                         {member.created_at
-                          ? new Date(member.created_at).toLocaleDateString(
-                              "en-GB"
-                            )
+                          ? new Date(
+                              member.created_at
+                            ).toLocaleDateString("en-GB")
                           : "—"}
                       </td>
 

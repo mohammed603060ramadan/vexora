@@ -354,10 +354,8 @@ function ServiceIcon({ icon }: { icon: string }) {
 
 function ServiceVisual({
   icon,
-  number,
 }: {
   icon: string;
-  number: string;
 }) {
   if (icon === "code") {
     return (
@@ -2154,10 +2152,7 @@ export default function ProjectsPage() {
               id={`project-${project.number}`}
               className="project-card rounded-2xl p-3 sm:p-4"
             >
-              <ServiceVisual
-                icon={project.icon}
-                number={project.number}
-              />
+              <ServiceVisual icon={project.icon} />
 
               <div className="px-1 pt-5">
                 <div className="flex items-start justify-between gap-4">

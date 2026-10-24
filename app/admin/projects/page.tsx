@@ -1,3 +1,4 @@
+
 /* eslint-disable react-hooks/set-state-in-effect */
 
 "use client";
@@ -773,13 +774,14 @@ export default function AdminProjectsPage() {
     );
   };
 
+  // Keep tracking arrays owned by handleSave so rollback can access
+  // every successfully uploaded file even if a later operation fails.
   const uploadFiles = async (
     projectId: string,
-    files: File[]
-  ) => {
-    const uploadedPaths: string[] = [];
-    const insertedMediaIds: string[] = [];
-
+    files: File[],
+    uploadedPaths: string[],
+    insertedMediaIds: string[]
+  ): Promise<void> => {
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
 
@@ -809,6 +811,7 @@ export default function AdminProjectsPage() {
         );
       }
 
+      // Track the storage object immediately after a successful upload.
       uploadedPaths.push(path);
 
       const metadataResult = await supabase
@@ -829,25 +832,44 @@ export default function AdminProjectsPage() {
         );
       }
 
+      // Track the database record immediately after it is confirmed.
       insertedMediaIds.push(metadataResult.data.id);
     }
-
-    return { uploadedPaths, insertedMediaIds };
   };
 
   const rollbackUploads = async (
     uploadedPaths: string[],
     insertedMediaIds: string[]
   ) => {
+    const cleanupErrors: string[] = [];
+
     if (insertedMediaIds.length) {
-      await supabase
+      const databaseCleanup = await supabase
         .from("project_media")
         .delete()
         .in("id", insertedMediaIds);
+
+      if (databaseCleanup.error) {
+        cleanupErrors.push(
+          `Database cleanup failed: ${databaseCleanup.error.message}`
+        );
+      }
     }
 
     if (uploadedPaths.length) {
-      await supabase.storage.from(BUCKET).remove(uploadedPaths);
+      const storageCleanup = await supabase.storage
+        .from(BUCKET)
+        .remove(uploadedPaths);
+
+      if (storageCleanup.error) {
+        cleanupErrors.push(
+          `Storage cleanup failed: ${storageCleanup.error.message}`
+        );
+      }
+    }
+
+    if (cleanupErrors.length) {
+      throw new Error(cleanupErrors.join(" "));
     }
   };
 
@@ -897,8 +919,8 @@ export default function AdminProjectsPage() {
     setNotice(null);
 
     let createdProjectId: string | null = null;
-    let uploadedPaths: string[] = [];
-    let insertedMediaIds: string[] = [];
+    const uploadedPaths: string[] = [];
+    const insertedMediaIds: string[] = [];
 
     try {
       const client = clients.find(
@@ -943,13 +965,14 @@ export default function AdminProjectsPage() {
       }
 
       if (selectedFiles.length) {
-        const uploadResult = await uploadFiles(
-          projectId,
-          selectedFiles
-        );
+        setUploading(true);
 
-        uploadedPaths = uploadResult.uploadedPaths;
-        insertedMediaIds = uploadResult.insertedMediaIds;
+        await uploadFiles(
+          projectId,
+          selectedFiles,
+          uploadedPaths,
+          insertedMediaIds
+        );
       }
 
       setNotice({
@@ -965,32 +988,39 @@ export default function AdminProjectsPage() {
 
       await loadData(false);
     } catch (error) {
+      let errorMessage = getErrorMessage(error);
+
+      // Clean up only the files and records tracked during this save.
       if (uploadedPaths.length || insertedMediaIds.length) {
-        await rollbackUploads(uploadedPaths, insertedMediaIds);
+        try {
+          await rollbackUploads(uploadedPaths, insertedMediaIds);
+        } catch (cleanupError) {
+          errorMessage +=
+            ` Cleanup also reported an error: ${getErrorMessage(cleanupError)}`;
+        }
       }
 
-      // Avoid leaving a newly created empty project if its initial
-      // media upload failed. If deletion is blocked, report the real error.
+      // If initial media upload fails during creation, attempt to remove
+      // the new project to avoid leaving an incomplete project behind.
       if (createdProjectId) {
         const cleanup = await supabase
           .from("projects")
           .delete()
-          .eq("id", createdProjectId);
+          .eq("id", createdProjectId)
+          .select("id");
 
         if (cleanup.error) {
-          setNotice({
-            type: "error",
-            message:
-              `${getErrorMessage(error)} ` +
-              `Cleanup of the new project also failed: ${cleanup.error.message}`,
-          });
-          return;
+          errorMessage +=
+            ` Project cleanup also failed: ${cleanup.error.message}`;
+        } else if (!cleanup.data?.length) {
+          errorMessage +=
+            " The new project could not be confirmed as deleted.";
         }
       }
 
       setNotice({
         type: "error",
-        message: getErrorMessage(error),
+        message: errorMessage,
       });
     } finally {
       setSaving(false);
