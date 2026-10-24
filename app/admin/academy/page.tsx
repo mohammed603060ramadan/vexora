@@ -196,7 +196,7 @@ export default function AcademyPage() {
             "You do not have permission to add courses. Check the administrator role and Supabase RLS policies."
           );
         } else {
-          setFormError(`تعذر Save course: ${insertError.message}`);
+          setFormError(`Could not save course: ${insertError.message}`);
         }
         return;
       }
@@ -252,7 +252,7 @@ export default function AcademyPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-400">
-            إدارة الدورات التدريبية وإنشاء Courseات ومتابعة حالاتها من لوحة تحكم VEXORA.
+            Create training courses and monitor their publication status from the VEXORA control center.
           </p>
         </div>
 
@@ -277,7 +277,7 @@ export default function AcademyPage() {
             className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm transition hover:border-blue-400/40 hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span aria-hidden="true">↻</span>
-            تحديث البيانات
+            Refresh data
           </button>
         </div>
       </header>
@@ -297,10 +297,10 @@ export default function AcademyPage() {
             <p className="text-xs font-semibold tracking-wider text-blue-400">
               NEW COURSE
             </p>
-            <h2 className="mt-2 text-xl font-bold">إنشاء كورس جديد</h2>
+            <h2 className="mt-2 text-xl font-bold">Create a new course</h2>
             <p className="mt-2 text-sm leading-7 text-gray-400">
-              أدخل بيانات Course واحفظه في قاعدة البيانات. الDraft لن تظهر للطلاب
-              باعتبارها كورسًا Publishedًا.
+              Enter course details and save them to the database. Draft courses will not be visible to learners
+              until they are published.
             </p>
           </div>
 
@@ -344,8 +344,8 @@ export default function AcademyPage() {
                   className={fieldClass}
                 />
                 <p className="mt-2 text-xs leading-5 text-gray-500">
-                  اتركه فارغًا لتوليده من العنوان. يُفضّل استخدام حروف إنجليزية
-                  وأرقام.
+                  Leave this blank to generate it from the title. Use English letters
+                  and numbers.
                 </p>
               </div>
             </div>
@@ -515,7 +515,7 @@ export default function AcademyPage() {
                 }}
                 className="rounded-xl border border-white/10 px-6 py-3 text-sm transition hover:bg-white/[0.04] disabled:opacity-50"
               >
-                إلغاء
+                Cancel
               </button>
             </div>
           </form>
@@ -525,9 +525,9 @@ export default function AcademyPage() {
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Total courses", value: courses.length },
-          { label: "Courseات الPublishedة", value: publishedCount },
+          { label: "Published courses", value: publishedCount },
           { label: "Drafts", value: draftCount },
-          { label: "Courseات الArchivedة", value: archivedCount },
+          { label: "Archived courses", value: archivedCount },
         ].map((item) => (
           <div
             key={item.label}
@@ -544,9 +544,9 @@ export default function AcademyPage() {
       <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#0d121d] p-5 sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-bold">Courseات المسجلة</h2>
+            <h2 className="text-xl font-bold">Course records</h2>
             <p className="mt-2 text-sm text-gray-400">
-              اSearch بالاسم أو الرابط التعريفي، أو صفِّ النتائج حسب الحالة.
+              Search by title or slug, or filter results by status.
             </p>
           </div>
 
@@ -566,7 +566,7 @@ export default function AcademyPage() {
               aria-label="Filter courses by status"
               className={fieldClass}
             >
-              <option value="all">كل الحالات</option>
+              <option value="all">All statuses</option>
               <option value="draft">Draft</option>
               <option value="published">Published</option>
               <option value="archived">Archived</option>
@@ -579,21 +579,21 @@ export default function AcademyPage() {
             role="alert"
             className="mt-6 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm leading-7 text-red-300"
           >
-            <p className="font-semibold">تعذر تحميل Courseات</p>
+            <p className="font-semibold">Could not load courses</p>
             <p className="mt-1 break-words">{error}</p>
             <p className="mt-2 text-red-200/80">
-              تحقق من تسجيل الدخول وصلاحيات قراءة جدول courses وسياسات RLS.
+              Check your sign-in status and SELECT permissions for the courses table and its RLS policies.
             </p>
           </div>
         )}
 
         {loading ? (
           <div className="py-16 text-center text-sm text-gray-400">
-            جاري تحميل Courseات...
+            Loading courses...
           </div>
         ) : error ? (
           <div className="py-8 text-center text-sm text-gray-500">
-            أصلح الخطأ ثم اضغط «تحديث البيانات».
+            Fix the error, then select “Refresh data”.
           </div>
         ) : filteredCourses.length === 0 ? (
           <div className="py-16 text-center">
@@ -607,7 +607,7 @@ export default function AcademyPage() {
             </p>
             <p className="mt-2 text-sm text-gray-500">
               {courses.length === 0
-                ? "اضغط على «Add new course» لإنشاء أول كورس."
+                ? "Select “Add new course” to create your first course."
                 : "Try changing your search term or status filter."}
             </p>
           </div>
@@ -663,7 +663,7 @@ export default function AcademyPage() {
 
                       {course.estimated_hours !== null && (
                         <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-gray-300">
-                          {course.estimated_hours} ساعة
+                          {course.estimated_hours} hours
                         </span>
                       )}
                     </div>
@@ -680,7 +680,7 @@ export default function AcademyPage() {
 
         {!loading && !error && courses.length > 0 && (
           <p className="mt-5 border-t border-white/[0.07] pt-4 text-xs text-gray-500">
-            عرض {filteredCourses.length} من أصل {courses.length} كورس.
+            Showing {filteredCourses.length} of {courses.length} courses.
           </p>
         )}
       </section>
