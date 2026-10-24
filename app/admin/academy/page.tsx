@@ -2,6 +2,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -240,7 +241,7 @@ export default function AcademyPage() {
   ).length;
 
   return (
-    <div dir="rtl" className="mx-auto max-w-7xl text-white">
+    <div dir="ltr" className="mx-auto max-w-7xl text-white">
       <header className="flex flex-col gap-5 border-b border-white/[0.08] pb-7 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.18em] text-blue-400">
@@ -257,6 +258,7 @@ export default function AcademyPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <Link href="/academy/courses" target="_blank" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-blue-400/20 px-4 py-3 text-sm font-semibold text-blue-200 transition hover:border-blue-400/40 hover:bg-blue-400/[0.06]">View public courses ↗</Link>
           <button
             type="button"
             onClick={() => {
