@@ -177,6 +177,8 @@ export default function AcademyPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [registrationLoading, setRegistrationLoading] = useState(false);
+  const [registrationError, setRegistrationError] = useState("");
   const [certificateOpen, setCertificateOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [learnerName, setLearnerName] = useState("");
@@ -315,6 +317,7 @@ export default function AcademyPage() {
     if (!selectedCourse) return;
     setRegistrationOpen(true);
     setSubmitted(false);
+    setRegistrationError("");
     setPreferredFormat(selectedCourse.modes[0] ?? "");
   }
 
@@ -332,20 +335,41 @@ export default function AcademyPage() {
     });
   }
 
-  function handleRegistration(event: FormEvent<HTMLFormElement>) {
+  async function handleRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setRegistrationError("");
 
-    if (
-      !selectedCourse ||
-      learnerName.trim().length < 2 ||
-      !learnerEmail.trim() ||
-      !preferredFormat
-    ) {
+    if (!selectedCourse || learnerName.trim().length < 2 || !learnerEmail.trim() || !preferredFormat) {
+      setRegistrationError("Complete all required fields before submitting.");
       return;
     }
 
-    // Demonstration only. No data is sent to a backend.
-    setSubmitted(true);
+    setRegistrationLoading(true);
+    try {
+      const response = await fetch("/api/student-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: learnerName.trim(),
+          email: learnerEmail.trim(),
+          track: `${selectedCourse.category}: ${selectedCourse.title}`.slice(0, 100),
+          education_level: selectedCourse.level,
+          experience: `Preferred format: ${modeLabels[preferredFormat as TrainingMode] ?? preferredFormat}`,
+          motivation: selectedCourse.description,
+          website: "",
+        }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) {
+        setRegistrationError(result.error || "Registration could not be submitted. Please try again.");
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setRegistrationError("A network error occurred. Please try again.");
+    } finally {
+      setRegistrationLoading(false);
+    }
   }
 
   function printCertificate() {
@@ -1520,9 +1544,10 @@ export default function AcademyPage() {
 
                     <button
                       type="submit"
-                      className="academy-button academy-focus w-full rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc]"
+                      disabled={registrationLoading}
+                      className="academy-button academy-focus w-full rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Test form validation
+                      {registrationLoading ? "Submitting..." : "Submit registration"}
                     </button>
 
                     <button
@@ -1533,9 +1558,13 @@ export default function AcademyPage() {
                       Back to course details
                     </button>
 
-                    <p className="text-xs leading-5 text-gray-600">
-                      Demonstration only. Do not enter sensitive information.
-                      This form is not connected to a server.
+                    {registrationError && (
+                      <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-400/5 p-3 text-sm text-rose-200">
+                        {registrationError}
+                      </p>
+                    )}
+                    <p className="text-xs leading-5 text-gray-500">
+                      Your registration is securely submitted to the VEXORA team for review.
                     </p>
                   </form>
                 </>
