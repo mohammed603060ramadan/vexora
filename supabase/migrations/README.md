@@ -35,7 +35,6 @@ Apply migrations through the team's chosen Supabase migration workflow, in versi
 | 20261025130000 | 20261025130000_course_access_workflow.sql | Paid course reference codes, admin approval, enrollment grants and lesson access policies |
 | 202610240005 | 202610240005_admin_registry_and_manager_integrity.sql | Protected administrator registry used by manager administration |
 | 20261025100000 | 20261025100000_project_requests.sql | Client project request tracking |
-| 20261025120000 | 20261025120000_client_auth_user_compat.sql | Client Auth link compatibility and synchronization |
 
 ## Important verification notes
 
