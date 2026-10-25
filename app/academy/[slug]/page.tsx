@@ -742,14 +742,18 @@ function CourseDetailsContent() {
                 : "Request your course access reference code. The full curriculum unlocks after an administrator approves your request."}
             </p>
 
-            <button
-              type="button"
-              onClick={() => void requestAccess()}
-              disabled={accessLoading}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
-            >
-              {accessLoading ? "Creating request…" : "Request purchase / access code"}
-            </button>
+            {hasCourseAccess ? (
+              <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">✓ Open my courses</Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void requestAccess()}
+                disabled={accessLoading}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
+              >
+                {accessLoading ? "Creating request…" : "Request purchase / access code"}
+              </button>
+            )}
             {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
             {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>
 
