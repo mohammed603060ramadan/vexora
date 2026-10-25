@@ -733,6 +733,12 @@ export default function AcademyPage() {
                           {course.estimated_hours} hours
                         </span>
                       )}
+
+                      <span className="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.05] px-3 py-1.5 text-xs font-semibold text-cyan-100">
+                        {course.price == null || Number(course.price) === 0
+                          ? "Free"
+                          : new Intl.NumberFormat("en", { style: "currency", currency: (course.currency || "USD").trim(), maximumFractionDigits: 2 }).format(Number(course.price))}
+                      </span>
                     </div>
                   </div>
 
