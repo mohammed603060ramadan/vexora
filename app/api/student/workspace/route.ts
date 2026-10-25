@@ -56,10 +56,10 @@ export async function GET() {
     ])];
 
     const { data: projectNames, error: namesError } = projectIds.length
-      ? await admin.from("projects").select("id,title,name").in("id", projectIds)
+      ? await admin.from("projects").select("id,title").in("id", projectIds)
       : { data: [], error: null };
     if (namesError) throw namesError;
-    const nameMap = new Map((projectNames ?? []).map((item) => [item.id, item.title || item.name || "Project"]));
+    const nameMap = new Map((projectNames ?? []).map((item) => [item.id, item.title || "Project"]));
 
     return NextResponse.json({
       projects: projects.map((item) => ({ ...item, title: item.title || nameMap.get(item.id) || "Project" })),
