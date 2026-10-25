@@ -361,20 +361,11 @@ export default function AcademyPage() {
   useEffect(() => {
     let active = true;
     async function loadPublishedCourses() {
-      let { data, error: queryError } = await supabase
+      const { data, error: queryError } = await supabase
         .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency,cover_image_url,promo_video_url")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at")
         .eq("status", "published")
         .order("created_at", { ascending: false });
-      if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
-        const fallback = await supabase
-          .from("courses")
-          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency")
-          .eq("status", "published")
-          .order("created_at", { ascending: false });
-        data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
-        queryError = fallback.error;
-      }
       if (!active) return;
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
@@ -394,14 +385,14 @@ export default function AcademyPage() {
         id: row.id,
         slug: row.slug,
         title: row.title,
-        price: row.price == null ? 0 : Number(row.price),
-        currency: row.currency || "USD",
-        promoVideoUrl: row.promo_video_url || null,
+        price: null,
+        currency: null,
+        promoVideoUrl: null,
         category: row.category || "Cybersecurity",
         level: row.difficulty ? row.difficulty.charAt(0).toUpperCase() + row.difficulty.slice(1) : "All levels",
         duration: row.estimated_hours ? `${row.estimated_hours} hours` : "Flexible schedule",
         modes: row.course_type === "in_person" ? ["inperson"] : row.course_type === "hybrid" ? ["hybrid", "online", "inperson"] : ["online"],
-        image: row.cover_image_url || imageByCategory[row.category] || imageByCategory.Cybersecurity,
+        image: imageByCategory[row.category] || imageByCategory.Cybersecurity,
         description: row.description || "Course details will be announced soon.",
         topics: [],
       })) as Course[];
