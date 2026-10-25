@@ -45,9 +45,12 @@ type Task = {
   due_date: string | null;
 };
 
+type ProjectRequest = { id: string; project_id: string; status: string; message: string | null; created_at: string; projects: { id: string; title: string; portfolio_category: string | null } | null };
+
 type View =
   | "overview"
   | "projects"
+  | "requests"
   | "tasks"
   | "profile"
   | "technology";
@@ -106,6 +109,11 @@ const navItems: {
     id: "projects",
     label: "Projects",
     description: "Delivery & progress",
+  },
+  {
+    id: "requests",
+    label: "Project Requests",
+    description: "Requests you submitted",
   },
   {
     id: "tasks",
@@ -579,6 +587,9 @@ export default function ClientPage() {
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectRequests, setProjectRequests] = useState<ProjectRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsError, setRequestsError] = useState("");
 
   const [activeView, setActiveView] = useState<View>("overview");
 
@@ -682,9 +693,23 @@ export default function ClientPage() {
         setProfile(profileResult.data);
         setClient(clientResult.data);
 
+        setRequestsLoading(true);
+        setRequestsError("");
+        try {
+          const requestsResponse = await fetch("/api/project-requests", { cache: "no-store" });
+          const requestsPayload = await requestsResponse.json() as { requests?: ProjectRequest[]; error?: string };
+          if (!requestsResponse.ok) throw new Error(requestsPayload.error || "Unable to load project requests.");
+          setProjectRequests(Array.isArray(requestsPayload.requests) ? requestsPayload.requests : []);
+        } catch (requestError) {
+          setRequestsError(requestError instanceof Error ? requestError.message : "Unable to load project requests.");
+        } finally {
+          setRequestsLoading(false);
+        }
+
         if (!clientResult.data) {
           setProjects([]);
           setTasks([]);
+          setProjectRequests([]);
 
           setNotice(
             "Your account is active, but no client record is linked yet. Please contact VEXORA support."
@@ -2472,6 +2497,44 @@ export default function ClientPage() {
                   </a>
                 </div>
               </section>
+            </div>
+          )}
+
+          {/* =================================================
+              PROJECT REQUESTS
+          ================================================= */}
+
+          {activeView === "requests" && (
+            <div className="view-enter">
+              <SectionTitle
+                eyebrow="PROJECT REQUEST TRACKER"
+                title="My Project Requests"
+                description="Requests submitted from the public VEXORA portfolio. Status and timestamps are loaded from your account's request records."
+              />
+              {requestsError && <div role="alert" className="mb-5 rounded-xl border border-rose-300/20 bg-rose-300/[.06] p-4 text-sm text-rose-200">{requestsError}</div>}
+              {requestsLoading ? (
+                <div role="status" className="rounded-2xl border border-white/10 bg-white/[.03] p-8 text-sm text-slate-400">Loading your project requests…</div>
+              ) : projectRequests.length === 0 ? (
+                <section className="rounded-2xl border border-dashed border-white/15 bg-white/[.025] p-8 text-center sm:p-12">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-300/20 bg-blue-400/[.06] text-blue-200"><Icon name="projects" size={26} /></div>
+                  <h3 className="mt-5 text-xl font-semibold text-white">No project requests yet</h3>
+                  <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">Explore the five VEXORA departments and submit a request on any published project. Your requests will appear here.</p>
+                  <Link href="/projects/achievements" className="mt-5 inline-flex rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">Explore portfolio ↗</Link>
+                </section>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {projectRequests.map((item) => (
+                    <article key={item.id} className="rounded-2xl border border-white/10 bg-[#08101b]/80 p-5 sm:p-6">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div><p className="font-mono text-[10px] uppercase tracking-[.2em] text-blue-300">{item.projects?.portfolio_category || "VEXORA PROJECT"}</p><h3 className="mt-2 text-lg font-semibold text-white">{item.projects?.title || "Requested project"}</h3></div>
+                        <StatusBadge value={item.status} />
+                      </div>
+                      {item.message && <p className="mt-3 text-sm leading-6 text-slate-400">{item.message}</p>}
+                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/[.07] pt-4 text-xs text-slate-500"><span>Submitted {formatDate(item.created_at)}</span><span className="font-mono">REQ-{item.id.slice(0, 8).toUpperCase()}</span></div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
