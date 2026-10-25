@@ -14,7 +14,6 @@ export async function GET() {
     if (authError || !user) return jsonError("Sign in to view your project requests.", 401);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAdminClient() as SupabaseClient<any>;
     const { data: client, error: clientError } = await admin
       .from("clients").select("id").eq("auth_user_id", user.id).maybeSingle();
@@ -61,6 +60,7 @@ export async function POST(request: Request) {
     }
     const message = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) : null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAdminClient() as SupabaseClient<any>;
     const [{ data: client, error: clientError }, { data: project, error: projectError }] = await Promise.all([
       admin.from("clients").select("id").eq("auth_user_id", user.id).maybeSingle(),
