@@ -17,6 +17,10 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
+  price: number | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  promo_video_url: string | null;
 };
 
 type Section = {
@@ -85,6 +89,9 @@ function CourseDetailsContent() {
   const [search, setSearch] = useState("");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState("");
+  const [accessResult, setAccessResult] = useState<{ code: string; status: string; message: string } | null>(null);
 
   const loadCourse = useCallback(
     async (isRefresh = false) => {
@@ -118,7 +125,7 @@ function CourseDetailsContent() {
         } = await supabase
           .from("courses")
           .select(
-            "id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours"
+            "id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url"
           )
           .eq("slug", slug)
           .eq("status", "published")
@@ -271,6 +278,26 @@ function CourseDetailsContent() {
     }
   };
 
+  async function requestAccess() {
+    if (!course) return;
+    setAccessLoading(true);
+    setAccessError("");
+    try {
+      const response = await fetch("/api/course-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+      const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
+      if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
+      setAccessResult({ code: payload.request.purchase_code || "CODE PENDING", status: payload.request.status || "pending", message: payload.message || "Access will be enabled after administrator approval." });
+    } catch (cause) {
+      setAccessError(cause instanceof Error ? cause.message : "Unable to request course access.");
+    } finally {
+      setAccessLoading(false);
+    }
+  }
+
   const toggleSection = (sectionId: string) => {
     setExpandedSections((current) =>
       current.includes(sectionId)
@@ -310,16 +337,18 @@ function CourseDetailsContent() {
             </Link>
 
             <Link
-              href="/login"
+              href="/student"
               className="hidden rounded-full bg-[#1687ff] px-4 py-2 text-sm font-semibold transition hover:bg-[#45a5ff] sm:inline-flex"
             >
-              Sign in
+              My learning
             </Link>
           </nav>
         </div>
       </header>
 
       <section className="relative overflow-hidden border-b border-white/10">
+        {course?.cover_image_url && <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url("${course.cover_image_url}")` }} />}
+        {course?.promo_video_url && <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-15"><video className="h-full w-full object-cover" src={course.promo_video_url} autoPlay muted loop playsInline /></div>}
         <div className="pointer-events-none absolute -right-20 -top-36 h-96 w-96 rounded-full bg-[#087bff]/15 blur-[110px]" />
         <div className="pointer-events-none absolute -bottom-48 left-0 h-80 w-80 rounded-full bg-[#087bff]/10 blur-[100px]" />
 
@@ -685,12 +714,16 @@ function CourseDetailsContent() {
               options and your learning dashboard.
             </p>
 
-            <Link
-              href="/login"
-              className="mt-6 flex w-full items-center justify-center rounded-full bg-[#1687ff] px-5 py-3.5 text-sm font-semibold transition hover:bg-[#45a5ff]"
+            <button
+              type="button"
+              onClick={() => void requestAccess()}
+              disabled={accessLoading}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
             >
-              Sign in to continue
-            </Link>
+              {accessLoading ? "Creating request…" : "Request purchase / access code"}
+            </button>
+            {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
+            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>
 
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
               <div className="flex items-start gap-3">
