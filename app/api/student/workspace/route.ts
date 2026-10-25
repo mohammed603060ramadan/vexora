@@ -51,23 +51,37 @@ export async function GET() {
     if (requestResult.error) throw requestResult.error;
     if (taskResult.error) throw taskResult.error;
 
-    const projects = projectResult.data ?? [];
+    const clientProjects = projectResult.data ?? [];
     const requests = requestResult.data ?? [];
     const tasks = taskResult.data ?? [];
     const projectIds = [...new Set([
-      ...projects.map((item) => item.id),
+      ...clientProjects.map((item) => item.id),
       ...requests.map((item) => item.project_id),
       ...tasks.map((item) => item.project_id),
-    ])];
+    ].filter((id): id is string => Boolean(id)))];
 
-    const { data: projectNames, error: namesError } = projectIds.length
-      ? await admin.from("projects").select("id,title").in("id", projectIds)
+    // Include projects connected to the signed-in student through their
+    // assigned tasks or own project requests, even without a client record.
+    const { data: relatedProjects, error: relatedProjectsError } = projectIds.length
+      ? await admin
+          .from("projects")
+          .select("id,title,description,status,deadline,progress_percent,client_id")
+          .in("id", projectIds)
       : { data: [], error: null };
-    if (namesError) throw namesError;
-    const nameMap = new Map((projectNames ?? []).map((item) => [item.id, item.title || "Project"]));
+    if (relatedProjectsError) throw relatedProjectsError;
+
+    const projectById = new Map(
+      (relatedProjects ?? []).map((item) => [item.id, item])
+    );
+    const nameMap = new Map(
+      (relatedProjects ?? []).map((item) => [item.id, item.title || "Project"])
+    );
 
     return NextResponse.json({
-      projects: projects.map((item) => ({ ...item, title: item.title || nameMap.get(item.id) || "Project" })),
+      projects: projectIds
+        .map((id) => projectById.get(id))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .map((item) => ({ ...item, title: item.title || "Project" })),
       requests: requests.map((item) => ({ ...item, project_title: nameMap.get(item.project_id) || "Project" })),
       tasks: tasks.map((item) => ({ ...item, project_title: nameMap.get(item.project_id) || "Project" })),
     }, { headers });
