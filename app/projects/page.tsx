@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase/browser";
 
 type PublicProject = {
   id: string;
-  name: string;
+  title: string;
   description: string | null;
   status: string;
   deadline: string | null;
@@ -638,9 +638,9 @@ export default function ProjectsPage() {
         .select("id,title,description,status,deadline,show_on_projects_page")
         .eq("show_on_projects_page", true)
         .in("status", ["in_progress", "completed"])
-        .order("name", { ascending: true })
+        .order("title", { ascending: true })
         .limit(12);
-      if (active && !error) setPublishedProjects((data ?? []) as PublicProject[]);
+      if (active && !error) setPublishedProjects((data ?? []) as unknown as PublicProject[]);
     }
     void loadPublishedProjects();
     return () => { active = false; };
