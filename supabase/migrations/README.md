@@ -34,11 +34,14 @@ Apply migrations through the team's chosen Supabase migration workflow, in versi
 | 20261025120000 | 20261025120000_client_auth_user_compat.sql | Safe compatibility link for client auth accounts |
 | 20261025130000 | 20261025130000_course_access_workflow.sql | Paid course reference codes, admin approval, enrollment grants and lesson access policies |
 | 202610240005 | 202610240005_admin_registry_and_manager_integrity.sql | Protected administrator registry used by manager administration |
+| 20261025100000 | 20261025100000_project_requests.sql | Client project request tracking |
+| 20261025120000 | 20261025120000_client_auth_user_compat.sql | Client Auth link compatibility and synchronization |
 
 ## Important verification notes
 
 - GitHub stores migration files; it does not apply them to Supabase automatically.
-- Before using paid Academy course access, review and apply `20261025130000_course_access_workflow.sql` to the intended Supabase project. It adds course media/pricing fields, access requests, an approval-to-enrollment trigger, and a lesson visibility policy; verify the existing `lessons_read` policy and role permissions before applying in production.
+- Before using student project requests, verify `20261025100000_project_requests.sql` is applied and the client account can be matched by `auth_user_id` or legacy `user_id`.
+- Before using paid Academy course access, review and apply `20261025130000_course_access_workflow.sql` to the intended Supabase project. It adds course media fields, access requests, an approval-to-enrollment trigger, and a lesson visibility policy; verify the existing `lessons_read` policy and role permissions before applying in production.
 - Before deploying 202610240004, verify the live projects table has the expected columns (id, title, description, status, deadline) and that existing RLS policies are compatible with public showcase access.
 - Before deploying 202610240005, check whether public.vexora_admins already exists and whether the live manager API uses that table. The migration intentionally preserves existing registry rows.
 - Test administrator invitation/removal, project save/media upload, event create/publish, and course create/publish against a non-production/test record before relying on production behavior.
