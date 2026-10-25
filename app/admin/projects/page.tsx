@@ -39,8 +39,7 @@ type ProjectStatus =
   | "planning"
   | "in_progress"
   | "completed"
-  | "on_hold"
-  | "cancelled";
+  | "on_hold";
 
 type Client = {
   id: string;
@@ -116,7 +115,6 @@ const STATUS_OPTIONS: {
   { value: "in_progress", label: "In progress" },
   { value: "completed", label: "Completed" },
   { value: "on_hold", label: "On hold" },
-  { value: "cancelled", label: "Cancelled" },
 ];
 
 const STATUS_META: Record<
@@ -142,11 +140,6 @@ const STATUS_META: Record<
     label: "On hold",
     color: "#fbbf24",
     background: "rgba(245,158,11,.12)",
-  },
-  cancelled: {
-    label: "Cancelled",
-    color: "#f87171",
-    background: "rgba(239,68,68,.12)",
   },
 };
 
@@ -949,7 +942,7 @@ export default function AdminProjectsPage() {
         title,
         client_id: form.client_id || null,
         description: description || null,
-        status: form.status === "planning" ? "planned" : form.status,
+        status: form.status,
         budget: budget ? Number(budget) : 0,
         deadline: form.deadline || null,
         show_on_homepage: form.show_on_homepage,
