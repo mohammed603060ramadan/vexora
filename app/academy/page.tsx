@@ -359,11 +359,20 @@ export default function AcademyPage() {
   useEffect(() => {
     let active = true;
     async function loadPublishedCourses() {
-      const { data, error: queryError } = await supabase
+      let { data, error: queryError } = await supabase
         .from("courses")
         .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
+      if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
+        const fallback = await supabase
+          .from("courses")
+          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency")
+          .eq("status", "published")
+          .order("created_at", { ascending: false });
+        data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
+        queryError = fallback.error;
+      }
       if (!active) return;
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
