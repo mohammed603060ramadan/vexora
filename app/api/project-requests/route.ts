@@ -13,9 +13,7 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return jsonError("Sign in to view your project requests.", 401);
 
-    // The project uses an untyped Supabase client; keep the dynamic table queries isolated here.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // The project uses an untyped Supabase client; keep the dynamic table queries isolated here.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = createAdminClient() as SupabaseClient<any>;
     const { data: client, error: clientError } = await admin
