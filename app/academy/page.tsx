@@ -22,6 +22,9 @@ type Course = {
   description: string;
   topics: string[];
   isOffline?: boolean;
+  price?: number | null;
+  currency?: string | null;
+  promoVideoUrl?: string | null;
 };
 
 const modes: { id: FilterMode; label: string }[] = [
@@ -349,13 +352,16 @@ export default function AcademyPage() {
   const [learnerName, setLearnerName] = useState("");
   const [learnerEmail, setLearnerEmail] = useState("");
   const [preferredFormat, setPreferredFormat] = useState("");
+  const [accessRequestLoading, setAccessRequestLoading] = useState(false);
+  const [accessRequestError, setAccessRequestError] = useState("");
+  const [accessRequestResult, setAccessRequestResult] = useState<{ code: string; status: string; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
     async function loadPublishedCourses() {
       const { data, error: queryError } = await supabase
         .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
       if (!active) return;
@@ -377,11 +383,14 @@ export default function AcademyPage() {
         id: row.id,
         slug: row.slug,
         title: row.title,
+        price: row.price == null ? 0 : Number(row.price),
+        currency: row.currency || "USD",
+        promoVideoUrl: row.promo_video_url || null,
         category: row.category || "Cybersecurity",
         level: row.difficulty ? row.difficulty.charAt(0).toUpperCase() + row.difficulty.slice(1) : "All levels",
         duration: row.estimated_hours ? `${row.estimated_hours} hours` : "Flexible schedule",
         modes: row.course_type === "in_person" ? ["inperson"] : row.course_type === "hybrid" ? ["hybrid", "online", "inperson"] : ["online"],
-        image: imageByCategory[row.category] || imageByCategory.Cybersecurity,
+        image: row.cover_image_url || imageByCategory[row.category] || imageByCategory.Cybersecurity,
         description: row.description || "Course details will be announced soon.",
         topics: [],
       })) as Course[];
@@ -462,9 +471,47 @@ export default function AcademyPage() {
     setSelectedCourse(course);
     setRegistrationOpen(false);
     setSubmitted(false);
+    setRegistrationError("");
+    setAccessRequestError("");
+    setAccessRequestResult(null);
     setLearnerName("");
     setLearnerEmail("");
     setPreferredFormat(course.modes[0] ?? "");
+  }
+
+  async function requestCourseAccess() {
+    if (!selectedCourse || selectedCourse.isOffline || !selectedCourse.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+      setAccessRequestError("This course does not support online access requests.");
+      return;
+    }
+    setAccessRequestLoading(true);
+    setAccessRequestError("");
+    try {
+      const response = await fetch("/api/course-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: selectedCourse.id }),
+      });
+      const payload = await response.json() as {
+        request?: { purchase_code?: string; status?: string };
+        message?: string;
+        error?: string;
+      };
+      if (response.status === 401) {
+        window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
+        return;
+      }
+      if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");
+      setAccessRequestResult({
+        code: payload.request.purchase_code || "CODE PENDING",
+        status: payload.request.status || "pending",
+        message: payload.message || "Your request was recorded. Access is enabled after administrator approval.",
+      });
+    } catch (error) {
+      setAccessRequestError(error instanceof Error ? error.message : "Unable to create the access request.");
+    } finally {
+      setAccessRequestLoading(false);
+    }
   }
 
   function openRegistration() {
@@ -1582,6 +1629,20 @@ export default function AcademyPage() {
                     {selectedCourse.description}
                   </p>
 
+                  {!selectedCourse.isOffline && (
+                    <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-slate-400">Course price</span>
+                        <strong className="text-xl text-white">
+                          {selectedCourse.price == null || Number(selectedCourse.price) === 0
+                            ? "Free"
+                            : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD" }).format(Number(selectedCourse.price))}
+                        </strong>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">Only the course overview is public. Full lessons become available after the VEXORA administrator approves your request.</p>
+                    </div>
+                  )}
+
                   <h3 className="mt-7 font-semibold">What you will explore</h3>
                   <ul className="mt-4 space-y-3">
                     {selectedCourse.topics.map((topic) => (
@@ -1597,17 +1658,43 @@ export default function AcademyPage() {
                     ))}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={openRegistration}
-                    className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc]"
-                  >
-                    Preview registration form
-                    <Icon name="arrow" size={18} />
-                  </button>
-                  <p className="mt-3 text-center text-xs leading-5 text-gray-600">
-                    Demo only. No seat is reserved and no data is sent.
-                  </p>
+                  {selectedCourse.isOffline ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={openRegistration}
+                        className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc]"
+                      >
+                        Register for offline training
+                        <Icon name="arrow" size={18} />
+                      </button>
+                      <p className="mt-3 text-center text-xs leading-5 text-gray-500">Your request is sent to the VEXORA Academy team for follow-up.</p>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void requestCourseAccess()}
+                        disabled={accessRequestLoading}
+                        className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+                      >
+                        {accessRequestLoading ? "Creating request…" : "Request purchase / access code"}
+                        <Icon name="arrow" size={18} />
+                      </button>
+                      {accessRequestError && <p role="alert" className="mt-3 rounded-lg border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessRequestError}</p>}
+                      {accessRequestResult && (
+                        <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-200">Your reference code</p>
+                          <div className="mt-2 flex items-center justify-between gap-3">
+                            <code className="text-lg font-bold tracking-wider text-white">{accessRequestResult.code}</code>
+                            <button type="button" onClick={() => void navigator.clipboard?.writeText(accessRequestResult.code)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-300 hover:text-white">Copy</button>
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">{accessRequestResult.message}</p>
+                          <p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessRequestResult.status}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               ) : submitted ? (
                 <div className="py-8 text-center">
@@ -1615,7 +1702,7 @@ export default function AcademyPage() {
                     <Icon name="check" size={32} />
                   </span>
                   <h2 id="course-dialog-title" className="mt-5 text-2xl font-bold">
-                    Demo completed
+                    Registration received
                   </h2>
                   <p className="mx-auto mt-3 max-w-md leading-7 text-gray-400">
                     Form validation worked successfully. This is a local
@@ -1632,13 +1719,13 @@ export default function AcademyPage() {
               ) : (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
-                    Enrollment preview
+                    Offline training registration
                   </p>
                   <h2
                     id="course-dialog-title"
                     className="mt-3 text-2xl font-bold"
                   >
-                    Request a place
+                    Register for offline training
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-400">
                     Selected program:{" "}
