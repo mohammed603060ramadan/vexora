@@ -29,6 +29,28 @@ type StudentEnrollment = {
   course: CourseDetails | null;
 };
 
+type StudentProject = {
+  id: string; title: string; description: string | null; status: string;
+  deadline: string | null; progress_percent: number | null;
+};
+
+type StudentProjectRequest = {
+  id: string; project_id: string; project_title: string; status: string;
+  message: string | null; created_at: string; updated_at: string;
+};
+
+type StudentTask = {
+  id: string; project_id: string; project_title: string; title: string;
+  description: string | null; status: string; priority: string;
+  due_date: string | null; updated_at: string;
+};
+
+type CourseAccessRequest = {
+  id: string; course_id: string; email: string; purchase_code: string;
+  status: string; created_at: string; admin_note: string | null;
+  courses: { title: string; price: number | null; currency: string | null } | null;
+};
+
 type TechArticle = {
   id: number;
   title: string;
@@ -153,6 +175,13 @@ export default function StudentDashboard() {
     id: string; full_name: string; email: string; track: string; status: string; created_at: string;
   }>>([]);
   const [registrationError, setRegistrationError] = useState("");
+  const [studentProjects, setStudentProjects] = useState<StudentProject[]>([]);
+  const [projectRequests, setProjectRequests] = useState<StudentProjectRequest[]>([]);
+  const [studentTasks, setStudentTasks] = useState<StudentTask[]>([]);
+  const [workspaceError, setWorkspaceError] = useState("");
+  const [courseAccessRequests, setCourseAccessRequests] = useState<CourseAccessRequest[]>([]);
+  const [accessError, setAccessError] = useState("");
+  const [taskBusyId, setTaskBusyId] = useState("");
   const [coursesError, setCoursesError] = useState("");
   const [coursesLoading, setCoursesLoading] = useState(false);
 
@@ -197,6 +226,29 @@ export default function StudentDashboard() {
       } catch (caught) {
         setCourseRegistrations([]);
         setRegistrationError(caught instanceof Error ? caught.message : "Unable to load course registrations.");
+      }
+
+      try {
+        const [workspaceResponse, accessResponse] = await Promise.all([
+          fetch("/api/student/workspace", { cache: "no-store" }),
+          fetch("/api/course-access", { cache: "no-store" }),
+        ]);
+        const workspacePayload = await workspaceResponse.json() as {
+          projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; error?: string;
+        };
+        if (!workspaceResponse.ok) throw new Error(workspacePayload.error || "Unable to load your project workspace.");
+        setStudentProjects(Array.isArray(workspacePayload.projects) ? workspacePayload.projects : []);
+        setProjectRequests(Array.isArray(workspacePayload.requests) ? workspacePayload.requests : []);
+        setStudentTasks(Array.isArray(workspacePayload.tasks) ? workspacePayload.tasks : []);
+        setWorkspaceError("");
+
+        const accessPayload = await accessResponse.json() as { requests?: CourseAccessRequest[]; error?: string };
+        if (!accessResponse.ok) throw new Error(accessPayload.error || "Unable to load course access requests.");
+        setCourseAccessRequests(Array.isArray(accessPayload.requests) ? accessPayload.requests : []);
+        setAccessError("");
+      } catch (workspaceLoadError) {
+        setWorkspaceError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load your project workspace.");
+        setAccessError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load course access requests.");
       }
 
       const { data: profileData, error: profileError } = await supabase
@@ -352,6 +404,25 @@ export default function StudentDashboard() {
       subscription.unsubscribe();
     };
   }, [loadStudent, loadTechnologyNews, router]);
+
+  async function updateStudentTask(task: StudentTask, status: string) {
+    setTaskBusyId(task.id);
+    setWorkspaceError("");
+    try {
+      const response = await fetch("/api/student/workspace", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, status }),
+      });
+      const payload = await response.json() as { task?: { id: string; status: string; updated_at: string }; error?: string };
+      if (!response.ok || !payload.task) throw new Error(payload.error || "Could not update this task.");
+      setStudentTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: payload.task!.status, updated_at: payload.task!.updated_at } : item));
+    } catch (caught) {
+      setWorkspaceError(caught instanceof Error ? caught.message : "Could not update this task.");
+    } finally {
+      setTaskBusyId("");
+    }
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -611,6 +682,51 @@ export default function StudentDashboard() {
         <section className="section-block">
           <div className="section-heading">
             <div>
+              <p className="eyebrow">YOUR WORKSPACE</p>
+              <h2>My Projects</h2>
+              <p className="section-description">Projects associated with your client account, including completed work.</p>
+            </div>
+            <span className="resource-count">{studentProjects.length} projects</span>
+          </div>
+          {workspaceError && <div className="error-banner" role="alert"><span>{workspaceError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
+          {studentProjects.length === 0 ? (
+            <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects assigned to your client profile will appear here as the VEXORA team updates them.</p><Link href="/client" className="primary-button">Open client workspace ↗</Link></div>
+          ) : (
+            <div className="resource-grid">
+              {studentProjects.map((project) => (
+                <article key={project.id} className="resource-card group relative overflow-hidden">
+                  <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-400/10 blur-2xl transition group-hover:bg-cyan-400/20" />
+                  <div className="resource-top"><span className="resource-icon" aria-hidden="true">✦</span><span className={`status-pill ${project.status === "completed" ? "status-active" : "status-pending"}`}>{project.status.replaceAll("_", " ")}</span></div>
+                  <h3>{project.title}</h3><p>{project.description || "Project delivered by the VEXORA team."}</p>
+                  <div className="course-meta"><span>{Math.max(0, Math.min(100, Number(project.progress_percent) || 0))}% progress</span>{project.deadline && <span>Due {formatDate(project.deadline)}</span>}</div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all" style={{ width: `${Math.max(0, Math.min(100, Number(project.progress_percent) || 0))}%` }} /></div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading"><div><p className="eyebrow">PROJECT COMMUNICATION</p><h2>My Project Requests</h2><p className="section-description">Track requests submitted for projects and the latest administrator response.</p></div><span className="resource-count">{projectRequests.length} requests</span></div>
+          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects/achievements" className="primary-button">Explore projects ↗</Link></div> : (
+            <div className="resource-grid">
+              {projectRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">⌁</span><span className={`status-pill ${request.status === "approved" || request.status === "completed" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status.replaceAll("_", " ")}</span></div><h3>{request.project_title}</h3><p>{request.message || "Project request submitted to VEXORA."}</p><div className="course-meta"><span>Submitted {formatDate(request.created_at)}</span><span>Updated {formatDate(request.updated_at)}</span></div></article>)}
+            </div>
+          )}
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading"><div><p className="eyebrow">ASSIGNED BY VEXORA</p><h2>My Tasks</h2><p className="section-description">Tasks assigned to your account by the administration team. Update your progress as you work.</p></div><span className="resource-count">{studentTasks.length} tasks</span></div>
+          {studentTasks.length === 0 ? <div className="empty-state"><span aria-hidden="true">◈</span><strong>No assigned tasks</strong><p>Tasks assigned to your signed-in account will show up here automatically.</p></div> : (
+            <div className="resource-grid">
+              {studentTasks.map((task) => <article key={task.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">◈</span><span className={`status-pill ${task.status === "completed" ? "status-active" : task.status === "blocked" ? "status-cancelled" : "status-pending"}`}>{task.status.replaceAll("_", " ")}</span></div><h3>{task.title}</h3><p>{task.description || task.project_title}</p><div className="course-meta"><span>{task.project_title}</span><span>{task.priority} priority</span>{task.due_date && <span>Due {formatDate(task.due_date)}</span>}</div><label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Update task status<select value={task.status} disabled={taskBusyId === task.id} onChange={(event) => void updateStudentTask(task, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080d16] px-3 py-2.5 text-sm normal-case text-white outline-none focus:border-cyan-300/50 disabled:opacity-50"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="review">Ready for review</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></label></article>)}
+            </div>
+          )}
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading">
+            <div>
               <p className="eyebrow">YOUR LEARNING JOURNEY</p>
               <h2>My Courses</h2>
               <p className="section-description">
@@ -711,6 +827,16 @@ export default function StudentDashboard() {
                   </article>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading"><div><p className="eyebrow">ONLINE LEARNING ACCESS</p><h2>Course access requests</h2><p className="section-description">Paid online course access is activated after administrator approval.</p></div><span className="resource-count">{courseAccessRequests.length} requests</span></div>
+          {accessError && <div className="error-banner" role="alert"><span>{accessError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
+          {courseAccessRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">✧</span><strong>No online access requests</strong><p>Request a course access code from an online course page. Your request and approval status will appear here.</p><Link href="/academy" className="primary-button">Browse online courses ↗</Link></div> : (
+            <div className="resource-grid">
+              {courseAccessRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">✧</span><span className={`status-pill ${request.status === "approved" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status}</span></div><h3>{request.courses?.title || "Online course"}</h3><p>Reference code</p><code className="mt-2 block break-all text-lg font-bold tracking-wider text-cyan-200">{request.purchase_code}</code><div className="course-meta"><span>{request.courses?.price ? `${request.courses.currency || "USD"} ${request.courses.price}` : "Free course"}</span><span>{formatDate(request.created_at)}</span></div>{request.admin_note && <p className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-slate-300">Admin note: {request.admin_note}</p>}</article>)}
             </div>
           )}
         </section>
