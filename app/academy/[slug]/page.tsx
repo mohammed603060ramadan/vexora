@@ -114,11 +114,8 @@ function CourseDetailsContent() {
       setError("");
 
       try {
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError || !authData.user) {
-          window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-          return;
-        }
+        const { data: authData } = await supabase.auth.getUser();
+        const signedInUser = authData.user;
 
         let { data: courseData, error: courseError } = await supabase
           .from("courses")
@@ -181,15 +178,19 @@ function CourseDetailsContent() {
           loadedLessons = (lessonData ?? []) as Lesson[];
         }
 
-        const { data: enrollment, error: enrollmentError } = await supabase
-          .from("enrollments")
-          .select("id,status")
-          .eq("course_id", courseData.id)
-          .eq("student_id", authData.user.id)
-          .in("status", ["active", "completed"])
-          .maybeSingle();
-        if (enrollmentError) throw enrollmentError;
-        setHasCourseAccess(Boolean(enrollment));
+        if (signedInUser) {
+          const { data: enrollment, error: enrollmentError } = await supabase
+            .from("enrollments")
+            .select("id,status")
+            .eq("course_id", courseData.id)
+            .eq("student_id", signedInUser.id)
+            .in("status", ["active", "completed"])
+            .maybeSingle();
+          if (enrollmentError) throw enrollmentError;
+          setHasCourseAccess(Boolean(enrollment));
+        } else {
+          setHasCourseAccess(false);
+        }
 
         setCourse(courseData as Course);
         setSections(loadedSections);
@@ -305,6 +306,10 @@ function CourseDetailsContent() {
         body: JSON.stringify({ courseId: course.id }),
       });
       const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
+      if (response.status === 401) {
+        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
       setAccessResult({ code: payload.request.purchase_code || "CODE PENDING", status: payload.request.status || "pending", message: payload.message || "Access will be enabled after administrator approval." });
     } catch (cause) {
@@ -353,10 +358,10 @@ function CourseDetailsContent() {
             </Link>
 
             <Link
-              href="/student"
+              href="/login"
               className="hidden rounded-full bg-[#1687ff] px-4 py-2 text-sm font-semibold transition hover:bg-[#45a5ff] sm:inline-flex"
             >
-              My learning
+              Sign in
             </Link>
           </nav>
         </div>
