@@ -48,6 +48,29 @@ GRANT SELECT, INSERT ON public.course_access_requests TO authenticated;
 GRANT SELECT, UPDATE ON public.course_access_requests TO authenticated;
 GRANT ALL ON public.course_access_requests TO service_role;
 
+-- Use VEXORA's existing administrator registry rather than a permission helper
+-- that may not exist in the target database.
+CREATE OR REPLACE FUNCTION public.is_vexora_academy_admin()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $
+  SELECT (SELECT auth.uid()) IS NOT NULL
+    AND (
+      (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+      OR EXISTS (
+        SELECT 1
+        FROM public.vexora_admins AS administrators
+        WHERE administrators.user_id = (SELECT auth.uid())
+      )
+    );
+$;
+
+REVOKE ALL ON FUNCTION public.is_vexora_academy_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_vexora_academy_admin() TO anon, authenticated, service_role;
+
 DROP POLICY IF EXISTS course_access_requests_student_read ON public.course_access_requests;
 CREATE POLICY course_access_requests_student_read
   ON public.course_access_requests FOR SELECT TO authenticated
@@ -68,22 +91,17 @@ DROP POLICY IF EXISTS course_access_requests_admin_read ON public.course_access_
 CREATE POLICY course_access_requests_admin_read
   ON public.course_access_requests FOR SELECT TO authenticated
   USING (
-    public.has_permission('academy.manage')
-    OR (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    public.is_vexora_academy_admin()
   );
 
 DROP POLICY IF EXISTS course_access_requests_admin_update ON public.course_access_requests;
 CREATE POLICY course_access_requests_admin_update
   ON public.course_access_requests FOR UPDATE TO authenticated
   USING (
-    public.has_permission('academy.manage')
-    OR (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    public.is_vexora_academy_admin()
   )
   WITH CHECK (
-    (
-      public.has_permission('academy.manage')
-      OR (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    )
+    public.is_vexora_academy_admin()
     AND status IN ('pending', 'approved', 'rejected', 'cancelled')
   );
 
@@ -141,7 +159,7 @@ USING (
   AND (
     (SELECT auth.uid()) IS NOT NULL
     AND (
-      public.has_permission('academy.manage')
+      public.is_vexora_academy_admin()
       OR EXISTS (
         SELECT 1 FROM public.enrollments e
         WHERE e.course_id = lessons.course_id
