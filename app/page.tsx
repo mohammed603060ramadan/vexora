@@ -382,7 +382,6 @@ export default function Home() {
         .from("events")
         .select("id,title,description,event_type,event_date,start_time,location")
         .eq("status", "published")
-        .eq("show_on_homepage", true)
         .order("event_date", { ascending: true, nullsFirst: false })
         .limit(3);
       if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
@@ -665,8 +664,12 @@ export default function Home() {
               Contact
             </Link>
 
-            <Link href="/login" className="nav-login" onClick={closeMenu}>
-              Login
+            <Link
+              href={isAuthenticated ? "/client" : "/login"}
+              className="nav-login"
+              onClick={closeMenu}
+            >
+              {isAuthenticated ? "My account" : "Client login"}
             </Link>
 
             <Link
@@ -1264,14 +1267,43 @@ export default function Home() {
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {publishedEvents.map((event) => (
-              <article key={event.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition hover:border-blue-400/30">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{event.event_type}</p>
-                <h3 className="mt-3 text-xl font-semibold text-white">{event.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{event.description || "More details will be announced soon."}</p>
-                <div className="mt-5 space-y-2 text-xs text-slate-500">
-                  {event.event_date && <p>{new Intl.DateTimeFormat("en", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(event.event_date + "T12:00:00"))}</p>}
-                  {event.start_time && <p>{event.start_time.slice(0, 5)}{event.location ? ` · ${event.location}` : ""}</p>}
-                  {!event.start_time && event.location && <p>{event.location}</p>}
+              <article
+                key={event.id}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/[0.09] via-white/[0.025] to-transparent p-6 shadow-[0_18px_55px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:shadow-[0_22px_65px_rgba(22,135,255,0.12)]"
+              >
+                <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-500/10 blur-3xl transition duration-500 group-hover:bg-blue-400/20" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-400/10 text-blue-200 shadow-[0_0_24px_rgba(22,135,255,0.12)]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
+                      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+                      <path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17M8 13h3M8 16h6" />
+                    </svg>
+                  </span>
+                  <span className="rounded-full border border-blue-300/20 bg-blue-300/[0.07] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-200">
+                    {event.event_type}
+                  </span>
+                </div>
+                <h3 className="relative mt-5 text-xl font-semibold leading-snug text-white transition group-hover:text-blue-100">{event.title}</h3>
+                <p className="relative mt-3 line-clamp-3 text-sm leading-6 text-slate-400">{event.description || "More details will be announced soon."}</p>
+                <div className="relative mt-5 space-y-3 border-t border-white/[0.08] pt-4 text-xs text-slate-400">
+                  {event.event_date && (
+                    <p className="flex items-center gap-2.5">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0 text-blue-300" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17" /></svg>
+                      {new Intl.DateTimeFormat("en", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(event.event_date + "T12:00:00"))}
+                    </p>
+                  )}
+                  {event.start_time && (
+                    <p className="flex items-center gap-2.5">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0 text-blue-300" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                      {event.start_time.slice(0, 5)}
+                    </p>
+                  )}
+                  {event.location && (
+                    <p className="flex items-center gap-2.5">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4 shrink-0 text-blue-300" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                      <span className="truncate">{event.location}</span>
+                    </p>
+                  )}
                 </div>
               </article>
             ))}
