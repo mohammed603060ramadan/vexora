@@ -34,12 +34,6 @@ export default function LoginPage() {
       throw userError ?? new Error("Please sign in again.");
     }
 
-    if (user.app_metadata?.role === "admin") {
-      router.replace("/admin");
-      router.refresh();
-      return;
-    }
-
     const requestedNext = new URLSearchParams(
       window.location.search
     ).get("next");
