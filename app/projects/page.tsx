@@ -2010,6 +2010,10 @@ export default function ProjectsPage() {
               <span className="absolute -bottom-6 left-0 h-px w-full bg-[#1687ff] shadow-[0_0_10px_#1687ff]" />
             </Link>
 
+            <Link href="/projects/achievements" className="transition hover:text-white">
+              Achievements
+            </Link>
+
             <Link href="/academy" className="transition hover:text-white">
               Academy
             </Link>
@@ -2021,10 +2025,10 @@ export default function ProjectsPage() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/login"
+              href="/client"
               className="hidden rounded-lg border border-white/10 bg-white/[0.02] px-4 py-2.5 text-xs font-semibold text-gray-300 transition hover:border-[#45a5ff]/40 hover:text-white sm:inline-flex"
             >
-              Login
+              Client Portal
             </Link>
 
             <Link
