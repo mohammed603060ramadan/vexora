@@ -30,6 +30,15 @@ type ClientProject = {
   budget: number | null;
 };
 
+type CourseRegistration = {
+  id: string;
+  full_name: string;
+  email: string;
+  track: string;
+  status: string;
+  created_at: string;
+};
+
 type FilterType = "all" | "companies" | "individuals";
 type SortType = "newest" | "oldest" | "name";
 
@@ -120,6 +129,8 @@ function downloadClientsCsv(clients: Client[]) {
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
+  const [courseRegistrationsError, setCourseRegistrationsError] = useState("");
   const [form, setForm] = useState<ClientForm>(emptyForm);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -140,6 +151,23 @@ export default function ClientsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  async function loadCourseRegistrations() {
+    const { data, error: queryError } = await supabase
+      .from("student_registrations")
+      .select("id, full_name, email, track, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (queryError) {
+      setCourseRegistrationsError("Course registrations could not be loaded. Check the Academy registration table and admin permissions.");
+      setCourseRegistrations([]);
+      return;
+    }
+
+    setCourseRegistrations((data ?? []) as CourseRegistration[]);
+    setCourseRegistrationsError("");
+  }
+
   async function loadClients(showRefreshIndicator = false) {
     if (showRefreshIndicator) {
       setRefreshing(true);
@@ -159,6 +187,7 @@ export default function ClientsPage() {
       }
 
       setClients((data ?? []) as Client[]);
+      await loadCourseRegistrations();
       setError("");
       return true;
     } catch {
@@ -201,6 +230,7 @@ export default function ClientsPage() {
     }
 
     void initialLoad();
+    void loadCourseRegistrations();
 
     return () => {
       active = false;
@@ -1059,6 +1089,46 @@ export default function ClientsPage() {
             </section>
           </div>
         )}
+
+        <section className="overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-[#0d1a2a] via-slate-950 to-slate-950 shadow-[0_18px_55px_rgba(0,0,0,0.18)]">
+          <div className="flex flex-col gap-4 border-b border-white/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-200">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-5 w-5" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H17a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6.5A2.5 2.5 0 0 1 4 18.5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Academy / Offline learning</p>
+                <h2 className="mt-1 text-xl font-semibold text-white">Course registrations</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">Applications are listed with the email address and course track submitted by each learner.</p>
+              </div>
+            </div>
+            <span className="inline-flex w-fit items-center rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-3 py-1.5 text-xs font-semibold text-cyan-100">{courseRegistrations.length} registrations</span>
+          </div>
+          <div className="p-4 sm:p-6">
+            {courseRegistrationsError ? (
+              <p role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-4 text-sm text-rose-200">{courseRegistrationsError}</p>
+            ) : courseRegistrations.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-400">No Academy registrations have been submitted yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-3 py-3 font-medium">Student</th><th className="px-3 py-3 font-medium">Email</th><th className="px-3 py-3 font-medium">Course</th><th className="px-3 py-3 font-medium">Status</th><th className="px-3 py-3 font-medium">Submitted</th></tr></thead>
+                  <tbody className="divide-y divide-white/[0.06]">
+                    {courseRegistrations.map((registration) => (
+                      <tr key={registration.id} className="transition hover:bg-white/[0.025]">
+                        <td className="px-3 py-4 font-medium text-white">{registration.full_name}</td>
+                        <td className="px-3 py-4 text-slate-300">{registration.email}</td>
+                        <td className="px-3 py-4 text-cyan-100">{registration.track}</td>
+                        <td className="px-3 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${registration.status === "accepted" ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : registration.status === "rejected" ? "border-rose-400/20 bg-rose-400/10 text-rose-200" : "border-amber-400/20 bg-amber-400/10 text-amber-100"}`}>{registration.status}</span></td>
+                        <td className="px-3 py-4 text-slate-400">{formatDate(registration.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
 
         <footer className="border-t border-slate-800 pt-5 text-center text-xs text-slate-500">
           VEXORA Technology · Client Management Workspace
