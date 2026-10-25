@@ -21,6 +21,7 @@ type Course = {
   image: string;
   description: string;
   topics: string[];
+  isOffline?: boolean;
 };
 
 const modes: { id: FilterMode; label: string }[] = [
@@ -47,240 +48,135 @@ const modeLabels: Record<TrainingMode, string> = {
 
 const initialCourses: Course[] = [
   {
-    "id": "sample-cybersecurity-fundamentals",
-    "slug": "cybersecurity-fundamentals",
-    "title": "Cybersecurity Fundamentals",
-    "category": "Cybersecurity",
-    "level": "Beginner",
-    "duration": "24 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
-    "description": "Security principles, common threats, risk awareness and defensive practices.",
-    "topics": []
+    id: "offline-cybersecurity-foundations",
+    slug: "offline-cybersecurity-foundations",
+    title: "Cybersecurity Foundations",
+    category: "Cybersecurity",
+    level: "Beginner",
+    duration: "24 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
+    description: "An instructor-led, classroom-based introduction to cyber hygiene, security principles, threat awareness, and defensive practices for real environments.",
+    topics: ["Security principles and threat landscape", "Identity, access, and endpoint protection", "Safe network and web practices", "Incident awareness and response basics"],
   },
   {
-    "id": "sample-ethical-hacking",
-    "slug": "ethical-hacking",
-    "title": "Ethical Hacking & Penetration Testing",
-    "category": "Cybersecurity",
-    "level": "Intermediate",
-    "duration": "40 hours",
-    "modes": [
-      "online",
-      "inperson"
-    ],
-    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
-    "description": "Authorized assessment workflows, reconnaissance, vulnerability validation and reporting.",
-    "topics": []
+    id: "offline-soc-blue-team",
+    slug: "offline-soc-blue-team",
+    title: "SOC Analyst & Blue Team Operations",
+    category: "Cybersecurity",
+    level: "Intermediate",
+    duration: "36 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1000&q=85",
+    description: "Practice defensive security workflows in a guided classroom setting, from alert triage to incident documentation and response.",
+    topics: ["Security monitoring and log analysis", "Alert triage and escalation", "Incident response workflow", "Threat reports and defensive playbooks"],
   },
   {
-    "id": "sample-soc-blue-team",
-    "slug": "soc-blue-team",
-    "title": "SOC Analyst & Blue Team Operations",
-    "category": "Cybersecurity",
-    "level": "Intermediate",
-    "duration": "32 hours",
-    "modes": [
-      "online"
-    ],
-    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1000&q=85",
-    "description": "Security monitoring, alert triage, incident handling and defensive workflows.",
-    "topics": []
+    id: "offline-web-development",
+    slug: "offline-web-development",
+    title: "Modern Web Development",
+    category: "Software Development",
+    level: "Beginner",
+    duration: "32 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
+    description: "Build responsive web experiences through guided coding sessions, practical assignments, and a final portfolio-ready project.",
+    topics: ["HTML, CSS, and accessible interfaces", "JavaScript fundamentals", "Responsive layouts and UI patterns", "Building and presenting a mini project"],
   },
   {
-    "id": "sample-web-development",
-    "slug": "web-development",
-    "title": "Modern Web Development",
-    "category": "Software Development",
-    "level": "Beginner",
-    "duration": "36 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
-    "description": "Responsive websites, HTML, CSS, JavaScript, accessibility and modern tooling.",
-    "topics": []
+    id: "offline-full-stack-development",
+    slug: "offline-full-stack-development",
+    title: "Full-Stack Application Development",
+    category: "Software Development",
+    level: "Intermediate",
+    duration: "48 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=85",
+    description: "Learn how front-end interfaces, server logic, APIs, and databases work together in a complete application.",
+    topics: ["Component-based front ends", "API design and validation", "Database fundamentals", "Deployment and application testing"],
   },
   {
-    "id": "sample-react-nextjs",
-    "slug": "react-nextjs",
-    "title": "React & Next.js Engineering",
-    "category": "Software Development",
-    "level": "Intermediate",
-    "duration": "42 hours",
-    "modes": [
-      "online",
-      "inperson"
-    ],
-    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
-    "description": "React interfaces and full-stack Next.js application development.",
-    "topics": []
+    id: "offline-networking-fundamentals",
+    slug: "offline-networking-fundamentals",
+    title: "Networking Fundamentals",
+    category: "Networks & Infrastructure",
+    level: "Beginner",
+    duration: "24 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
+    description: "Understand how devices connect and communicate, with practical classroom exercises in addressing, switching, and troubleshooting.",
+    topics: ["OSI and TCP/IP models", "IPv4 addressing and subnetting", "Switching, routing, and Wi-Fi", "Structured troubleshooting"],
   },
   {
-    "id": "sample-python-programming",
-    "slug": "python-programming",
-    "title": "Python Programming & Automation",
-    "category": "Software Development",
-    "level": "Beginner",
-    "duration": "30 hours",
-    "modes": [
-      "online"
-    ],
-    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
-    "description": "Python fundamentals, functions, file handling, APIs and automation.",
-    "topics": []
+    id: "offline-network-infrastructure",
+    slug: "offline-network-infrastructure",
+    title: "Network Infrastructure & Administration",
+    category: "Networks & Infrastructure",
+    level: "Intermediate",
+    duration: "36 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1000&q=85",
+    description: "A practical track covering reliable small-business infrastructure, network services, monitoring, and maintenance.",
+    topics: ["Network design and documentation", "VLANs and core services", "Monitoring and fault isolation", "Backup and maintenance practices"],
   },
   {
-    "id": "sample-database-engineering",
-    "slug": "database-engineering",
-    "title": "SQL & Database Engineering",
-    "category": "Software Development",
-    "level": "Intermediate",
-    "duration": "28 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1000&q=85",
-    "description": "Relational schemas, queries, joins, constraints and SQL fundamentals.",
-    "topics": []
+    id: "offline-data-analytics",
+    slug: "offline-data-analytics",
+    title: "Data Analytics Essentials",
+    category: "Data Analytics",
+    level: "Beginner",
+    duration: "28 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
+    description: "Turn raw data into clear answers using structured analysis, clean datasets, and visual storytelling.",
+    topics: ["Data quality and preparation", "Spreadsheet analysis techniques", "KPIs and business questions", "Clear charts and insight summaries"],
   },
   {
-    "id": "sample-networking-fundamentals",
-    "slug": "networking-fundamentals",
-    "title": "Networking Fundamentals",
-    "category": "Networks & Infrastructure",
-    "level": "Beginner",
-    "duration": "26 hours",
-    "modes": [
-      "online",
-      "inperson"
-    ],
-    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
-    "description": "TCP/IP, addressing, switching, routing and troubleshooting.",
-    "topics": []
+    id: "offline-business-intelligence",
+    slug: "offline-business-intelligence",
+    title: "Business Intelligence & Dashboards",
+    category: "Data Analytics",
+    level: "Intermediate",
+    duration: "36 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+    description: "Design decision-ready dashboards and communicate performance trends through hands-on reporting exercises.",
+    topics: ["Data modeling concepts", "Dashboard layout and visual hierarchy", "Metrics and trend analysis", "Presenting findings to stakeholders"],
   },
   {
-    "id": "sample-network-security",
-    "slug": "network-security",
-    "title": "Network Security & Hardening",
-    "category": "Networks & Infrastructure",
-    "level": "Intermediate",
-    "duration": "34 hours",
-    "modes": [
-      "online"
-    ],
-    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
-    "description": "Secure network design, segmentation, access control and hardening.",
-    "topics": []
+    id: "offline-digital-marketing",
+    slug: "offline-digital-marketing",
+    title: "Digital Marketing Foundations",
+    category: "Digital Marketing",
+    level: "Beginner",
+    duration: "24 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
+    description: "Plan a practical digital presence and connect audience research, content, channels, and measurable goals.",
+    topics: ["Audience and competitor research", "Content planning and messaging", "Channel selection and campaign basics", "Goals, KPIs, and reporting"],
   },
   {
-    "id": "sample-cloud-infrastructure",
-    "slug": "cloud-infrastructure",
-    "title": "Cloud & Infrastructure Essentials",
-    "category": "Networks & Infrastructure",
-    "level": "Intermediate",
-    "duration": "30 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=85",
-    "description": "Cloud architecture, deployment, monitoring and infrastructure operations.",
-    "topics": []
+    id: "offline-performance-marketing",
+    slug: "offline-performance-marketing",
+    title: "Performance Marketing & Campaign Analytics",
+    category: "Digital Marketing",
+    level: "Intermediate",
+    duration: "32 hours",
+    modes: ["inperson"],
+    isOffline: true,
+    image: "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?auto=format&fit=crop&w=1000&q=85",
+    description: "Learn to structure campaigns, interpret results, and improve performance using a test-and-learn approach.",
+    topics: ["Campaign structure and objectives", "Creative testing and optimization", "Conversion funnels and attribution basics", "Reporting and improvement plans"],
   },
-  {
-    "id": "sample-data-analysis-excel-sql",
-    "slug": "data-analysis-excel-sql",
-    "title": "Data Analysis with Excel & SQL",
-    "category": "Data Analytics",
-    "level": "Beginner",
-    "duration": "24 hours",
-    "modes": [
-      "online",
-      "inperson"
-    ],
-    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
-    "description": "Clean, transform, query and interpret data for business questions.",
-    "topics": []
-  },
-  {
-    "id": "sample-power-bi-dashboards",
-    "slug": "power-bi-dashboards",
-    "title": "Power BI & Business Dashboards",
-    "category": "Data Analytics",
-    "level": "Intermediate",
-    "duration": "32 hours",
-    "modes": [
-      "online"
-    ],
-    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
-    "description": "Data models and clear dashboards for business performance metrics.",
-    "topics": []
-  },
-  {
-    "id": "sample-python-data-analysis",
-    "slug": "python-data-analysis",
-    "title": "Python for Data Analysis",
-    "category": "Data Analytics",
-    "level": "Intermediate",
-    "duration": "38 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=85",
-    "description": "Explore datasets, summarize findings and communicate data insights with Python.",
-    "topics": []
-  },
-  {
-    "id": "sample-digital-marketing",
-    "slug": "digital-marketing",
-    "title": "Digital Marketing Foundations",
-    "category": "Digital Marketing",
-    "level": "Beginner",
-    "duration": "22 hours",
-    "modes": [
-      "online",
-      "inperson"
-    ],
-    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
-    "description": "Digital channels, audience planning, content strategy and measurement.",
-    "topics": []
-  },
-  {
-    "id": "sample-seo-content-strategy",
-    "slug": "seo-content-strategy",
-    "title": "SEO & Content Strategy",
-    "category": "Digital Marketing",
-    "level": "Intermediate",
-    "duration": "26 hours",
-    "modes": [
-      "online"
-    ],
-    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
-    "description": "Search intent, on-page SEO, content planning and performance review.",
-    "topics": []
-  },
-  {
-    "id": "sample-performance-marketing",
-    "slug": "performance-marketing",
-    "title": "Performance Marketing & Analytics",
-    "category": "Digital Marketing",
-    "level": "Intermediate",
-    "duration": "30 hours",
-    "modes": [
-      "online",
-      "hybrid"
-    ],
-    "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=85",
-    "description": "Measurable campaigns, paid-channel metrics and campaign optimization.",
-    "topics": []
-  }
 ];
 
 const backgroundCode = [
@@ -482,7 +378,9 @@ export default function AcademyPage() {
         description: row.description || "Course details will be announced soon.",
         topics: [],
       })) as Course[];
-      setCourses(mappedCourses.length ? mappedCourses : initialCourses);
+      // Keep the ten fixed, classroom-based tracks separate from the
+      // administrator-managed catalogue so neither replaces the other.
+      setCourses([...initialCourses, ...mappedCourses]);
       setUsingSampleCourses(mappedCourses.length === 0);
       setUserReady(true);
     }
@@ -1152,7 +1050,7 @@ export default function AcademyPage() {
                 Explore sample learning paths across technology and business.
                 Filter the catalog to find a subject and format that fit you.
               </p>
-              {usingSampleCourses && <p className="mt-4 max-w-xl rounded-lg border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3 text-xs leading-6 text-amber-100/80">Preview catalogue: these example learning paths remain visible while no courses are published. Courses added and published by an administrator replace this preview automatically.</p>}
+              {usingSampleCourses && <p className="mt-4 max-w-xl rounded-lg border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3 text-xs leading-6 text-amber-100/80">Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.</p>}
               <div className="mt-5 flex flex-wrap gap-3"><Link href="/academy/categories" className="inline-flex items-center gap-2 rounded-xl border border-blue-300/25 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/50 hover:bg-blue-400/10">Explore 5 learning tracks <span aria-hidden="true">↗</span></Link><Link href="/academy/courses" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">Open full course directory <span aria-hidden="true">↗</span></Link></div>
             </div>
 
@@ -1292,6 +1190,11 @@ export default function AcademyPage() {
                       {course.category}
                     </span>
 
+                    {course.isOffline && (
+                      <span className="absolute right-4 top-14 rounded-md border border-cyan-300/35 bg-cyan-300/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100 backdrop-blur-sm">
+                        Offline course
+                      </span>
+                    )}
                     <span className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-md border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-gray-200">
                       <Icon name="clock" size={13} />
                       {course.duration}
@@ -1302,7 +1205,7 @@ export default function AcademyPage() {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                       <span>{course.level}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{course.modes.length} learning formats</span>
+                      <span>{course.isOffline ? "Offline · classroom training" : `${course.modes.length} learning formats`}</span>
                     </div>
 
                     <h3 className="mt-3 text-xl font-bold leading-snug transition group-hover:text-blue-200">
