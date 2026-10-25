@@ -14,7 +14,7 @@ type StudentProfile = {
 type CourseDetails = {
   id: string;
   title: string;
-  subtitle: string | null;
+  description: string | null;
   difficulty: string;
   course_type: string;
   estimated_hours: number | null;
@@ -318,7 +318,7 @@ export default function StudentDashboard() {
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
         .select(
-          "id, title, subtitle, difficulty, course_type, estimated_hours"
+          "id, title, description, difficulty, course_type, estimated_hours"
         )
         .in("id", courseIds);
 
@@ -708,7 +708,7 @@ export default function StudentDashboard() {
 
         <section className="section-block">
           <div className="section-heading"><div><p className="eyebrow">PROJECT COMMUNICATION</p><h2>My Project Requests</h2><p className="section-description">Track requests submitted for projects and the latest administrator response.</p></div><span className="resource-count">{projectRequests.length} requests</span></div>
-          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects/achievements" className="primary-button">Explore projects ↗</Link></div> : (
+          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects" className="primary-button">Explore projects ↗</Link></div> : (
             <div className="resource-grid">
               {projectRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">⌁</span><span className={`status-pill ${request.status === "approved" || request.status === "completed" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status.replaceAll("_", " ")}</span></div><h3>{request.project_title}</h3><p>{request.message || "Project request submitted to VEXORA."}</p><div className="course-meta"><span>Submitted {formatDate(request.created_at)}</span><span>Updated {formatDate(request.updated_at)}</span></div></article>)}
             </div>
@@ -783,7 +783,7 @@ export default function StudentDashboard() {
                         "Course details unavailable"}
                     </h3>
                     <p>
-                      {enrollment.course?.subtitle ||
+                      {enrollment.course?.description ||
                         "Continue your learning journey with VEXORA Academy."}
                     </p>
 
