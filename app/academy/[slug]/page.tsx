@@ -521,6 +521,7 @@ function CourseDetailsContent() {
         <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:py-16">
           <div className="min-w-0">
             {hasCourseAccess ? (
+            <>
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
                 Course overview
@@ -715,6 +716,7 @@ function CourseDetailsContent() {
                 </div>
               )}
             </section>
+            </>
             ) : (
               <section className="relative overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#10283a] via-[#0b1420] to-[#080d15] p-7 sm:p-10">
                 <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
