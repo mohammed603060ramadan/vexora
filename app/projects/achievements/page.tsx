@@ -44,7 +44,34 @@ export default function AchievementsPage() {
     }
   }, []);
 
-  useEffect(() => { void loadProjects(); }, [loadProjects]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialProjects() {
+      try {
+        const response = await fetch("/api/public/portfolio", { cache: "no-store" });
+        const result = (await response.json()) as { projects?: Achievement[]; error?: string };
+        if (!response.ok) {
+          throw new Error(result.error || "Portfolio could not be loaded.");
+        }
+        if (!cancelled) {
+          setProjects(Array.isArray(result.projects) ? result.projects : []);
+          setError("");
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : "Portfolio could not be loaded.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadInitialProjects();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const counts = useMemo(() => Object.fromEntries(CATEGORIES.map((item) => [item.name, projects.filter((p) => p.category === item.name).length])), [projects]);
   const visibleProjects = useMemo(() => activeCategory === "All" ? projects : projects.filter((project) => project.category === activeCategory), [projects, activeCategory]);
