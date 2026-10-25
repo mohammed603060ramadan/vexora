@@ -3,7 +3,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
@@ -24,6 +24,68 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const routeUser = useCallback(async () => {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      throw userError ?? new Error("Please sign in again.");
+    }
+
+    if (user.app_metadata?.role === "admin") {
+      router.replace("/admin");
+      router.refresh();
+      return;
+    }
+
+    const requestedNext = new URLSearchParams(window.location.search).get("next");
+    const safeNext =
+      requestedNext &&
+      requestedNext.startsWith("/") &&
+      !requestedNext.startsWith("//") &&
+      !requestedNext.startsWith("/admin")
+        ? requestedNext
+        : null;
+
+    if (safeNext) {
+      router.replace(safeNext);
+      router.refresh();
+      return;
+    }
+
+    const { data: client, error: clientError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (clientError) throw clientError;
+
+    if (client) {
+      router.replace("/client");
+      router.refresh();
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    if (profile?.account_type === "student") {
+      router.replace("/student");
+    } else {
+      router.replace("/client");
+    }
+
+    router.refresh();
+  }, [router]);
 
   useEffect(() => {
     let active = true;
@@ -161,69 +223,7 @@ export default function LoginPage() {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
-
-  async function routeUser() {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      throw userError ?? new Error("Please sign in again.");
-    }
-
-    if (user.app_metadata?.role === "admin") {
-      router.replace("/admin");
-      router.refresh();
-      return;
-    }
-
-    const requestedNext = new URLSearchParams(window.location.search).get("next");
-    const safeNext =
-      requestedNext &&
-      requestedNext.startsWith("/") &&
-      !requestedNext.startsWith("//") &&
-      !requestedNext.startsWith("/admin")
-        ? requestedNext
-        : null;
-
-    if (safeNext) {
-      router.replace(safeNext);
-      router.refresh();
-      return;
-    }
-
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (clientError) throw clientError;
-
-    if (client) {
-      router.replace("/client");
-      router.refresh();
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("account_type")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) throw profileError;
-
-    if (profile?.account_type === "student") {
-      router.replace("/student");
-    } else {
-      router.replace("/client");
-    }
-
-    router.refresh();
-  }
+  }, [routeUser]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
