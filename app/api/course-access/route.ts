@@ -15,6 +15,7 @@ async function getSignedInUser() {
   return data.user;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function isAdministrator(user: NonNullable<Awaited<ReturnType<typeof getSignedInUser>>>) {
   if (user.app_metadata?.role === "admin") return true;
   const admin = createAdminClient();

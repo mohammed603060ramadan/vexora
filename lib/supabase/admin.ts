@@ -1,27 +1,34 @@
 ﻿import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
+import {
+  createClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
 
-let adminClient: ReturnType<typeof createClient> | null = null;
+import type { Database } from "./database.types";
 
-export function createAdminClient() {
+let adminClient: SupabaseClient<Database> | null = null;
+
+export function createAdminClient(): SupabaseClient<Database> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Missing Supabase server environment variables."
-    );
+    throw new Error("Missing Supabase server environment variables.");
   }
 
   if (!adminClient) {
-    adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    });
+    adminClient = createClient<Database>(
+      supabaseUrl,
+      serviceRoleKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      }
+    );
   }
 
   return adminClient;
