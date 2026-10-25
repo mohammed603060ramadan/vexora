@@ -53,7 +53,8 @@ type View =
   | "requests"
   | "tasks"
   | "profile"
-  | "technology";
+  | "technology"
+  | "academy";
 
 /* =========================================================
    CONSTANTS
@@ -129,6 +130,11 @@ const navItems: {
     id: "technology",
     label: "Technology",
     description: "Technology radar",
+  },
+  {
+    id: "academy",
+    label: "My Courses",
+    description: "Offline course registrations",
   },
 ];
 
@@ -588,6 +594,18 @@ export default function ClientPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projectRequests, setProjectRequests] = useState<ProjectRequest[]>([]);
+  const [academyRegistrations, setAcademyRegistrations] = useState<Array<{
+    id: string;
+    full_name: string;
+    email: string;
+    track: string;
+    status: string;
+    created_at: string;
+    education_level: string | null;
+    experience: string | null;
+  }>>([]);
+  const [academyLoading, setAcademyLoading] = useState(false);
+  const [academyError, setAcademyError] = useState("");
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsError, setRequestsError] = useState("");
 
@@ -692,6 +710,27 @@ export default function ClientPage() {
 
         setProfile(profileResult.data);
         setClient(clientResult.data);
+
+        setAcademyLoading(true);
+        setAcademyError("");
+        try {
+          const academyResponse = await fetch("/api/student-registration", { cache: "no-store" });
+          const academyPayload = await academyResponse.json() as {
+            registrations?: Array<{
+              id: string; full_name: string; email: string; track: string;
+              status: string; created_at: string; education_level: string | null;
+              experience: string | null;
+            }>;
+            error?: string;
+          };
+          if (!academyResponse.ok) throw new Error(academyPayload.error || "Unable to load your course registrations.");
+          setAcademyRegistrations(Array.isArray(academyPayload.registrations) ? academyPayload.registrations : []);
+        } catch (academyLoadError) {
+          setAcademyError(academyLoadError instanceof Error ? academyLoadError.message : "Unable to load your course registrations.");
+          setAcademyRegistrations([]);
+        } finally {
+          setAcademyLoading(false);
+        }
 
         setRequestsLoading(true);
         setRequestsError("");
@@ -2034,6 +2073,71 @@ export default function ClientPage() {
                   </div>
                 </article>
               </section>
+            </div>
+          )}
+
+          {/* =================================================
+              ACADEMY REGISTRATIONS
+          ================================================= */}
+          {activeView === "academy" && (
+            <div className="view-enter space-y-6">
+              <SectionTitle
+                eyebrow="VEXORA ACADEMY"
+                title="My Courses"
+                description="Track course applications submitted with this email address. Your registrations sync with the VEXORA Academy administration workspace."
+              />
+              {academyError && (
+                <div role="alert" className="rounded-2xl border border-rose-400/20 bg-rose-400/[0.06] p-4 text-sm text-rose-200">
+                  {academyError}
+                </div>
+              )}
+              {academyLoading ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-8 text-center text-sm text-slate-400">
+                  Loading your course registrations…
+                </div>
+              ) : academyRegistrations.length === 0 ? (
+                <div className="relative overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#10263a] via-[#0b1420] to-[#080d15] p-7 sm:p-10">
+                  <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200">
+                    <Icon name="academy" size={26} />
+                  </div>
+                  <h2 className="relative mt-5 text-2xl font-semibold text-white">Your learning journey starts here</h2>
+                  <p className="relative mt-3 max-w-xl text-sm leading-7 text-slate-400">
+                    No course registrations were found for {user?.email || "this account"}. Explore the offline classroom tracks and submit the registration form using this email address.
+                  </p>
+                  <Link href="/academy" className="relative mt-6 inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/15">
+                    Explore Academy <span aria-hidden="true">↗</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {academyRegistrations.map((registration) => (
+                    <article key={registration.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.045] to-white/[0.015] p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/30 sm:p-6">
+                      <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-400/[0.07] blur-2xl transition group-hover:bg-cyan-400/15" />
+                      <div className="relative flex items-start gap-4">
+                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-200">
+                          <Icon name="academy" size={22} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.07] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">Offline registration</span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${registration.status === "accepted" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : registration.status === "rejected" ? "border-rose-300/20 bg-rose-300/10 text-rose-200" : "border-amber-300/20 bg-amber-300/10 text-amber-100"}`}>
+                              {registration.status}
+                            </span>
+                          </div>
+                          <h3 className="mt-3 break-words text-lg font-semibold leading-snug text-white">{registration.track}</h3>
+                          <p className="mt-2 break-all text-xs text-slate-400">{registration.email}</p>
+                          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                            {registration.education_level && <span>{registration.education_level}</span>}
+                            <span>Submitted {new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(registration.created_at))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs leading-6 text-slate-500">Registration status is updated by the VEXORA team. Submitting a form does not create an authentication account or guarantee a confirmed seat.</p>
             </div>
           )}
 
