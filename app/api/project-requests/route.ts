@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -62,18 +61,28 @@ type ProjectRequestsDatabase = {
   };
 };
 
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store",
+};
+
 function jsonError(message: string, status: number) {
   return NextResponse.json(
     { error: message },
     {
       status,
-      headers: { "Cache-Control": "no-store" },
+      headers: NO_STORE_HEADERS,
     }
   );
 }
 
 function getAdminClient() {
   return createAdminClient() as unknown as SupabaseClient<ProjectRequestsDatabase>;
+}
+
+function isValidUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
 }
 
 export async function GET() {
@@ -104,9 +113,7 @@ export async function GET() {
     if (!client) {
       return NextResponse.json(
         { requests: [] },
-        {
-          headers: { "Cache-Control": "no-store" },
-        }
+        { headers: NO_STORE_HEADERS }
       );
     }
 
@@ -148,9 +155,7 @@ export async function GET() {
 
     return NextResponse.json(
       { requests },
-      {
-        headers: { "Cache-Control": "no-store" },
-      }
+      { headers: NO_STORE_HEADERS }
     );
   } catch (error) {
     console.error("Project requests GET failed:", error);
@@ -188,17 +193,13 @@ export async function POST(request: Request) {
 
     const projectId = body.projectId.trim();
 
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        projectId
-      )
-    ) {
+    if (!isValidUuid(projectId)) {
       return jsonError("A valid project is required.", 400);
     }
 
     const message =
       "message" in body && typeof body.message === "string"
-        ? body.message.trim().slice(0, 1000)
+        ? body.message.trim().slice(0, 1000) || null
         : null;
 
     const admin = getAdminClient();
@@ -240,7 +241,10 @@ export async function POST(request: Request) {
       !project.show_on_projects_page ||
       !["in_progress", "completed"].includes(project.status)
     ) {
-      return jsonError("This project is not available for requests.", 404);
+      return jsonError(
+        "This project is not available for requests.",
+        404
+      );
     }
 
     const { data: existing, error: existingError } = await admin
@@ -263,7 +267,7 @@ export async function POST(request: Request) {
         },
         {
           status: 409,
-          headers: { "Cache-Control": "no-store" },
+          headers: NO_STORE_HEADERS,
         }
       );
     }
@@ -297,7 +301,7 @@ export async function POST(request: Request) {
       { request: created },
       {
         status: 201,
-        headers: { "Cache-Control": "no-store" },
+        headers: NO_STORE_HEADERS,
       }
     );
   } catch (error) {
