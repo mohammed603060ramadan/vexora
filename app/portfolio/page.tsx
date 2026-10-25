@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const categories = ["All", "Cybersecurity", "Software Development", "Networks & Infrastructure", "Data Analytics", "Digital Marketing"] as const;
 type Category = typeof categories[number];
@@ -61,7 +62,7 @@ export default function PortfolioPage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((project) => <article key={project.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] transition hover:border-blue-300/30">
               <div className="relative flex min-h-48 items-center justify-center overflow-hidden bg-[#0b111b]">
-                {project.media.find((media) => media.url && media.mime_type.startsWith("image/")) ? <img src={project.media.find((media) => media.url && media.mime_type.startsWith("image/"))!.url!} alt={project.title} loading="lazy" className="h-56 w-full object-cover" /> :
+                {project.media.find((media) => media.url && media.mime_type.startsWith("image/")) ? <Image src={project.media.find((media) => media.url && media.mime_type.startsWith("image/"))!.url!} alt={project.title} width={1200} height={675} unoptimized loading="lazy" className="h-56 w-full object-cover" /> :
                   <div className="flex h-56 w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,.15),transparent_65%)]"><span className="font-mono text-4xl font-bold text-blue-200" aria-hidden="true">{categoryIcons[project.category] || "◇"}</span><span className="text-xs uppercase tracking-[0.2em] text-slate-500">VEXORA project</span></div>}
                 <span className="absolute left-4 top-4 rounded-full border border-white/15 bg-black/60 px-3 py-1.5 text-xs text-blue-100 backdrop-blur">{project.category}</span>
               </div>
