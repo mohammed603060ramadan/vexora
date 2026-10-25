@@ -61,20 +61,31 @@ export default function LoginPage() {
           return;
         }
 
-        // Remove the one-time code from the address bar.
+        // Remove the one-time code while preserving the safe post-auth destination.
+        const returnParams = new URLSearchParams(window.location.search);
+        returnParams.delete("code");
+        if (isInvite || isRecovery || hasPasswordFlow) {
+          returnParams.set("recovery", "1");
+        } else {
+          returnParams.delete("recovery");
+        }
+        const returnQuery = returnParams.toString();
         window.history.replaceState(
           {},
           document.title,
-          `${window.location.pathname}?recovery=1`
+          `${window.location.pathname}${returnQuery ? `?${returnQuery}` : ""}`
         );
 
-        setMode("reset");
-        setMessage(
-          isInvite
-            ? "Welcome to VEXORA. Create a password for your administrator account."
-            : "Verify your new password below."
-        );
-
+        if (isInvite || isRecovery || hasPasswordFlow) {
+          setMode("reset");
+          setMessage(
+            isInvite
+              ? "Welcome to VEXORA. Create a password for your administrator account."
+              : "Create and confirm your new password."
+          );
+        } else {
+          await routeUser();
+        }
         return;
       }
 
@@ -294,10 +305,20 @@ export default function LoginPage() {
           );
         }
 
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const safeNext =
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//") &&
+          !requestedNext.startsWith("/admin")
+            ? requestedNext
+            : null;
+
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/login${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`,
             data: {
               full_name: fullName.trim(),
               account_type: accountType,
