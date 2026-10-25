@@ -17,8 +17,6 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
@@ -119,14 +117,14 @@ function CourseDetailsContent() {
 
         let { data: courseData, error: courseError } = await supabase
           .from("courses")
-          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
+          .select("id, title, slug, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
 
         if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
           const fallback = await supabase.from("courses")
-            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
+            .select("id, title, slug, description, difficulty, course_type, price, currency, estimated_hours")
             .eq("slug", slug)
             .eq("status", "published")
             .maybeSingle();
@@ -451,9 +449,9 @@ function CourseDetailsContent() {
                 {course.title}
               </h1>
 
-              {course.subtitle && (
+              {(course.subtitle || course.description) && (
                 <p className="mt-5 max-w-3xl text-lg leading-8 text-white/65">
-                  {course.subtitle}
+                  {course.subtitle || course.description}
                 </p>
               )}
 
