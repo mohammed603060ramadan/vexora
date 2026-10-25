@@ -109,12 +109,19 @@ export default function AcademyPage() {
     setError("");
 
     try {
-      const { data, error: queryError } = await supabase
+      let { data, error: queryError } = await supabase
         .from("courses")
         .select(
           "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency, cover_image_url, promo_video_url"
         )
         .order("created_at", { ascending: false });
+      if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
+        const fallback = await supabase.from("courses")
+          .select("id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency")
+          .order("created_at", { ascending: false });
+        data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
+        queryError = fallback.error;
+      }
 
       if (queryError) {
         setError(queryError.message);
