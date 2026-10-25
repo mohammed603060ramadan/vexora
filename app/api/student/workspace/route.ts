@@ -8,14 +8,14 @@ function errorResponse(message: string, status: number) {
 }
 
 async function findClientForUser(admin: ReturnType<typeof createAdminClient>, userId: string) {
-  const byAuthUser = await admin.from("clients").select("id").eq("auth_user_id", userId).maybeSingle();
-  if (!byAuthUser.error && byAuthUser.data) return byAuthUser.data;
-  const byLegacyUser = await admin.from("clients").select("id").eq("user_id", userId).maybeSingle();
-  if (byLegacyUser.error) {
-    if (byAuthUser.error) throw byAuthUser.error;
-    throw byLegacyUser.error;
-  }
-  return byLegacyUser.data;
+  const { data, error } = await admin
+    .from("clients")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function GET() {
@@ -30,7 +30,7 @@ export async function GET() {
     const [projectResult, requestResult, taskResult] = await Promise.all([
       client
         ? admin.from("projects")
-            .select("id,title,description,status,deadline,progress_percent,client_id")
+            .select("id,title,description,status,deadline,client_id")
             .eq("client_id", client.id)
             .order("created_at", { ascending: false })
             .limit(100)
@@ -65,7 +65,7 @@ export async function GET() {
     const { data: relatedProjects, error: relatedProjectsError } = projectIds.length
       ? await admin
           .from("projects")
-          .select("id,title,description,status,deadline,progress_percent,client_id")
+          .select("id,title,description,status,deadline,client_id")
           .in("id", projectIds)
       : { data: [], error: null };
     if (relatedProjectsError) throw relatedProjectsError;
@@ -81,7 +81,7 @@ export async function GET() {
       projects: projectIds
         .map((id) => projectById.get(id))
         .filter((item): item is NonNullable<typeof item> => Boolean(item))
-        .map((item) => ({ ...item, title: item.title || "Project" })),
+        .map((item) => ({ ...item, title: item.title || "Project", progress_percent: null })),
       requests: requests.map((item) => ({ ...item, project_title: nameMap.get(item.project_id) || "Project" })),
       tasks: tasks.map((item) => ({ ...item, project_title: nameMap.get(item.project_id) || "Project" })),
     }, { headers });
