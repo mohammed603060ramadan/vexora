@@ -92,6 +92,7 @@ function CourseDetailsContent() {
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState("");
   const [accessResult, setAccessResult] = useState<{ code: string; status: string; message: string } | null>(null);
+  const [hasCourseAccess, setHasCourseAccess] = useState(false);
 
   const loadCourse = useCallback(
     async (isRefresh = false) => {
@@ -141,6 +142,7 @@ function CourseDetailsContent() {
           setCourse(null);
           setSections([]);
           setLessons([]);
+          setHasCourseAccess(false);
           setLastUpdated(new Date());
           return;
         }
@@ -178,6 +180,16 @@ function CourseDetailsContent() {
 
           loadedLessons = (lessonData ?? []) as Lesson[];
         }
+
+        const { data: enrollment, error: enrollmentError } = await supabase
+          .from("enrollments")
+          .select("id,status")
+          .eq("course_id", courseData.id)
+          .eq("student_id", authData.user.id)
+          .in("status", ["active", "completed"])
+          .maybeSingle();
+        if (enrollmentError) throw enrollmentError;
+        setHasCourseAccess(Boolean(enrollment));
 
         setCourse(courseData as Course);
         setSections(loadedSections);
@@ -508,6 +520,7 @@ function CourseDetailsContent() {
       {!loading && !error && course && (
         <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:py-16">
           <div className="min-w-0">
+            {hasCourseAccess ? (
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
                 Course overview
@@ -702,6 +715,16 @@ function CourseDetailsContent() {
                 </div>
               )}
             </section>
+            ) : (
+              <section className="relative overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#10283a] via-[#0b1420] to-[#080d15] p-7 sm:p-10">
+                <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] text-3xl text-cyan-100">⌁</div>
+                <p className="relative mt-5 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">Protected course content</p>
+                <h2 className="relative mt-3 text-2xl font-semibold text-white sm:text-3xl">Your next chapter is waiting.</h2>
+                <p className="relative mt-3 max-w-xl text-sm leading-7 text-slate-300">The course overview and preview media are available now. Course sections and lessons unlock only after VEXORA reviews your request and grants access.</p>
+                <div className="relative mt-6 flex flex-wrap gap-3 text-xs text-slate-400"><span className="rounded-full border border-white/10 px-3 py-2">Private curriculum</span><span className="rounded-full border border-white/10 px-3 py-2">Administrator approval</span><span className="rounded-full border border-white/10 px-3 py-2">Account-linked access</span></div>
+              </section>
+            )}
           </div>
 
           <aside className="h-fit rounded-2xl border border-white/10 bg-gradient-to-b from-[#111c2c] to-[#0b1018] p-6 sm:p-7 lg:sticky lg:top-24">
@@ -714,8 +737,9 @@ function CourseDetailsContent() {
             </h2>
 
             <p className="mt-3 text-sm leading-7 text-white/55">
-              Sign in to your VEXORA Academy account to access enrollment
-              options and your learning dashboard.
+              {hasCourseAccess
+                ? "Your access is active. Explore the full curriculum and continue your learning journey."
+                : "Request your course access reference code. The full curriculum unlocks after an administrator approves your request."}
             </p>
 
             <button
