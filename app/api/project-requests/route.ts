@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -12,7 +13,7 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return jsonError("Sign in to view your project requests.", 401);
 
-    const admin = createAdminClient();
+    const admin = createAdminClient() as SupabaseClient<any>;
     const { data: client, error: clientError } = await admin
       .from("clients").select("id").eq("auth_user_id", user.id).maybeSingle();
     if (clientError) throw clientError;
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     }
     const message = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) : null;
 
-    const admin = createAdminClient();
+    const admin = createAdminClient() as SupabaseClient<any>;
     const [{ data: client, error: clientError }, { data: project, error: projectError }] = await Promise.all([
       admin.from("clients").select("id").eq("auth_user_id", user.id).maybeSingle(),
       admin.from("projects").select("id,title,show_on_projects_page,status").eq("id", projectId).maybeSingle(),
