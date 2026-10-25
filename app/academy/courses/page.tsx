@@ -13,6 +13,10 @@ type Course = {
   difficulty: string | null;
   course_type: string | null;
   estimated_hours: number | null;
+  price: number | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  promo_video_url: string | null;
 };
 
 const categories = [
@@ -53,7 +57,7 @@ export default function AcademyCoursesPage() {
     async function load() {
       const { data, error: queryError } = await supabase
         .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
       if (!active) return;
@@ -81,7 +85,7 @@ export default function AcademyCoursesPage() {
         <header className="mt-8 rounded-3xl border border-blue-400/15 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,.16),transparent_55%),#0b111b] p-7 sm:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-300">VEXORA / Learning</p>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">Course Directory</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">Browse published courses across VEXORA’s technology and digital disciplines. Course categories are managed by the administration team.</p>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">Browse published courses, preview the course media, and view pricing. Full lessons are unlocked only after VEXORA approves access.</p>
           <div className="mt-7 grid gap-3 sm:grid-cols-[1fr_auto]">
             <input value={search} onChange={(event) => setSearch(event.target.value)} type="search" placeholder="Search courses, skills or categories..." aria-label="Search courses" className="w-full rounded-xl border border-white/10 bg-[#080d16] px-4 py-3 text-sm outline-none transition focus:border-blue-400/50" />
             <span className="flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-400">{filtered.length} courses</span>
@@ -112,7 +116,9 @@ export default function AcademyCoursesPage() {
               <article key={course.id} className="group overflow-hidden rounded-2xl border border-white/[0.09] bg-white/[0.025] transition hover:-translate-y-1 hover:border-blue-400/30">
                 <div className="relative h-44 overflow-hidden bg-[#0b111b]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={categoryImages[course.category] || categoryImages.Cybersecurity} alt="" loading="lazy" className="h-full w-full object-cover opacity-75 transition duration-500 group-hover:scale-105 group-hover:opacity-100" />
+                  <img src={course.cover_image_url || categoryImages[course.category] || categoryImages.Cybersecurity} alt="" loading="lazy" className="h-full w-full object-cover opacity-75 transition duration-500 group-hover:scale-105 group-hover:opacity-100" />
+                  {course.promo_video_url && <video src={course.promo_video_url} muted autoPlay loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover opacity-85 transition group-hover:opacity-100" aria-label={`${course.title} video preview`} />}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070b12]/80 via-transparent to-transparent" />
                   <span className="absolute left-4 top-4 rounded-full border border-white/15 bg-black/60 px-3 py-1.5 text-xs text-blue-100 backdrop-blur">{course.category}</span>
                 </div>
                 <div className="p-6">
@@ -120,10 +126,12 @@ export default function AcademyCoursesPage() {
                     {course.difficulty && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.difficulty}</span>}
                     {course.course_type && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.course_type.replace("_", " ")}</span>}
                     {course.estimated_hours !== null && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.estimated_hours} hours</span>}
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-semibold text-cyan-100">{course.price == null || Number(course.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(Number(course.price))}</span>
                   </div>
                   <h2 className="mt-4 text-xl font-semibold leading-snug">{course.title}</h2>
                   <p className="mt-3 min-h-16 text-sm leading-6 text-slate-400">{course.description || "Course details will be announced soon."}</p>
-                  <Link href="/academy#programs" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">Open Academy catalogue <span aria-hidden="true">↗</span></Link>
+                  <Link href={`/academy/${course.slug}`} className="mt-5 flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">View course & request access <span aria-hidden="true">↗</span></Link>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">Course content stays locked until VEXORA approves your access request.</p>
                 </div>
               </article>
             ))}
