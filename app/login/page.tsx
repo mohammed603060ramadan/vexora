@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from "next/image";
@@ -41,7 +40,10 @@ export default function LoginPage() {
       return;
     }
 
-    const requestedNext = new URLSearchParams(window.location.search).get("next");
+    const requestedNext = new URLSearchParams(
+      window.location.search
+    ).get("next");
+
     const safeNext =
       requestedNext &&
       requestedNext.startsWith("/") &&
@@ -62,7 +64,9 @@ export default function LoginPage() {
       .eq("auth_user_id", user.id)
       .maybeSingle();
 
-    if (clientError) throw clientError;
+    if (clientError) {
+      throw clientError;
+    }
 
     if (client) {
       router.replace("/client");
@@ -76,7 +80,9 @@ export default function LoginPage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      throw profileError;
+    }
 
     if (profile?.account_type === "student") {
       router.replace("/student");
@@ -108,7 +114,9 @@ export default function LoginPage() {
         const { error } =
           await supabase.auth.exchangeCodeForSession(code);
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         if (error) {
           console.error(
@@ -123,19 +131,26 @@ export default function LoginPage() {
           return;
         }
 
-        // Remove the one-time code while preserving the safe post-auth destination.
-        const returnParams = new URLSearchParams(window.location.search);
+        const returnParams = new URLSearchParams(
+          window.location.search
+        );
+
         returnParams.delete("code");
+
         if (isInvite || isRecovery || hasPasswordFlow) {
           returnParams.set("recovery", "1");
         } else {
           returnParams.delete("recovery");
         }
+
         const returnQuery = returnParams.toString();
+
         window.history.replaceState(
           {},
           document.title,
-          `${window.location.pathname}${returnQuery ? `?${returnQuery}` : ""}`
+          `${window.location.pathname}${
+            returnQuery ? `?${returnQuery}` : ""
+          }`
         );
 
         if (isInvite || isRecovery || hasPasswordFlow) {
@@ -148,6 +163,7 @@ export default function LoginPage() {
         } else {
           await routeUser();
         }
+
         return;
       }
 
@@ -157,7 +173,9 @@ export default function LoginPage() {
           error,
         } = await supabase.auth.getSession();
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         if (error || !session) {
           setMode("login");
@@ -183,7 +201,9 @@ export default function LoginPage() {
           error,
         } = await supabase.auth.getSession();
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         if (error || !session) {
           setMode("login");
@@ -201,7 +221,9 @@ export default function LoginPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (!active) return;
+      if (!active) {
+        return;
+      }
 
       if (event === "PASSWORD_RECOVERY") {
         setMode("reset");
@@ -210,7 +232,9 @@ export default function LoginPage() {
     });
 
     void handleAuthCallback().catch((error: unknown) => {
-      if (!active) return;
+      if (!active) {
+        return;
+      }
 
       console.error("Authentication callback error:", error);
       setMode("login");
@@ -242,7 +266,9 @@ export default function LoginPage() {
             }
           );
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         setMessage(
           "If an account exists for this email, a password reset link will be sent. Please check your inbox."
@@ -265,7 +291,9 @@ export default function LoginPage() {
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         setPassword("");
         setConfirmPassword("");
@@ -275,12 +303,15 @@ export default function LoginPage() {
           error: userError,
         } = await supabase.auth.getUser();
 
-        if (userError) throw userError;
+        if (userError) {
+          throw userError;
+        }
 
         if (user?.app_metadata?.role === "admin") {
           setMessage(
             "Password updated successfully. Redirecting to the admin dashboard..."
           );
+
           await routeUser();
           return;
         }
@@ -305,7 +336,10 @@ export default function LoginPage() {
           );
         }
 
-        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const requestedNext = new URLSearchParams(
+          window.location.search
+        ).get("next");
+
         const safeNext =
           requestedNext &&
           requestedNext.startsWith("/") &&
@@ -318,7 +352,11 @@ export default function LoginPage() {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/login${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`,
+            emailRedirectTo: `${window.location.origin}/login${
+              safeNext
+                ? `?next=${encodeURIComponent(safeNext)}`
+                : ""
+            }`,
             data: {
               full_name: fullName.trim(),
               account_type: accountType,
@@ -326,7 +364,9 @@ export default function LoginPage() {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         if (data.session) {
           await routeUser();
@@ -344,7 +384,9 @@ export default function LoginPage() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       await routeUser();
     } catch (error) {
@@ -376,14 +418,40 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05080e] px-4 py-12 text-white">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_10%,rgba(22,135,255,0.17),transparent_35%),radial-gradient(ellipse_at_90%_85%,rgba(69,165,255,0.08),transparent_35%)]" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_10%,rgba(22,135,255,0.17),transparent_35%),radial-gradient(ellipse_at_90%_85%,rgba(69,165,255,0.08),transparent_35%)]"
+      />
+
       <section className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#0a111d]/95 p-6 shadow-[0_25px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-9">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" aria-label="VEXORA home" className="inline-flex items-center">
-            <Image src="/vexora-logo.png" alt="VEXORA" width={150} height={56} priority className="h-12 w-auto object-contain" />
+          <Link
+            href="/"
+            aria-label="VEXORA home"
+            className="inline-flex items-center"
+          >
+            <Image
+              src="/vexora-logo.png"
+              alt="VEXORA"
+              width={150}
+              height={56}
+              priority
+              className="h-12 w-auto object-contain"
+            />
           </Link>
+
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 3 19 6v5c0 4.5-3 7.5-7 10-4-2.5-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            <svg
+              viewBox="0 0 24 24"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M12 3 19 6v5c0 4.5-3 7.5-7 10-4-2.5-7-5.5-7-10V6l7-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
             Secure access
           </span>
         </div>
@@ -432,7 +500,9 @@ export default function LoginPage() {
                   id="accountType"
                   value={accountType}
                   onChange={(event) =>
-                    setAccountType(event.target.value as AccountType)
+                    setAccountType(
+                      event.target.value as AccountType
+                    )
                   }
                   className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-cyan-400"
                 >
@@ -476,7 +546,9 @@ export default function LoginPage() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
+                  mode === "login"
+                    ? "current-password"
+                    : "new-password"
                 }
                 required
                 minLength={mode === "login" ? 6 : 8}
@@ -489,10 +561,15 @@ export default function LoginPage() {
                     : "At least 8 characters"
                 }
               />
+
               <button
                 type="button"
-                onClick={() => setShowPassword((visible) => !visible)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() =>
+                  setShowPassword((visible) => !visible)
+                }
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
                 className="mt-2 text-xs font-medium text-cyan-300 transition hover:text-white"
               >
                 {showPassword ? "Hide password" : "Show password"}
