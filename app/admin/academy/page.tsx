@@ -12,6 +12,10 @@ type Course = {
   title: string;
   slug: string;
   description: string | null;
+  price: number | null;
+  currency: string | null;
+  cover_image_url: string | null;
+  promo_video_url: string | null;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
   course_type: "online" | "in_person" | "hybrid" | null;
   estimated_hours: number | null;
@@ -25,6 +29,10 @@ type CourseForm = {
   title: string;
   slug: string;
   description: string;
+  price: string;
+  currency: string;
+  cover_image_url: string;
+  promo_video_url: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   course_type: "online" | "in_person" | "hybrid";
   estimated_hours: string;
@@ -36,6 +44,10 @@ const initialForm: CourseForm = {
   title: "",
   slug: "",
   description: "",
+  price: "0",
+  currency: "USD",
+  cover_image_url: "",
+  promo_video_url: "",
   difficulty: "beginner",
   course_type: "online",
   estimated_hours: "",
@@ -100,7 +112,7 @@ export default function AcademyPage() {
       const { data, error: queryError } = await supabase
         .from("courses")
         .select(
-          "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at"
+          "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency, cover_image_url, promo_video_url"
         )
         .order("created_at", { ascending: false });
 
@@ -157,6 +169,27 @@ export default function AcademyPage() {
       return;
     }
 
+    const price = form.price.trim() === "" ? 0 : Number(form.price);
+    if (!Number.isFinite(price) || price < 0) {
+      setFormError("Course price must be zero or a positive amount.");
+      return;
+    }
+    const currency = form.currency.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      setFormError("Use a valid three-letter currency code, such as USD or EGP.");
+      return;
+    }
+    const coverImageUrl = form.cover_image_url.trim();
+    const promoVideoUrl = form.promo_video_url.trim();
+    if (coverImageUrl && !/^https?:\/\//i.test(coverImageUrl)) {
+      setFormError("Cover image URL must start with http:// or https://.");
+      return;
+    }
+    if (promoVideoUrl && !/^https?:\/\//i.test(promoVideoUrl)) {
+      setFormError("Promo video URL must start with http:// or https://.");
+      return;
+    }
+
     const hours =
       form.estimated_hours.trim() === ""
         ? null
@@ -178,6 +211,10 @@ export default function AcademyPage() {
         title,
         slug,
         description: form.description.trim() || null,
+        price,
+        currency,
+        cover_image_url: coverImageUrl || null,
+        promo_video_url: promoVideoUrl || null,
         difficulty: form.difficulty,
         course_type: form.course_type,
         estimated_hours: hours,
@@ -370,6 +407,26 @@ export default function AcademyPage() {
                 placeholder="Describe the course content and learning outcomes..."
                 className={`${fieldClass} resize-y`}
               />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label htmlFor="course-price" className="mb-2 block text-sm font-medium text-gray-300">Course price</label>
+                <input id="course-price" type="number" min="0" step="0.01" value={form.price} onChange={(event) => updateForm("price", event.target.value)} placeholder="0.00" className={fieldClass} />
+                <p className="mt-2 text-xs text-gray-500">Set 0 for a free course. Paid courses stay locked until access is approved.</p>
+              </div>
+              <div>
+                <label htmlFor="course-currency" className="mb-2 block text-sm font-medium text-gray-300">Currency code</label>
+                <input id="course-currency" maxLength={3} value={form.currency} onChange={(event) => updateForm("currency", event.target.value.toUpperCase())} placeholder="USD or EGP" className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL</label>
+                <input id="course-cover-image" type="url" value={form.cover_image_url} onChange={(event) => updateForm("cover_image_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor="course-promo-video" className="mb-2 block text-sm font-medium text-gray-300">Preview video URL</label>
+                <input id="course-promo-video" type="url" value={form.promo_video_url} onChange={(event) => updateForm("promo_video_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+              </div>
             </div>
 
             <div className="mb-5">
