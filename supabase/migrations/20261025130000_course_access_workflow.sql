@@ -126,8 +126,8 @@ CREATE TRIGGER course_access_requests_grant_enrollment
   FOR EACH ROW
   EXECUTE FUNCTION public.grant_course_enrollment_on_access_approval();
 
--- Published course metadata is public; actual lessons are preview-only until
--- the signed-in student has an active/completed enrollment.
+-- Published course metadata is public; lesson rows stay private until
+-- the signed-in student has an active/completed enrollment, including preview lessons.
 DROP POLICY IF EXISTS lessons_read ON public.lessons;
 CREATE POLICY lessons_read
 ON public.lessons
@@ -139,22 +139,19 @@ USING (
     WHERE c.id = lessons.course_id AND c.status = 'published'
   )
   AND (
-    is_preview = true
-    OR (
-      (SELECT auth.uid()) IS NOT NULL
-      AND (
-        public.has_permission('academy.manage')
-        OR EXISTS (
-          SELECT 1 FROM public.enrollments e
-          WHERE e.course_id = lessons.course_id
-            AND e.student_id = (SELECT auth.uid())
-            AND e.status IN ('active', 'completed')
-        )
-        OR EXISTS (
-          SELECT 1 FROM public.courses c
-          WHERE c.id = lessons.course_id
-            AND c.instructor_id = (SELECT auth.uid())
-        )
+    (SELECT auth.uid()) IS NOT NULL
+    AND (
+      public.has_permission('academy.manage')
+      OR EXISTS (
+        SELECT 1 FROM public.enrollments e
+        WHERE e.course_id = lessons.course_id
+          AND e.student_id = (SELECT auth.uid())
+          AND e.status IN ('active', 'completed')
+      )
+      OR EXISTS (
+        SELECT 1 FROM public.courses c
+        WHERE c.id = lessons.course_id
+          AND c.instructor_id = (SELECT auth.uid())
       )
     )
   )
