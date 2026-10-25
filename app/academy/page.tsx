@@ -1249,6 +1249,11 @@ export default function AcademyPage() {
                         Offline course
                       </span>
                     )}
+                    {!course.isOffline && (
+                      <span className="absolute bottom-4 left-4 rounded-md border border-cyan-300/30 bg-[#06131f]/85 px-3 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur-sm">
+                        {course.price == null || Number(course.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(Number(course.price))}
+                      </span>
+                    )}
                     <span className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-md border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-gray-200">
                       <Icon name="clock" size={13} />
                       {course.duration}
@@ -1324,8 +1329,7 @@ export default function AcademyPage() {
           )}
 
           <p className="mt-6 text-xs leading-5 text-gray-600">
-            Illustrative course listings. Schedules, instructors, fees, and
-            availability must be confirmed before enrollment.
+            Online courses published by VEXORA display their configured price and preview media. Full course content is unlocked only after an administrator approves access.
           </p>
         </section>
 
@@ -1580,6 +1584,18 @@ export default function AcademyPage() {
                   backgroundImage: `url("${selectedCourse.image}")`,
                 }}
               />
+              {selectedCourse.promoVideoUrl && (
+                <video
+                  className="absolute inset-0 h-full w-full object-cover"
+                  src={selectedCourse.promoVideoUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  aria-label={`${selectedCourse.title} course preview`}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c121d] to-black/10" />
               <span className="absolute bottom-4 left-5 rounded-md border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-white">
                 {selectedCourse.category}
@@ -1628,6 +1644,14 @@ export default function AcademyPage() {
                   <p className="mt-5 leading-7 text-gray-400">
                     {selectedCourse.description}
                   </p>
+                  {!selectedCourse.isOffline && (
+                    <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                      <span className="text-sm text-gray-400">Course price</span>
+                      <strong className="text-lg text-cyan-100">
+                        {selectedCourse.price == null || Number(selectedCourse.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD", maximumFractionDigits: 2 }).format(Number(selectedCourse.price))}
+                      </strong>
+                    </div>
+                  )}
 
                   {!selectedCourse.isOffline && (
                     <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
