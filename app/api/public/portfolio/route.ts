@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const BUCKET = "project-media";
 const SIGNED_URL_SECONDS = 60 * 15;
 
@@ -9,7 +12,6 @@ type PortfolioProject = {
   title: string;
   description: string | null;
   status: string;
-  deadline: string | null;
   show_on_projects_page: boolean;
   portfolio_category: string | null;
 };
@@ -23,19 +25,34 @@ type PortfolioMedia = {
   created_at: string;
 };
 
+function failure(message: string, status = 500) {
+  return NextResponse.json(
+    { error: message },
+    { status, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 export async function GET() {
   try {
     const admin = createAdminClient();
     const { data: projects, error: projectsError } = await admin
       .from("projects")
-      .select("id,title,description,status,deadline,show_on_projects_page,portfolio_category")
+      .select("id,title,description,status,show_on_projects_page,portfolio_category")
       .eq("show_on_projects_page", true)
       .in("status", ["in_progress", "completed"])
       .order("created_at", { ascending: false });
 
     if (projectsError) {
-      console.error("Public portfolio project query failed:", projectsError.message);
-      return NextResponse.json({ error: "Portfolio is temporarily unavailable." }, { status: 500 });
+      console.error("Public portfolio project query failed:", {
+        code: projectsError.code,
+        message: projectsError.message,
+        details: projectsError.details,
+        hint: projectsError.hint,
+      });
+      if (projectsError.code === "42703" || projectsError.code === "PGRST204" || projectsError.code === "PGRST200") {
+        return failure("Portfolio database schema is out of date. Verify the portfolio migration was applied to the production Supabase project.");
+      }
+      return failure("Portfolio data could not be loaded from Supabase. Check the server logs for the database error.");
     }
 
     const safeProjects = (projects ?? []) as unknown as PortfolioProject[];
@@ -51,20 +68,33 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (mediaError) {
-      console.error("Public portfolio media query failed:", mediaError.message);
-      return NextResponse.json({ error: "Portfolio media is temporarily unavailable." }, { status: 500 });
+      console.error("Public portfolio media query failed:", {
+        code: mediaError.code,
+        message: mediaError.message,
+        details: mediaError.details,
+        hint: mediaError.hint,
+      });
+      return failure("Portfolio projects loaded, but media metadata could not be loaded. Check the project_media table schema.");
     }
 
     const safeMedia = (media ?? []) as unknown as PortfolioMedia[];
     const mediaWithUrls = await Promise.all(safeMedia.map(async (item) => {
-      const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(item.path, SIGNED_URL_SECONDS);
-      return {
-        id: item.id,
-        project_id: item.project_id,
-        name: item.name,
-        mime_type: item.mime_type,
-        url: error ? null : data.signedUrl,
-      };
+      try {
+        const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(item.path, SIGNED_URL_SECONDS);
+        if (error) {
+          console.error("Portfolio media signed URL failed:", { mediaId: item.id, message: error.message });
+        }
+        return {
+          id: item.id,
+          project_id: item.project_id,
+          name: item.name,
+          mime_type: item.mime_type,
+          url: error ? null : data.signedUrl,
+        };
+      } catch (error) {
+        console.error("Portfolio media URL generation failed:", error);
+        return { id: item.id, project_id: item.project_id, name: item.name, mime_type: item.mime_type, url: null };
+      }
     }));
 
     return NextResponse.json({
@@ -79,6 +109,10 @@ export async function GET() {
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Public portfolio endpoint failed:", error);
-    return NextResponse.json({ error: "Portfolio is temporarily unavailable." }, { status: 500 });
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("Missing Supabase server environment variables")) {
+      return failure("Portfolio server configuration is incomplete. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the production hosting environment.");
+    }
+    return failure("Portfolio service is temporarily unavailable. Check the production server logs for the underlying error.");
   }
 }
