@@ -4,6 +4,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const BUCKET = "project-media";
 const SIGNED_URL_SECONDS = 60 * 15;
 
+type PortfolioProject = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  deadline: string | null;
+  show_on_projects_page: boolean;
+  portfolio_category: string | null;
+};
+
+type PortfolioMedia = {
+  id: string;
+  project_id: string;
+  name: string;
+  path: string;
+  mime_type: string | null;
+  created_at: string;
+};
+
 export async function GET() {
   try {
     const admin = createAdminClient();
@@ -19,7 +38,7 @@ export async function GET() {
       return NextResponse.json({ error: "Portfolio is temporarily unavailable." }, { status: 500 });
     }
 
-    const safeProjects = projects ?? [];
+    const safeProjects = (projects ?? []) as unknown as PortfolioProject[];
     if (safeProjects.length === 0) {
       return NextResponse.json({ projects: [] }, { headers: { "Cache-Control": "no-store" } });
     }
@@ -36,7 +55,8 @@ export async function GET() {
       return NextResponse.json({ error: "Portfolio media is temporarily unavailable." }, { status: 500 });
     }
 
-    const mediaWithUrls = await Promise.all((media ?? []).map(async (item) => {
+    const safeMedia = (media ?? []) as unknown as PortfolioMedia[];
+    const mediaWithUrls = await Promise.all(safeMedia.map(async (item) => {
       const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(item.path, SIGNED_URL_SECONDS);
       return {
         id: item.id,
