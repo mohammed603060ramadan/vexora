@@ -309,6 +309,13 @@ function Icon({
           <path d="m9 12 2 2 4-4" />
         </svg>
       );
+    case "academy":
+      return (
+        <svg {...common}>
+          <path d="m3 9 9-5 9 5-9 5-9-5Z" />
+          <path d="M6.5 11v5c3.2 2.4 7.8 2.4 11 0v-5M21 9v6" />
+        </svg>
+      );
     case "sparkles":
       return (
         <svg {...common}>
@@ -1769,65 +1776,70 @@ export default function AcademyPage() {
               </button>
             </div>
 
-            <div className="academy-print-certificate academy-certificate relative border-[5px] border-[#9fb5d1] bg-[#edf2f8] p-2 text-[#1a2d45] sm:border-[8px] sm:p-3">
-              <div className="relative overflow-hidden border border-[#91a7c2] p-5 text-center sm:p-10">
-                <div className="pointer-events-none absolute inset-3 border border-[#91a7c2]/45" />
+            <div className="academy-print-certificate relative overflow-hidden border-[5px] border-[#c6a96a] bg-[#f4f0e5] p-2 text-[#1a2d45] shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:border-[8px] sm:p-3">
+              <div className="relative overflow-hidden border border-[#9b854f] px-5 py-7 text-center sm:px-10 sm:py-10">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-2 border border-[#bca56d]/60 sm:inset-3" />
+                <div aria-hidden="true" className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full border border-[#bca56d]/40" />
+                <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full border border-[#bca56d]/40" />
 
                 <div className="relative">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#b79b56] bg-[#e8dfc7] text-[#80662f] shadow-[0_0_0_5px_rgba(183,155,86,0.12)] sm:h-16 sm:w-16">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true">
+                      <path d="M12 2.8 14.5 8l5.7.8-4.1 4 .9 5.7-5-2.7-5 2.7.9-5.7-4.1-4L9.5 8 12 2.8Z" />
+                      <path d="m8.5 18.2-.8 3 4.3-2.2 4.3 2.2-.8-3" />
+                    </svg>
+                  </div>
+
                   <Image
                     src="/vexora-logo.png"
                     alt="VEXORA Technology logo"
                     width={180}
                     height={70}
-                    className="mx-auto h-12 w-auto object-contain sm:h-[68px]"
+                    className="mx-auto mt-3 h-10 w-auto object-contain sm:h-12"
                   />
 
-                  <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.35em] text-[#526b88] sm:text-xs">
-                    VEXORA ACADEMY
+                  <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.4em] text-[#526b88] sm:text-xs">
+                    VEXORA ACADEMY · PROFESSIONAL LEARNING
                   </p>
 
-                  <h2 className="mt-4 font-serif text-3xl font-bold tracking-wide sm:mt-5 sm:text-5xl">
-                    Certificate
+                  <div className="mx-auto mt-5 flex max-w-xl items-center gap-3 sm:mt-6">
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-[#b79b56] to-[#b79b56]" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a713c] sm:text-xs">Certificate of</span>
+                    <span className="h-px flex-1 bg-gradient-to-l from-transparent via-[#b79b56] to-[#b79b56]" />
+                  </div>
+
+                  <h2 className="mt-2 font-serif text-3xl font-bold tracking-wide text-[#1b3554] sm:text-5xl">
+                    Achievement
                   </h2>
-                  <p className="mt-2 font-serif text-lg italic text-[#526b88] sm:text-2xl">
-                    of Completion
+                  <p className="mt-2 font-serif text-sm italic text-[#61748b] sm:text-lg">
+                    Learning · Practice · Progress
                   </p>
 
-                  <div className="mx-auto my-5 h-px w-24 bg-[#91a7c2] sm:my-7 sm:w-32" />
-
-                  <p className="text-xs leading-6 text-[#526b88] sm:text-sm">
-                    This sample illustrates a possible certificate design for
-                    the successful completion of an eligible learning program.
+                  <p className="mx-auto mt-5 max-w-2xl text-[11px] leading-6 text-[#526b88] sm:mt-6 sm:text-sm sm:leading-7">
+                    This preview illustrates the VEXORA Academy certificate style for eligible learning programs. Official credentials are issued only after completion requirements and approval are verified.
                   </p>
 
-                  <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-[#526b88] sm:mt-7 sm:text-sm">
-                    Presented to
+                  <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.28em] text-[#8a713c] sm:mt-6 sm:text-xs">
+                    PROUDLY PRESENTED TO
                   </p>
 
-                  <p className="mx-auto mt-3 max-w-xl break-words font-serif text-2xl italic text-[#243c59] sm:text-4xl">
+                  <p className="mx-auto mt-2 max-w-2xl break-words font-serif text-2xl italic text-[#1b3554] sm:mt-3 sm:text-4xl">
                     {learnerName.trim() || "Your Name Here"}
                   </p>
+                  <div className="mx-auto mt-3 h-px w-2/3 max-w-md bg-gradient-to-r from-transparent via-[#b79b56] to-transparent" />
 
-                  <div className="mx-auto mt-7 grid max-w-lg grid-cols-2 gap-8 sm:mt-10">
-                    <div className="border-t border-[#91a7c2] pt-2">
-                      <p className="text-[9px] uppercase tracking-widest text-[#526b88] sm:text-xs">
-                        Authorized signature
-                      </p>
-                      <p className="mt-1 text-[9px] text-[#7188a3] sm:text-xs">
-                        Illustrative only
-                      </p>
+                  <div className="mx-auto mt-6 grid max-w-xl grid-cols-2 gap-6 sm:mt-8 sm:gap-10">
+                    <div className="border-t border-[#b5a477] pt-2.5">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Academic Director</p>
+                      <p className="mt-1 text-[8px] text-[#7188a3] sm:text-[10px]">Signature upon official issue</p>
                     </div>
-                    <div className="border-t border-[#91a7c2] pt-2">
-                      <p className="text-[9px] uppercase tracking-widest text-[#526b88] sm:text-xs">
-                        Issue date
-                      </p>
-                      <p className="mt-1 text-[9px] text-[#7188a3] sm:text-xs">
-                        Not issued
-                      </p>
+                    <div className="border-t border-[#b5a477] pt-2.5">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Credential reference</p>
+                      <p className="mt-1 font-mono text-[8px] text-[#7188a3] sm:text-[10px]">PREVIEW · NOT ISSUED</p>
                     </div>
                   </div>
 
-                  <p className="mt-7 text-[8px] font-bold uppercase tracking-[0.2em] text-[#526b88] sm:mt-9 sm:text-[10px]">
+                  <p className="mt-6 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8a713c] sm:mt-8 sm:text-[10px]">
                     SAMPLE PREVIEW · NOT A VALID CREDENTIAL
                   </p>
                 </div>
