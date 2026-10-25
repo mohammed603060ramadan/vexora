@@ -149,6 +149,10 @@ export default function StudentDashboard() {
   const [category, setCategory] = useState("All");
 
   const [enrollments, setEnrollments] = useState<StudentEnrollment[]>([]);
+  const [courseRegistrations, setCourseRegistrations] = useState<Array<{
+    id: string; full_name: string; email: string; track: string; status: string; created_at: string;
+  }>>([]);
+  const [registrationError, setRegistrationError] = useState("");
   const [coursesError, setCoursesError] = useState("");
   const [coursesLoading, setCoursesLoading] = useState(false);
 
@@ -180,6 +184,20 @@ export default function StudentDashboard() {
       }
 
       setEmail(user.email ?? "");
+
+      try {
+        const registrationResponse = await fetch("/api/student-registration", { cache: "no-store" });
+        const registrationPayload = await registrationResponse.json() as {
+          registrations?: Array<{ id: string; full_name: string; email: string; track: string; status: string; created_at: string }>;
+          error?: string;
+        };
+        if (!registrationResponse.ok) throw new Error(registrationPayload.error || "Unable to load course registrations.");
+        setCourseRegistrations(Array.isArray(registrationPayload.registrations) ? registrationPayload.registrations : []);
+        setRegistrationError("");
+      } catch (caught) {
+        setCourseRegistrations([]);
+        setRegistrationError(caught instanceof Error ? caught.message : "Unable to load course registrations.");
+      }
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -693,6 +711,51 @@ export default function StudentDashboard() {
                   </article>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        <section className="section-block">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">OFFLINE LEARNING</p>
+              <h2>Course registrations</h2>
+              <p className="section-description">
+                Registration requests made with {email || "your account email"}.
+              </p>
+            </div>
+            <span className="resource-count">{courseRegistrations.length} requests</span>
+          </div>
+          {registrationError ? (
+            <div className="error-banner" role="alert">
+              <span>{registrationError}</span>
+              <button type="button" onClick={() => void loadStudent()}>Try again</button>
+            </div>
+          ) : courseRegistrations.length === 0 ? (
+            <div className="empty-state">
+              <span aria-hidden="true">◇</span>
+              <strong>No course requests found</strong>
+              <p>Offline course applications submitted with this email will appear here.</p>
+              <Link href="/academy" className="primary-button">Browse offline courses ↗</Link>
+            </div>
+          ) : (
+            <div className="resource-grid">
+              {courseRegistrations.map((registration) => (
+                <article className="resource-card course-card" key={registration.id}>
+                  <div className="resource-top">
+                    <span className="resource-icon" aria-hidden="true">◇</span>
+                    <span className={`status-pill status-${registration.status === "accepted" ? "active" : registration.status === "rejected" ? "cancelled" : "pending"}`}>
+                      {registration.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  <h3>{registration.track}</h3>
+                  <p>Offline classroom course registration received by VEXORA Academy.</p>
+                  <div className="course-meta">
+                    <span>{registration.email}</span>
+                    <span>Submitted {formatDate(registration.created_at)}</span>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
         </section>
