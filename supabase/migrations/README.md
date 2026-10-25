@@ -31,7 +31,6 @@ Apply migrations through the team's chosen Supabase migration workflow, in versi
 | 202610240002 | 202610240002_course_categories_events.sql | Course categories, events and related policies |
 | 202610240003 | 202610240003_admin_project_media_access.sql | Project media and access policies |
 | 202610240004 | 202610240004_repair_projects_events_academy.sql | Project due date, public placement flags, event validation and schema-cache refresh |
-| 20261025110000 | 20261025110000_client_auth_link.sql | Client Auth link compatibility and synchronization |
 | 20261025120000 | 20261025120000_client_auth_user_compat.sql | Safe compatibility link for client auth accounts |
 | 202610240005 | 202610240005_admin_registry_and_manager_integrity.sql | Protected administrator registry used by manager administration |
 
