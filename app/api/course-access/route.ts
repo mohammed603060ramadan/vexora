@@ -22,7 +22,7 @@ export async function GET() {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
-      .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type,cover_image_url,promo_video_url)")
+      .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,course_type)")
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: course, error: courseError } = await admin
       .from("courses")
-      .select("id,title,status,price")
+      .select("id,title,status")
       .eq("id", courseId)
       .eq("status", "published")
       .maybeSingle();
