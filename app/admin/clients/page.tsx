@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
 type Client = {
@@ -151,7 +151,7 @@ export default function ClientsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function loadCourseRegistrations() {
+  const loadCourseRegistrations = useCallback(async () => {
     const { data, error: queryError } = await supabase
       .from("student_registrations")
       .select("id, full_name, email, track, status, created_at")
@@ -166,7 +166,7 @@ export default function ClientsPage() {
 
     setCourseRegistrations((data ?? []) as CourseRegistration[]);
     setCourseRegistrationsError("");
-  }
+  }, []);
 
   async function loadClients(showRefreshIndicator = false) {
     if (showRefreshIndicator) {
@@ -235,7 +235,7 @@ export default function ClientsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadCourseRegistrations]);
 
   function updateField(field: keyof ClientForm, value: string) {
     setForm((current) => ({
