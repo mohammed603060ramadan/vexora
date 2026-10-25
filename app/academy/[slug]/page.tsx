@@ -115,23 +115,24 @@ function CourseDetailsContent() {
         const { data: authData } = await supabase.auth.getUser();
         const signedInUser = authData.user;
 
-        let { data: courseData, error: courseError } = await supabase
+        const { data: courseRow, error: courseError } = await supabase
           .from("courses")
-          .select("id, title, slug, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
+          .select("id, title, slug, description, difficulty, course_type, estimated_hours")
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
-
-        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
-          const fallback = await supabase.from("courses")
-            .select("id, title, slug, description, difficulty, course_type, price, currency, estimated_hours")
-            .eq("slug", slug)
-            .eq("status", "published")
-            .maybeSingle();
-          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
-          courseError = fallback.error;
-        }
         if (courseError) throw courseError;
+
+        const courseData = courseRow
+          ? {
+              ...courseRow,
+              subtitle: null,
+              price: null,
+              currency: null,
+              cover_image_url: null,
+              promo_video_url: null,
+            }
+          : null;
 
         if (!courseData) {
           setCourse(null);
