@@ -210,6 +210,22 @@ export default function LoginPage() {
         setMode("reset");
         setMessage("Create and confirm your new password.");
       }
+
+      // Keep already-authenticated visitors out of the login form.
+      if (!code && !isInvite && !isRecovery && !hasPasswordFlow) {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!active) {
+          return;
+        }
+
+        if (!error && session) {
+          await routeUser();
+        }
+      }
     }
 
     const {
