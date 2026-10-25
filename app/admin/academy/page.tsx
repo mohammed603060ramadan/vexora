@@ -295,6 +295,7 @@ export default function AcademyPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <Link href="/admin/academy/access" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/[0.1]">Course access requests ↗</Link>
           <Link href="/academy/courses" target="_blank" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-blue-400/20 px-4 py-3 text-sm font-semibold text-blue-200 transition hover:border-blue-400/40 hover:bg-blue-400/[0.06]">View public courses ↗</Link>
           <button
             type="button"
