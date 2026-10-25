@@ -55,11 +55,20 @@ export default function AcademyCoursesPage() {
   useEffect(() => {
     let active = true;
     async function load() {
-      const { data, error: queryError } = await supabase
+      let { data, error: queryError } = await supabase
         .from("courses")
         .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
+      if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
+        const fallback = await supabase
+          .from("courses")
+          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency")
+          .eq("status", "published")
+          .order("created_at", { ascending: false });
+        data = (fallback.data ?? []).map((course) => ({ ...course, cover_image_url: null, promo_video_url: null }));
+        queryError = fallback.error;
+      }
       if (!active) return;
       if (queryError) setError("Published courses could not be loaded. Please refresh and try again.");
       else setCourses((data ?? []) as Course[]);
