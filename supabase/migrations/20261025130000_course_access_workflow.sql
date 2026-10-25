@@ -98,7 +98,7 @@ AS $$
 BEGIN
   IF NEW.status = 'approved'
      AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
-    INSERT INTO public.enrollments (
+    INSERT INTO public.enrollments AS existing_enrollment (
       course_id, student_id, enrolled_by, status, progress_percent
     )
     VALUES (
@@ -107,8 +107,8 @@ BEGIN
     ON CONFLICT (course_id, student_id)
     DO UPDATE SET
       status = CASE
-        WHEN public.enrollments.status = 'cancelled' THEN 'active'
-        ELSE public.enrollments.status
+        WHEN existing_enrollment.status = 'cancelled' THEN 'active'
+        ELSE existing_enrollment.status
       END,
       updated_at = now();
     NEW.reviewed_at := COALESCE(NEW.reviewed_at, now());
