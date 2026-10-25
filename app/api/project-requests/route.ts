@@ -20,12 +20,22 @@ export async function GET() {
 
     const { data, error } = await admin
       .from("project_requests")
-      .select("id,client_id,project_id,status,message,created_at,updated_at,projects:project_id(id,title,portfolio_category)")
+      .select("id,client_id,project_id,status,message,created_at,updated_at")
       .eq("client_id", client.id)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return NextResponse.json({ requests: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
+
+    const rows = data ?? [];
+    const projectIds = [...new Set(rows.map((item) => item.project_id))];
+    const { data: projects, error: projectsError } = projectIds.length
+      ? await admin.from("projects").select("id,title,portfolio_category").in("id", projectIds)
+      : { data: [], error: null };
+    if (projectsError) throw projectsError;
+
+    const projectById = new Map((projects ?? []).map((project) => [project.id, project]));
+    const requests = rows.map((item) => ({ ...item, projects: projectById.get(item.project_id) ?? null }));
+    return NextResponse.json({ requests }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Project requests GET failed:", error);
     return jsonError("Project requests are temporarily unavailable. Verify the project_requests migration is applied.", 500);
