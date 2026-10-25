@@ -7,6 +7,17 @@ function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers });
 }
 
+async function findClientForUser(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const byAuthUser = await admin.from("clients").select("id").eq("auth_user_id", userId).maybeSingle();
+  if (!byAuthUser.error && byAuthUser.data) return byAuthUser.data;
+  const byLegacyUser = await admin.from("clients").select("id").eq("user_id", userId).maybeSingle();
+  if (byLegacyUser.error) {
+    if (byAuthUser.error) throw byAuthUser.error;
+    throw byLegacyUser.error;
+  }
+  return byLegacyUser.data;
+}
+
 export async function GET() {
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -14,13 +25,7 @@ export async function GET() {
 
   try {
     const admin = createAdminClient();
-    const { data: client, error: clientError } = await admin
-      .from("clients")
-      .select("id")
-      .or(`auth_user_id.eq.${auth.user.id},user_id.eq.${auth.user.id}`)
-      .limit(1)
-      .maybeSingle();
-    if (clientError) throw clientError;
+    const client = await findClientForUser(admin, auth.user.id);
 
     const [projectResult, requestResult, taskResult] = await Promise.all([
       client
