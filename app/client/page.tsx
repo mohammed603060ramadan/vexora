@@ -343,6 +343,14 @@ function Icon({
         </svg>
       );
 
+    case "academy":
+      return (
+        <svg {...common}>
+          <path d="m3 9 9-5 9 5-9 5-9-5Z" />
+          <path d="M6.5 11v5c3.2 2.4 7.8 2.4 11 0v-5M21 9v6" />
+        </svg>
+      );
+
     case "check":
       return (
         <svg {...common}>
