@@ -14,9 +14,9 @@ type ProjectRequestsDatabase = {
   public: {
     Tables: {
       clients: DatabaseTable<
-        { id: string; auth_user_id: string | null },
-        { id?: string; auth_user_id?: string | null },
-        { id?: string; auth_user_id?: string | null }
+        { id: string; auth_user_id: string | null; user_id: string | null },
+        { id?: string; auth_user_id?: string | null; user_id?: string | null },
+        { id?: string; auth_user_id?: string | null; user_id?: string | null }
       >;
       projects: DatabaseTable<
         {
@@ -79,6 +79,29 @@ function getAdminClient() {
   return createAdminClient() as unknown as SupabaseClient<ProjectRequestsDatabase>;
 }
 
+async function findClientForUser(admin: ReturnType<typeof getAdminClient>, userId: string) {
+  const byAuthUser = await admin
+    .from("clients")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (!byAuthUser.error && byAuthUser.data) return byAuthUser.data;
+
+  // Compatibility with installations created before auth_user_id was added.
+  const byLegacyUser = await admin
+    .from("clients")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (byLegacyUser.error) {
+    if (byAuthUser.error) throw byAuthUser.error;
+    throw byLegacyUser.error;
+  }
+  return byLegacyUser.data;
+}
+
 function isValidUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -100,15 +123,7 @@ export async function GET() {
 
     const admin = getAdminClient();
 
-    const { data: client, error: clientError } = await admin
-      .from("clients")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (clientError) {
-      throw clientError;
-    }
+    const client = await findClientForUser(admin, user.id);
 
     if (!client) {
       return NextResponse.json(
@@ -205,14 +220,10 @@ export async function POST(request: Request) {
     const admin = getAdminClient();
 
     const [
-      { data: client, error: clientError },
+      client,
       { data: project, error: projectError },
     ] = await Promise.all([
-      admin
-        .from("clients")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle(),
+      findClientForUser(admin, user.id),
 
       admin
         .from("projects")
@@ -220,10 +231,6 @@ export async function POST(request: Request) {
         .eq("id", projectId)
         .maybeSingle(),
     ]);
-
-    if (clientError) {
-      throw clientError;
-    }
 
     if (projectError) {
       throw projectError;
