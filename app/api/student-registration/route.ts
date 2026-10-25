@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_BODY_LENGTH = 12_000;
 type Payload = {
@@ -9,6 +10,43 @@ type Payload = {
 };
 function cleanText(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+export async function GET() {
+  const supabase = await createClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Sign in to view your course registrations." }, { status: 401 });
+  }
+
+  const email = authData.user.email?.trim().toLowerCase();
+  if (!email) {
+    return NextResponse.json({ registrations: [] }, { status: 200 });
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("student_registrations")
+      .select("id, full_name, email, track, status, created_at, education_level, experience")
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error("Student registrations lookup failed:", error.message);
+      return NextResponse.json({ error: "Could not load course registrations." }, { status: 500 });
+    }
+
+    return NextResponse.json({ registrations: data ?? [] }, {
+      status: 200,
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  } catch (error) {
+    console.error("Student registrations lookup failed:", error);
+    return NextResponse.json({ error: "Course registrations are temporarily unavailable." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
