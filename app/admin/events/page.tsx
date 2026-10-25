@@ -34,7 +34,7 @@ type EventForm = {
   show_on_homepage: boolean;
 };
 const emptyForm: EventForm = {
-  title: "", description: "", event_type: "webinar", status: "draft",
+  title: "", description: "", event_type: "webinar", status: "published",
   event_date: "", start_time: "", end_time: "", location: "", registration_url: "", show_on_homepage: true,
 };
 const inputClass = "w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/15";
