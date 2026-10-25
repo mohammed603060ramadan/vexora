@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -76,6 +76,7 @@ function formatDuration(minutes: number) {
 
 function CourseDetailsContent() {
   const params = useParams<{ slug: string }>();
+  const router = useRouter();
   const slug = params.slug;
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -306,7 +307,7 @@ function CourseDetailsContent() {
       });
       const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
       if (response.status === 401) {
-        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
