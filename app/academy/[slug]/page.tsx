@@ -119,18 +119,22 @@ function CourseDetailsContent() {
           return;
         }
 
-        const {
-          data: courseData,
-          error: courseError,
-        } = await supabase
+        let { data: courseData, error: courseError } = await supabase
           .from("courses")
-          .select(
-            "id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url"
-          )
+          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
 
+        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
+          const fallback = await supabase.from("courses")
+            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
+            .eq("slug", slug)
+            .eq("status", "published")
+            .maybeSingle();
+          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
+          courseError = fallback.error;
+        }
         if (courseError) throw courseError;
 
         if (!courseData) {
