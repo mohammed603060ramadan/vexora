@@ -55,7 +55,11 @@ export default function CourseAccessAdminPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    // Initial data loading is asynchronous; the callback updates state after the network request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
