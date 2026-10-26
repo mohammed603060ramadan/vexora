@@ -13,7 +13,7 @@ CREATE POLICY courses_read
     OR (
       (SELECT auth.uid()) IS NOT NULL
       AND (
-        public.has_permission('academy.manage')
+        public.is_vexora_academy_admin()
         OR instructor_id = (SELECT auth.uid())
       )
     )
