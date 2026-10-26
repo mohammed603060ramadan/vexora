@@ -56,7 +56,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
   SELECT (SELECT auth.uid()) IS NOT NULL
     AND (
       (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
@@ -66,7 +66,7 @@ AS $
         WHERE administrators.user_id = (SELECT auth.uid())
       )
     );
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.is_vexora_academy_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_vexora_academy_admin() TO anon, authenticated, service_role;
