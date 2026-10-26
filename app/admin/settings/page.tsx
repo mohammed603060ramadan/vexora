@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TabId =
   | "overview"
@@ -248,6 +248,61 @@ export default function AdminSettingsPage() {
   const [showModuleForm, setShowModuleForm] = useState(false);
   const [moduleFilter, setModuleFilter] = useState("All");
   const [saving, setSaving] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSavedSettings() {
+      try {
+        const response = await fetch("/api/admin/settings", { cache: "no-store" });
+        const payload = await response.json() as { settings?: unknown; error?: string };
+        if (!response.ok) throw new Error(payload.error || "Could not load saved settings.");
+        if (!active) return;
+
+        const saved = payload.settings;
+        if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+          const values = saved as Record<string, unknown>;
+          const mergeObject = <T extends object>(defaults: T, value: unknown): T =>
+            value && typeof value === "object" && !Array.isArray(value)
+              ? { ...defaults, ...(value as Partial<T>) }
+              : defaults;
+
+          setCompany((current) => mergeObject(current, values.company));
+          setWebsite((current) => mergeObject(current, values.website));
+          setBranding((current) => mergeObject(current, values.branding));
+          setSecurity((current) => mergeObject(current, values.security));
+          setIntegrations((current) => mergeObject(current, values.integrations));
+          setAdvanced((current) => mergeObject(current, values.advanced));
+
+          if (Array.isArray(values.modules) && values.modules.every((item) =>
+            item && typeof item === "object" && !Array.isArray(item) &&
+            typeof (item as Record<string, unknown>).id === "string" &&
+            typeof (item as Record<string, unknown>).name === "string" &&
+            typeof (item as Record<string, unknown>).description === "string" &&
+            typeof (item as Record<string, unknown>).enabled === "boolean" &&
+            typeof (item as Record<string, unknown>).category === "string"
+          )) setModules(values.modules as ModuleItem[]);
+
+          if (Array.isArray(values.preferences) && values.preferences.every((item) =>
+            item && typeof item === "object" && !Array.isArray(item) &&
+            typeof (item as Record<string, unknown>).id === "string" &&
+            typeof (item as Record<string, unknown>).title === "string" &&
+            typeof (item as Record<string, unknown>).description === "string" &&
+            typeof (item as Record<string, unknown>).enabled === "boolean"
+          )) setPreferences(values.preferences as ToggleItem[]);
+        }
+      } catch (cause) {
+        if (active) setNotice(cause instanceof Error ? cause.message : "Could not load saved settings.");
+      } finally {
+        if (active) setLoadingSettings(false);
+      }
+    }
+
+    void loadSavedSettings();
+    return () => { active = false; };
+  }, []);
 
   const enabledModules = useMemo(() => modules.filter((module) => module.enabled).length, [modules]);
   const filteredModules = useMemo(() => {
@@ -338,10 +393,23 @@ export default function AdminSettingsPage() {
     setNotice("Settings preview exported as a JSON file.");
   }
 
-  function savePreview() {
+  async function savePreview() {
     setSaving(true);
-    setNotice("Your current changes are active in this page preview. Shared database settings are not connected yet.");
-    setSaving(false);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: { company, website, branding, modules, preferences, security, integrations, advanced } }),
+      });
+      const payload = await response.json() as { success?: boolean; error?: string };
+      if (!response.ok || !payload.success) throw new Error(payload.error || "Could not save settings.");
+      setNotice("Settings saved successfully.");
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : "Could not save settings.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetPreview() {
@@ -413,7 +481,7 @@ export default function AdminSettingsPage() {
             <div className="relative flex flex-wrap gap-3 xl:max-w-[360px] xl:justify-end">
               <a href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</a>
               <button type="button" onClick={exportSettings} className="rounded-xl border border-blue-300/20 bg-blue-400/[0.08] px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-400/[0.15]">Export configuration ↓</button>
-              <button type="button" onClick={savePreview} disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Apply preview changes ✓"}</button>
+              <button type="button" onClick={() => void savePreview()} disabled={saving || loadingSettings} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{loadingSettings ? "Loading settings..." : saving ? "Saving..." : "Apply preview changes ✓"}</button>
             </div>
           </div>
         </header>
@@ -780,7 +848,7 @@ export default function AdminSettingsPage() {
               <div><p className="text-sm font-medium text-slate-200">Configuration preview</p><p className="mt-1 text-xs leading-5 text-slate-500">Changes are interactive but are not yet saved to a shared database.</p></div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={exportSettings} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.04]">Export</button>
-                <button type="button" onClick={savePreview} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400">Apply preview</button>
+                <button type="button" onClick={() => void savePreview()} disabled={saving || loadingSettings} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400">Apply preview</button>
               </div>
             </div>
           </div>
