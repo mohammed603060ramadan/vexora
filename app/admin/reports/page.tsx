@@ -85,7 +85,7 @@ export default async function AdminReportsPage() {
   const results = await Promise.all(
     definitions.map(async (item): Promise<ReportItem> => {
       const { count, error } = await supabase
-        .from(item.table)
+        .from(item.table as never)
         .select("id", { count: "exact", head: true });
 
       return {
