@@ -4,33 +4,30 @@ import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
 type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests";
 
-async function loadTable(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+function normalizeRows(
   table: AnalyticsTable,
-): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
-  let result:
-    | { data: unknown[] | null; error: { message: string } | null }
-    | undefined;
-
-  switch (table) {
-    case "clients":
-      result = await supabase.from("clients").select("*").limit(2000);
-      break;
-    case "projects":
-      result = await supabase.from("projects").select("*").limit(2000);
-      break;
-    case "tasks":
-      result = await supabase.from("tasks").select("*").limit(2000);
-      break;
-    case "service_requests":
-      result = await supabase.from("service_requests").select("*").limit(2000);
-      break;
-  }
-
+  result: { data: unknown[] | null; error: { message: string } | null },
+): { rows: AnalyticsRow[]; error: string | null } {
   return {
     rows: (result.data ?? []) as AnalyticsRow[],
     error: result.error ? `${table}: ${result.error.message}` : null,
   };
+}
+
+async function loadTable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: AnalyticsTable,
+): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
+  switch (table) {
+    case "clients":
+      return normalizeRows(table, await supabase.from("clients").select("*").limit(2000));
+    case "projects":
+      return normalizeRows(table, await supabase.from("projects").select("*").limit(2000));
+    case "tasks":
+      return normalizeRows(table, await supabase.from("tasks").select("*").limit(2000));
+    case "service_requests":
+      return normalizeRows(table, await supabase.from("service_requests").select("*").limit(2000));
+  }
 }
 
 export default async function AnalyticsPage() {
