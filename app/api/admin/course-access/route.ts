@@ -28,8 +28,7 @@ export async function GET() {
   const auth = await authorizeAdmin();
   if (auth.response) return auth.response;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
   const admin: any = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
@@ -55,8 +54,7 @@ export async function PATCH(request: Request) {
   const status = body.status as "approved" | "rejected" | "pending";
   const adminNote = "adminNote" in body && typeof body.adminNote === "string" ? body.adminNote.trim().slice(0, 1500) || null : null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
   const admin: any = createAdminClient();
     const { data: current, error: currentError } = await admin
       .from("course_access_requests")
