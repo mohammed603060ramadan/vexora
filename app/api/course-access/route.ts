@@ -20,8 +20,7 @@ export async function GET() {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in to view course access requests.", 401);
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
   const admin: any = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
@@ -54,8 +53,7 @@ export async function POST(request: Request) {
   const studentMessage = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) || null : null;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
   const admin: any = createAdminClient();
     const { data: course, error: courseError } = await admin
       .from("courses")
