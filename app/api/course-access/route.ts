@@ -17,7 +17,7 @@ async function getSignedInUser() {
 
 async function isAdministrator(user: NonNullable<Awaited<ReturnType<typeof getSignedInUser>>>) {
   if (user.app_metadata?.role === "admin") return true;
-  const admin = createAdminClient();
+  const admin: any = createAdminClient();
   const { data, error } = await admin
     .from("vexora_admins")
     .select("user_id")
@@ -30,7 +30,7 @@ export async function GET() {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in to view course access requests.", 401);
   try {
-    const admin = createAdminClient();
+    const admin: any = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
       .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type,cover_image_url,promo_video_url)")
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   const studentMessage = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) || null : null;
 
   try {
-    const admin = createAdminClient();
+    const admin: any = createAdminClient();
     const { data: course, error: courseError } = await admin
       .from("courses")
       .select("id,title,status,price")
