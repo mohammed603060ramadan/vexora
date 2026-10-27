@@ -70,9 +70,9 @@ export default async function ContractDetailsPage({ params }: PageProps) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from("contracts")
+    .from("contracts" as never)
     .select("*")
-    .eq("id", id)
+    .eq("id" as never, id)
     .maybeSingle();
 
   if (error) {
@@ -97,7 +97,7 @@ export default async function ContractDetailsPage({ params }: PageProps) {
 
   if (!data) notFound();
 
-  const contract = data as Contract;
+  const contract = data as unknown as Contract;
   const title = contract.title || contract.name || "Untitled contract";
   const status = (contract.status || "unknown").replaceAll("_", " ");
 
