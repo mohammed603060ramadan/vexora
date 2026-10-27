@@ -17,8 +17,6 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
