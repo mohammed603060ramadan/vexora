@@ -230,7 +230,7 @@ export default function ClientsPage() {
     }
 
     void initialLoad();
-    void loadCourseRegistrations();
+    // Fetch the related registration list as part of the initial page load.\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    void loadCourseRegistrations();
 
     return () => {
       active = false;
