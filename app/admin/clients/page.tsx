@@ -107,8 +107,7 @@ function downloadClientsCsv(clients: Client[]) {
   const csv = [
     headers.map(escapeCsv).join(","),
     ...rows.map((row) => row.map(escapeCsv).join(",")),
-  ].join("\r
-");
+  ].join("\\r\\n");
 
   const blob = new Blob(["\uFEFF", csv], {
     type: "text/csv;charset=utf-8;",
