@@ -1,6 +1,8 @@
 ﻿import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 
 async function getAdmin() {
   const supabase = await createClient();
@@ -81,12 +83,12 @@ export async function PUT(request: Request) {
     );
   }
 
-  const settings = (body as { settings: unknown }).settings;
+  const settingsValue = (body as { settings: unknown }).settings;
 
   if (
-    !settings ||
-    typeof settings !== "object" ||
-    Array.isArray(settings)
+    !settingsValue ||
+    typeof settingsValue !== "object" ||
+    Array.isArray(settingsValue)
   ) {
     return NextResponse.json(
       { error: "Settings must be a JSON object." },
@@ -94,12 +96,14 @@ export async function PUT(request: Request) {
     );
   }
 
-  if (JSON.stringify(settings).length > 90_000) {
+  if (JSON.stringify(settingsValue).length > 90_000) {
     return NextResponse.json(
       { error: "Settings payload is too large." },
       { status: 413 }
     );
   }
+
+  const settings = settingsValue as Json;
 
   const { data, error } = await supabase
     .from("site_settings")

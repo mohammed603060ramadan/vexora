@@ -281,10 +281,11 @@ export default function AdminServicesPage() {
       const payload = {
         name,
         slug,
+        department_id: null,
         description: form.description.trim() || null,
         starting_price: price,
         currency,
-        estimated_days: days,
+        estimated_days: days ?? undefined,
         status: form.status,
         display_order: displayOrder,
       };
