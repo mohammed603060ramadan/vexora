@@ -281,10 +281,11 @@ export default function AdminServicesPage() {
       const payload = {
         name,
         slug,
+        department_id: null,
         description: form.description.trim() || null,
         starting_price: price,
         currency,
-        estimated_days: days,
+        estimated_days: days ?? undefined,
         status: form.status,
         display_order: displayOrder,
       };
@@ -292,7 +293,7 @@ export default function AdminServicesPage() {
       if (editingId) {
         const { error: updateError } = await supabase
           .from("services")
-          .update(payload as never)
+          .update(payload)
           .eq("id", editingId);
 
         if (updateError) throw updateError;
@@ -301,7 +302,7 @@ export default function AdminServicesPage() {
       } else {
         const { error: insertError } = await supabase
           .from("services")
-          .insert(payload as never);
+          .insert(payload);
 
         if (insertError) throw insertError;
 
