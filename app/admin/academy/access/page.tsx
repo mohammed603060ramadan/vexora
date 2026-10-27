@@ -56,7 +56,7 @@ export default function CourseAccessAdminPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {\n    // Data loading synchronizes this page with the admin API.\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    void load();\n  }, [load]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
