@@ -25,9 +25,9 @@ export async function GET() {
 
   try {
     // The generated Supabase types do not include this table in the current schema snapshot.
-  // Keep this compatibility cast scoped to this API route.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
+    // Keep this compatibility cast scoped to this API route.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any;
     const client = await findClientForUser(admin, auth.user.id);
 
     const [projectResult, requestResult, taskResult] = await Promise.all([
