@@ -26,17 +26,45 @@ const modules: ModuleCard[] = [
   { title: "Settings", description: "Configure site settings and platform preferences.", href: "/admin/settings", code: "ST", group: "System" },
 ];
 
+type CountTable = "projects" | "clients" | "tasks" | "inquiries" | "courses" | "events";
+
 async function countRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  table: string,
-  column?: string,
+  table: CountTable,
+  column?: "status",
   value?: string,
-) {
-  let query = supabase.from(table as never).select("id", { count: "exact", head: true });
-  if (column && value) query = query.eq(column as never, value as never);
-  const { count, error } = await query;
-  return error ? null : count ?? 0;
+): Promise<number | null> {
+  switch (table) {
+    case "projects": {
+      const query = supabase.from("projects").select("id", { count: "exact", head: true });
+      const { count, error } = column === "status" && value ? await query.eq("status", value) : await query;
+      return error ? null : count ?? 0;
+    }
+    case "clients": {
+      const { count, error } = await supabase.from("clients").select("id", { count: "exact", head: true });
+      return error ? null : count ?? 0;
+    }
+    case "tasks": {
+      const { count, error } = await supabase.from("tasks").select("id", { count: "exact", head: true });
+      return error ? null : count ?? 0;
+    }
+    case "inquiries": {
+      const query = supabase.from("inquiries").select("id", { count: "exact", head: true });
+      const { count, error } = column === "status" && value ? await query.eq("status", value) : await query;
+      return error ? null : count ?? 0;
+    }
+    case "courses": {
+      const { count, error } = await supabase.from("courses").select("id", { count: "exact", head: true });
+      return error ? null : count ?? 0;
+    }
+    case "events": {
+      const query = supabase.from("events").select("id", { count: "exact", head: true });
+      const { count, error } = column === "status" && value ? await query.eq("status", value) : await query;
+      return error ? null : count ?? 0;
+    }
+  }
 }
+
 
 function formatCount(value: number | null) {
   return value === null ? "—" : new Intl.NumberFormat("en").format(value);
