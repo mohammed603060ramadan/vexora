@@ -123,7 +123,7 @@ export default async function FinanceSectionPage({
   }
 
   const { data, error } = await supabase
-    .from(current.table)
+    .from(current.table as never)
     .select("*")
     .order("created_at", { ascending: false })
     .limit(100);
