@@ -98,7 +98,7 @@ export default async function ServiceRequestsPage() {
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from("service_requests")
+    .from("service_requests" as never)
     .select("*")
     .order("created_at", { ascending: false });
 
