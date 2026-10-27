@@ -292,7 +292,7 @@ export default function AdminServicesPage() {
       if (editingId) {
         const { error: updateError } = await supabase
           .from("services")
-          .update(payload)
+          .update(payload as never)
           .eq("id", editingId);
 
         if (updateError) throw updateError;
@@ -301,7 +301,7 @@ export default function AdminServicesPage() {
       } else {
         const { error: insertError } = await supabase
           .from("services")
-          .insert(payload);
+          .insert(payload as never);
 
         if (insertError) throw insertError;
 

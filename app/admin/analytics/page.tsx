@@ -6,7 +6,7 @@ async function loadTable(
   supabase: Awaited<ReturnType<typeof createClient>>,
   table: string
 ): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
-  const { data, error } = await supabase.from(table).select("*").limit(2000);
+  const { data, error } = await supabase.from(table as never).select("*").limit(2000);
 
   return {
     rows: (data || []) as AnalyticsRow[],

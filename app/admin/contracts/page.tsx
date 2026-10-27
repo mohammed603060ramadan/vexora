@@ -79,7 +79,7 @@ export default async function AdminContractsPage() {
   }
 
   const { data, error } = await supabase
-    .from("contracts")
+    .from("contracts" as never)
     .select("*")
     .order("created_at", { ascending: false })
     .limit(100);

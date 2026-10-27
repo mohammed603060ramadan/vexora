@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
     );
   }
 
-  const settings = (body as { settings: unknown }).settings;
+  const settings = (body as { settings: Record<string, unknown> }).settings;
 
   if (
     !settings ||
@@ -101,12 +101,14 @@ export async function PUT(request: Request) {
     );
   }
 
+  const jsonSettings = JSON.parse(JSON.stringify(settings)) as Record<string, unknown>;
+
   const { data, error } = await supabase
     .from("site_settings")
     .upsert(
       {
         id: "global",
-        settings,
+        settings: jsonSettings as never,
         updated_at: new Date().toISOString(),
         updated_by: user!.id,
       },
