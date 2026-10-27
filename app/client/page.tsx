@@ -688,18 +688,15 @@ export default function ClientPage() {
       setNotice("");
 
       try {
-        const [profileResult, clientResult] = await Promise.all([
+        const [profileResult, initialClientResult] = await Promise.all([
           supabase
             .from("profiles")
             .select("full_name, avatar_url")
             .eq("id", user.id)
             .maybeSingle(),
-
           supabase
             .from("clients")
-            .select(
-              "id, name, email, company, phone, created_at"
-            )
+            .select("id, name, email, company, phone, created_at")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
@@ -708,6 +705,20 @@ export default function ClientPage() {
           throw new Error(
             `Unable to load profile: ${profileResult.error.message}`
           );
+        }
+
+        // Older VEXORA databases may link client records through user_id.
+        // Retry that legacy relationship only when auth_user_id is unavailable.
+        let clientResult = initialClientResult;
+        if (
+          clientResult.error &&
+          /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message)
+        ) {
+          clientResult = await supabase
+            .from("clients")
+            .select("id, name, email, company, phone, created_at")
+            .eq("user_id", user.id)
+            .maybeSingle();
         }
 
         if (clientResult.error) {
@@ -870,9 +881,10 @@ export default function ClientPage() {
   ========================================================= */
 
   const displayName =
+    client?.name?.trim() ||
     profile?.full_name?.trim() ||
     user?.user_metadata?.full_name ||
-    client?.name ||
+    user?.email?.split("@")[0] ||
     "VEXORA Client";
 
   const activeProjects = useMemo(
