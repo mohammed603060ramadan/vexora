@@ -24,7 +24,7 @@ export async function GET() {
   if (authError || !auth.user) return errorResponse("Sign in to view your projects and tasks.", 401);
 
   try {
-    const admin = createAdminClient();
+    const admin = createAdminClient() as any;
     const client = await findClientForUser(admin, auth.user.id);
 
     const [projectResult, requestResult, taskResult] = await Promise.all([
@@ -86,7 +86,7 @@ export async function PATCH(request: Request) {
     return errorResponse("A valid task and status are required.", 400);
   }
   try {
-    const admin = createAdminClient();
+    const admin = createAdminClient() as any;
     const { data: task, error: taskError } = await admin.from("tasks")
       .select("id,assigned_to,status")
       .eq("id", body.taskId)
