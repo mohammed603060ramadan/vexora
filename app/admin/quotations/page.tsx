@@ -64,7 +64,7 @@ export default async function QuotationsPage() {
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from("quotations")
+    .from("quotations" as never)
     .select("*")
     .order("created_at", { ascending: false });
 
