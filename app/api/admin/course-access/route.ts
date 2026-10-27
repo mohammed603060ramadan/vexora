@@ -13,6 +13,7 @@ async function authorizeAdmin() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return { user: null, response: fail("Sign in required.", 401) };
   if (data.user.app_metadata?.role === "admin") return { user: data.user, response: null };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
   const admin: any = createAdminClient();
   const { data: registry, error: registryError } = await admin
     .from("vexora_admins")
@@ -27,7 +28,9 @@ export async function GET() {
   const auth = await authorizeAdmin();
   if (auth.response) return auth.response;
   try {
-    const admin: any = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  const admin: any = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
       .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type,cover_image_url,promo_video_url)")
@@ -52,7 +55,9 @@ export async function PATCH(request: Request) {
   const status = body.status as "approved" | "rejected" | "pending";
   const adminNote = "adminNote" in body && typeof body.adminNote === "string" ? body.adminNote.trim().slice(0, 1500) || null : null;
   try {
-    const admin: any = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  const admin: any = createAdminClient();
     const { data: current, error: currentError } = await admin
       .from("course_access_requests")
       .select("id,status,course_id,student_id")
