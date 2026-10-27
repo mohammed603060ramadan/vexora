@@ -2,15 +2,34 @@
 import { createClient } from "@/lib/supabase/server";
 import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
+type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests";
+
 async function loadTable(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  table: string
+  table: AnalyticsTable,
 ): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
-  const { data, error } = await supabase.from(table).select("*").limit(2000);
+  let result:
+    | { data: unknown[] | null; error: { message: string } | null }
+    | undefined;
+
+  switch (table) {
+    case "clients":
+      result = await supabase.from("clients").select("*").limit(2000);
+      break;
+    case "projects":
+      result = await supabase.from("projects").select("*").limit(2000);
+      break;
+    case "tasks":
+      result = await supabase.from("tasks").select("*").limit(2000);
+      break;
+    case "service_requests":
+      result = await supabase.from("service_requests").select("*").limit(2000);
+      break;
+  }
 
   return {
-    rows: (data || []) as AnalyticsRow[],
-    error: error ? `${table}: ${error.message}` : null,
+    rows: (result.data ?? []) as AnalyticsRow[],
+    error: result.error ? `${table}: ${result.error.message}` : null,
   };
 }
 
