@@ -115,17 +115,17 @@ export default async function AdminFinancePage() {
     expensesResult,
   ] = await Promise.all([
     supabase
-      .from("invoices")
+      .from("invoices" as never)
       .select("id, invoice_number, total_amount, currency, status, issue_date, due_date")
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
-      .from("payments")
+      .from("payments" as never)
       .select("id, payment_number, amount, currency, status, paid_at")
       .order("created_at", { ascending: false })
       .limit(10),
     supabase
-      .from("expenses")
+      .from("expenses" as never)
       .select("id, title, amount, currency, status, expense_date")
       .order("created_at", { ascending: false })
       .limit(10),
