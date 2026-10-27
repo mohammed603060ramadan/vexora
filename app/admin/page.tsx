@@ -32,8 +32,8 @@ async function countRows(
   column?: string,
   value?: string,
 ) {
-  let query = supabase.from(table).select("id", { count: "exact", head: true });
-  if (column && value) query = query.eq(column, value);
+  let query = supabase.from(table as never).select("id", { count: "exact", head: true });
+  if (column && value) query = query.eq(column as never, value as never);
   const { count, error } = await query;
   return error ? null : count ?? 0;
 }
