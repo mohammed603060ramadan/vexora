@@ -364,14 +364,8 @@ export default function AnalyticsDashboard({
                     );
                   })}
                 </div>
-                <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[0.07] pt-4 text-xs text-slate-400">
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-sky-400" />Clients</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-blue-500" />Projects</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-violet-400" />Tasks</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-cyan-400" />Service requests</span>
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  Bars show combined new records per month; they are not a revenue forecast.
+                <p className="mt-5 border-t border-white/[0.07] pt-4 text-xs leading-5 text-slate-500">
+                  Each bar combines dated client, project, task, service-request, invoice, payment, and expense records for that month. This is operational activity, not revenue.
                 </p>
               </div>
             ) : (
