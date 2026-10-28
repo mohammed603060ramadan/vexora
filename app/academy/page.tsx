@@ -1362,10 +1362,16 @@ export default function AcademyPage() {
 
                     <button
                       type="button"
-                      onClick={() => openCourse(course)}
+                      onClick={() => {
+                        if (!course.isOffline && course.slug) {
+                          router.push(`/academy/${encodeURIComponent(course.slug)}`);
+                          return;
+                        }
+                        openCourse(course);
+                      }}
                       className="academy-button academy-focus mt-6 flex w-full items-center justify-between border-t border-white/[0.08] pt-4 text-sm font-semibold hover:text-blue-200"
                     >
-                      Explore program
+                      {course.isOffline ? "Explore program" : "Open course"}
                       <Icon
                         name="arrow"
                         size={18}
