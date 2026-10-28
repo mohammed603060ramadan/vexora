@@ -33,10 +33,16 @@ CREATE TABLE IF NOT EXISTS public.course_access_requests (
   reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   reviewed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT course_access_one_open_request
-    UNIQUE (course_id, student_id)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Permit a new request after a previous request was rejected or cancelled,
+-- while preventing duplicate pending requests for the same student/course.
+ALTER TABLE public.course_access_requests
+  DROP CONSTRAINT IF EXISTS course_access_one_open_request;
+CREATE UNIQUE INDEX IF NOT EXISTS course_access_one_pending_request
+  ON public.course_access_requests (course_id, student_id)
+  WHERE status = 'pending';
 
 CREATE INDEX IF NOT EXISTS course_access_requests_status_created_idx
   ON public.course_access_requests (status, created_at DESC);
@@ -56,7 +62,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
   SELECT (SELECT auth.uid()) IS NOT NULL
     AND (
       (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
@@ -66,7 +72,7 @@ AS $
         WHERE administrators.user_id = (SELECT auth.uid())
       )
     );
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.is_vexora_academy_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_vexora_academy_admin() TO anon, authenticated, service_role;
@@ -144,36 +150,47 @@ CREATE TRIGGER course_access_requests_grant_enrollment
   FOR EACH ROW
   EXECUTE FUNCTION public.grant_course_enrollment_on_access_approval();
 
--- Published course metadata is public; lesson rows stay private until
--- the signed-in student has an active/completed enrollment, including preview lessons.
-DROP POLICY IF EXISTS lessons_read ON public.lessons;
-CREATE POLICY lessons_read
-ON public.lessons
-FOR SELECT TO anon, authenticated
-USING (
-  status = 'published'
-  AND EXISTS (
-    SELECT 1 FROM public.courses c
-    WHERE c.id = lessons.course_id AND c.status = 'published'
-  )
-  AND (
-    (SELECT auth.uid()) IS NOT NULL
-    AND (
-      public.is_vexora_academy_admin()
-      OR EXISTS (
-        SELECT 1 FROM public.enrollments e
-        WHERE e.course_id = lessons.course_id
-          AND e.student_id = (SELECT auth.uid())
-          AND e.status IN ('active', 'completed')
-      )
-      OR EXISTS (
-        SELECT 1 FROM public.courses c
-        WHERE c.id = lessons.course_id
-          AND c.instructor_id = (SELECT auth.uid())
-      )
-    )
-  )
-);
+-- Apply the lesson policy only when the canonical legacy lessons table exists.
+-- Some deployed VEXORA databases use course_lessons instead. Do not guess at or
+-- overwrite that table's existing RLS policies without inspecting the live policy set.
+DO $$
+BEGIN
+  IF to_regclass('public.lessons') IS NOT NULL THEN
+    EXECUTE $policy$
+      DROP POLICY IF EXISTS lessons_read ON public.lessons;
+      CREATE POLICY lessons_read
+      ON public.lessons
+      FOR SELECT TO anon, authenticated
+      USING (
+        status = 'published'
+        AND EXISTS (
+          SELECT 1 FROM public.courses c
+          WHERE c.id = lessons.course_id AND c.status = 'published'
+        )
+        AND (SELECT auth.uid()) IS NOT NULL
+        AND (
+          public.is_vexora_academy_admin()
+          OR EXISTS (
+            SELECT 1 FROM public.enrollments e
+            WHERE e.course_id = lessons.course_id
+              AND e.student_id = (SELECT auth.uid())
+              AND e.status IN ('active', 'completed')
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.courses c
+            WHERE c.id = lessons.course_id
+              AND c.instructor_id = (SELECT auth.uid())
+          )
+        )
+      );
+    $policy$;
+  ELSIF to_regclass('public.course_lessons') IS NOT NULL THEN
+    RAISE NOTICE 'VEXORA uses public.course_lessons; its existing RLS policies were preserved. Review the read-only schema audit before changing lesson access policies.';
+  ELSE
+    RAISE NOTICE 'No supported lesson table was found. Course access workflow was installed without changing lesson policies.';
+  END IF;
+END;
+$$;
 
 NOTIFY pgrst, 'reload schema';
 COMMIT;
