@@ -249,6 +249,7 @@ export default function AdminSettingsPage() {
   const [moduleFilter, setModuleFilter] = useState("All");
   const [saving, setSaving] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsLoadSucceeded, setSettingsLoadSucceeded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -291,6 +292,7 @@ export default function AdminSettingsPage() {
         if (saved.advanced && typeof saved.advanced === "object" && !Array.isArray(saved.advanced)) {
           setAdvanced((current) => ({ ...current, ...(saved.advanced as Partial<typeof current>) }));
         }
+        setSettingsLoadSucceeded(true);
         setNotice("Saved settings loaded from the database.");
       } catch (error) {
         if (!cancelled) {
@@ -488,7 +490,7 @@ export default function AdminSettingsPage() {
             <div className="relative flex flex-wrap gap-3 xl:max-w-[360px] xl:justify-end">
               <a href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</a>
               <button type="button" onClick={exportSettings} className="rounded-xl border border-blue-300/20 bg-blue-400/[0.08] px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-400/[0.15]">Export configuration ↓</button>
-              <button type="button" onClick={savePreview} disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Save settings"}</button>
+              <button type="button" onClick={savePreview} disabled={saving || !settingsLoaded || !settingsLoadSucceeded} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Save settings"}</button>
             </div>
           </div>
         </header>
@@ -855,7 +857,7 @@ export default function AdminSettingsPage() {
               <div><p className="text-sm font-medium text-slate-200">Configuration preview</p><p className="mt-1 text-xs leading-5 text-slate-500">Changes are saved to the shared database when you select Save settings.</p></div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={exportSettings} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.04]">Export</button>
-                <button type="button" onClick={savePreview} disabled={saving || !settingsLoaded} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Saving..." : "Save settings"}</button>
+                <button type="button" onClick={savePreview} disabled={saving || !settingsLoaded || !settingsLoadSucceeded} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Saving..." : "Save settings"}</button>
               </div>
             </div>
           </div>
