@@ -287,8 +287,16 @@ export default function AnalyticsDashboard({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2 text-xs text-emerald-300">
-              ● Connected to current page data
+            <span
+              role="status"
+              aria-live="polite"
+              className={errors.length > 0
+                ? "rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-2 text-xs text-amber-200"
+                : "rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2 text-xs text-emerald-300"}
+            >
+              {errors.length > 0
+                ? `● Partial data · ${errors.length} source${errors.length === 1 ? "" : "s"} unavailable`
+                : "● Connected to current page data"}
             </span>
             <label className="sr-only" htmlFor="analytics-period">Analytics period</label>
             <select
