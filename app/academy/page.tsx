@@ -434,7 +434,7 @@ export default function AcademyPage() {
         id: row.id,
         slug: row.slug,
         title: row.title,
-        price: row.price == null ? 0 : Number(row.price),
+        price: 0,
         currency: row.currency || "USD",
         promoVideoUrl: row.promo_video_url || null,
         category: row.category || "Cybersecurity",
