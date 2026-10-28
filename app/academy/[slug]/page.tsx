@@ -143,38 +143,85 @@ function CourseDetailsContent() {
           return;
         }
 
-        const {
-          data: sectionData,
-          error: sectionError,
-        } = await supabase
+        const sectionResult = await supabase
           .from("course_sections")
           .select("id, title, description, sequence_number")
           .eq("course_id", courseData.id)
           .order("sequence_number", { ascending: true });
 
-        if (sectionError) throw sectionError;
-
-        const loadedSections = (sectionData ?? []) as Section[];
-        const sectionIds = loadedSections.map((section) => section.id);
-
+        let loadedSections: Section[] = [];
         let loadedLessons: Lesson[] = [];
 
-        if (sectionIds.length > 0) {
-          const {
-            data: lessonData,
-            error: lessonError,
-          } = await supabase
-            .from("lessons")
-            .select(
-              "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
-            )
-            .in("section_id", sectionIds)
-            .eq("status", "published")
-            .order("sequence_number", { ascending: true });
+        if (!sectionResult.error) {
+          loadedSections = (sectionResult.data ?? []) as Section[];
+          const sectionIds = loadedSections.map((section) => section.id);
 
-          if (lessonError) throw lessonError;
+          if (sectionIds.length > 0) {
+            const lessonResult = await supabase
+              .from("lessons")
+              .select(
+                "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
+              )
+              .in("section_id", sectionIds)
+              .eq("status", "published")
+              .order("sequence_number", { ascending: true });
 
-          loadedLessons = (lessonData ?? []) as Lesson[];
+            if (lessonResult.error) {
+              const missingLessonSchema =
+                /lessons|relation .* does not exist|column .* does not exist|schema cache/i.test(lessonResult.error.message);
+              if (!missingLessonSchema) throw lessonResult.error;
+            } else {
+              loadedLessons = (lessonResult.data ?? []) as Lesson[];
+            }
+          }
+        } else {
+          const missingSectionSchema =
+            /course_sections|relation .* does not exist|column .* does not exist|schema cache/i.test(sectionResult.error.message);
+          if (!missingSectionSchema) throw sectionResult.error;
+        }
+
+        // Legacy VEXORA schema stores lessons directly in course_lessons,
+        // without course_sections or the newer lessons table.
+        if (loadedSections.length === 0) {
+          const legacyResult = await supabase
+            .from("course_lessons" as never)
+            .select("id, course_id, title, content, video_url, sort_order, is_published" as never)
+            .eq("course_id" as never, courseData.id as never)
+            .eq("is_published" as never, true as never)
+            .order("sort_order" as never, { ascending: true } as never) as unknown as {
+              data: Array<{
+                id: string;
+                course_id: string;
+                title: string;
+                content: string | null;
+                video_url: string | null;
+                sort_order: number | null;
+                is_published: boolean;
+              }> | null;
+              error: { message: string } | null;
+            };
+
+          if (legacyResult.error) throw legacyResult.error;
+
+          if ((legacyResult.data ?? []).length > 0) {
+            loadedSections = [{
+              id: courseData.id,
+              title: "Course content",
+              description: null,
+              sequence_number: 1,
+            }];
+            loadedLessons = (legacyResult.data ?? []).map((lesson) => ({
+              id: lesson.id,
+              section_id: courseData.id,
+              title: lesson.title,
+              description: lesson.content,
+              lesson_type: lesson.video_url ? "video" : "article",
+              duration_minutes: null,
+              is_preview: false,
+              sequence_number: lesson.sort_order ?? 0,
+              status: "published",
+            }));
+          }
         }
 
         if (signedInUser) {
