@@ -183,15 +183,28 @@ export default async function ClientInvoicesPage() {
     itemsByInvoice.set(item.invoice_id, current);
   }
 
+  const completedPaymentsByInvoice = new Map<string, number>();
+  for (const payment of payments) {
+    if (payment.status !== "completed" || !payment.invoice_id) continue;
+    completedPaymentsByInvoice.set(
+      payment.invoice_id,
+      (completedPaymentsByInvoice.get(payment.invoice_id) ?? 0) + Number(payment.amount || 0),
+    );
+  }
+
   const dueInvoices = invoices.filter((invoice) =>
     ["issued", "partially_paid", "overdue"].includes(invoice.status),
   );
   const totalDueByCurrency = new Map<string, number>();
   for (const invoice of dueInvoices) {
     const currency = (invoice.currency || "USD").trim();
+    const outstanding = Math.max(
+      0,
+      Number(invoice.total_amount || 0) - (completedPaymentsByInvoice.get(invoice.id) ?? 0),
+    );
     totalDueByCurrency.set(
       currency,
-      (totalDueByCurrency.get(currency) ?? 0) + Number(invoice.total_amount || 0),
+      (totalDueByCurrency.get(currency) ?? 0) + outstanding,
     );
   }
 
@@ -257,7 +270,7 @@ export default async function ClientInvoicesPage() {
                 ) : (
                   <p className="mt-3 text-2xl font-semibold tabular-nums">{money(0, "USD")}</p>
                 )}
-                <p className="mt-2 text-xs text-slate-500">Currencies are shown separately, not combined</p>
+                <p className="mt-2 text-xs text-slate-500">Completed payments are deducted; currencies are shown separately</p>
               </article>
             </section>
 
