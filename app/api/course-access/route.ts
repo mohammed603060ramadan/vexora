@@ -111,6 +111,42 @@ export async function POST(request: Request) {
     if (insertError) throw insertError;
     return NextResponse.json({ request: created, message: "Request created. Keep your reference code; access is enabled after administrator approval." }, { status: 201, headers });
   } catch (error) {
+    // Concurrent submissions can race after the duplicate check. The partial
+    // unique index is the final guard; return the winning request instead of
+    // surfacing a misleading server error to the student.
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23505"
+    ) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+        const admin: any = createAdminClient();
+        const { data: existing, error: lookupError } = await admin
+          .from("course_access_requests")
+          .select("id,purchase_code,status,course_id,created_at")
+          .eq("course_id", courseId)
+          .eq("student_id", user.id)
+          .in("status", ["pending", "approved"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!lookupError && existing) {
+          return NextResponse.json(
+            {
+              request: existing,
+              message: "You already have an access request for this course.",
+            },
+            { status: 200, headers },
+          );
+        }
+      } catch (lookupError) {
+        console.error("Duplicate course access request lookup failed:", lookupError);
+      }
+    }
+
     console.error("Course access request creation failed:", error);
     return fail("Could not create the access request. Check that the course access migration is applied.", 500);
   }
