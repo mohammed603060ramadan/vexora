@@ -32,7 +32,7 @@ create policy "Clients can read their own project requests"
     and exists (
       select 1 from public.clients c
       where c.id = project_requests.client_id
-        and c.auth_user_id = (select auth.uid())
+        and c.user_id = (select auth.uid())
     )
   );
 
@@ -46,7 +46,7 @@ create policy "Clients can cancel their own pending project requests"
     and exists (
       select 1 from public.clients c
       where c.id = project_requests.client_id
-        and c.auth_user_id = (select auth.uid())
+        and c.user_id = (select auth.uid())
     )
   )
   with check (
@@ -55,7 +55,7 @@ create policy "Clients can cancel their own pending project requests"
     and exists (
       select 1 from public.clients c
       where c.id = project_requests.client_id
-        and c.auth_user_id = (select auth.uid())
+        and c.user_id = (select auth.uid())
     )
   );
 
