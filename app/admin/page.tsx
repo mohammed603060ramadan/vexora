@@ -68,16 +68,18 @@ export default async function AdminPage() {
   // Use elevated database access only after verifying the authenticated user
   // against the app role or the canonical VEXORA administrator registry.
   const supabase = admin;
-  const [projects, clients, tasks, inquiries, courses, events] = await Promise.all([
+  const [projects, clients, tasks, inquiries, courses, events, invoices, payments] = await Promise.all([
     countRows(supabase, "projects"),
     countRows(supabase, "clients"),
     countRows(supabase, "tasks"),
     countRows(supabase, "inquiries", "status", "new"),
     countRows(supabase, "courses"),
     countRows(supabase, "events", "status", "published"),
+    countRows(supabase, "invoices"),
+    countRows(supabase, "payments"),
   ]);
 
-  const hasMetricErrors = [projects, clients, tasks, inquiries, courses, events].some((value) => value === null);
+  const hasMetricErrors = [projects, clients, tasks, inquiries, courses, events, invoices, payments].some((value) => value === null);
 
   const metrics = [
     { label: "Projects", value: projects, note: "Tracked delivery work", code: "PR" },
@@ -86,6 +88,8 @@ export default async function AdminPage() {
     { label: "Tasks", value: tasks, note: "Operational workload", code: "TK" },
     { label: "Courses", value: courses, note: "Academy course records", code: "AC" },
     { label: "Published events", value: events, note: "Visible on the website", code: "EV" },
+    { label: "Invoices", value: invoices, note: "Financial records", code: "IV" },
+    { label: "Payments", value: payments, note: "Recorded transactions", code: "PY" },
   ];
 
   const groups = ["Operations", "Sales", "Content", "People", "Business", "System"];
