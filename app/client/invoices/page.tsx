@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+export const instant = false;
 
 export const metadata = {
   title: "Invoices | VEXORA Client Portal",
@@ -85,7 +86,6 @@ function Status({ value }: { value: string }) {
 }
 
 export default async function ClientInvoicesPage() {
-  await connection();
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
