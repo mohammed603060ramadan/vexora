@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "Finance | VEXORA Admin",
@@ -103,28 +104,39 @@ export default async function AdminFinancePage() {
     redirect("/login?next=/admin/finance");
   }
 
-  const role = authData.user.app_metadata?.role;
+  let authorized = authData.user.app_metadata?.role === "admin";
+  const admin = createAdminClient();
 
-  if (role !== "admin") {
-    redirect("/client");
+  if (!authorized) {
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    authorized = !registryError && Boolean(registry);
   }
+
+  if (!authorized) redirect("/client");
+
+  // Financial tables are read only here and only after administrator authorization.
+  const financeDb = admin;
 
   const [
     invoicesResult,
     paymentsResult,
     expensesResult,
   ] = await Promise.all([
-    supabase
+    financeDb
       .from("invoices" as never)
       .select("id, invoice_number, total_amount, currency, status, issue_date, due_date")
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase
+    financeDb
       .from("payments" as never)
       .select("id, payment_number, amount, currency, status, paid_at")
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase
+    financeDb
       .from("expenses" as never)
       .select("id, title, amount, currency, status, expense_date")
       .order("created_at", { ascending: false })
@@ -220,9 +232,12 @@ export default async function AdminFinancePage() {
             role="alert"
             className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-200"
           >
-            Some finance data could not be loaded. Check the Supabase table
-            permissions and database schema. No financial data has been
-            modified.
+            <p>Some finance data could not be loaded. Check the Supabase table schema and migrations. No financial data has been modified.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/80">
+              {queryErrors.map((item, index) => (
+                <li key={index}>{item?.message ?? "Unknown database error"}</li>
+              ))}
+            </ul>
           </section>
         )}
 
