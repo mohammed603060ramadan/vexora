@@ -26,9 +26,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "signup") {
-      setMode("signup");
-    }
+    if (params.get("mode") !== "signup") return;
+
+    const timeoutId = window.setTimeout(() => setMode("signup"), 0);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const routeUser = useCallback(async () => {
