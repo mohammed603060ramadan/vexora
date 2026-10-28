@@ -1656,15 +1656,6 @@ export default function AcademyPage() {
                     {selectedCourse.description}
                   </p>
                   {!selectedCourse.isOffline && (
-                    <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
-                      <span className="text-sm text-gray-400">Course price</span>
-                      <strong className="text-lg text-cyan-100">
-                        {selectedCourse.price == null || Number(selectedCourse.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD", maximumFractionDigits: 2 }).format(Number(selectedCourse.price))}
-                      </strong>
-                    </div>
-                  )}
-
-                  {!selectedCourse.isOffline && (
                     <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm text-slate-400">Course price</span>
@@ -1740,8 +1731,8 @@ export default function AcademyPage() {
                     Registration received
                   </h2>
                   <p className="mx-auto mt-3 max-w-md leading-7 text-gray-400">
-                    Form validation worked successfully. This is a local
-                    demonstration only: your details were not sent or saved.
+                    Your registration has been submitted to the VEXORA Academy team.
+                    We will review your details and contact you using the email address provided.
                   </p>
                   <button
                     type="button"
