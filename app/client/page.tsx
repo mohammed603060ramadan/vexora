@@ -696,46 +696,38 @@ export default function ClientPage() {
       setNotice("");
 
       try {
-        const [profileResult, initialClientResult] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("full_name, avatar_url")
-            .eq("id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("clients")
-            .select("id, name, email, phone, created_at")
-            .eq("auth_user_id", user.id)
-            .maybeSingle(),
-        ]);
+        const profileResult = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
 
         if (profileResult.error) {
           console.error("Client profile query failed:", profileResult.error);
           throw new Error("Unable to load your profile. Please refresh or contact VEXORA support.");
         }
-
-        // Older VEXORA databases may link client records through user_id.
-        // Retry that legacy relationship only when auth_user_id is unavailable.
-        let clientResult = initialClientResult;
-        if (
-          clientResult.error &&
-          /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message)
-        ) {
-          clientResult = await supabase
-            .from("clients")
-            .select("id, name, email, phone, created_at")
-            .eq("user_id", user.id)
-            .maybeSingle();
-        }
-
-        if (clientResult.error) {
-          console.error("Client account query failed:", clientResult.error);
-          throw new Error("Unable to load your client account. Please refresh or contact VEXORA support.");
-        }
-
         setProfile(profileResult.data);
-        setClient(clientResult.data ? { ...clientResult.data, company: null } : null);
 
+        const dashboardResponse = await fetch("/api/client/dashboard", { cache: "no-store" });
+        const dashboardPayload = await dashboardResponse.json() as {
+          client?: ClientRecord | null;
+          projects?: Project[];
+          tasks?: Task[];
+          linked?: boolean;
+          error?: string;
+        };
+        if (!dashboardResponse.ok) {
+          throw new Error(dashboardPayload.error || "Unable to load your workspace data.");
+        }
+
+        const resolvedClient = dashboardPayload.client ?? null;
+        setClient(resolvedClient ? { ...resolvedClient, company: null } : null);
+        setProjects(Array.isArray(dashboardPayload.projects) ? dashboardPayload.projects : []);
+        setTasks(Array.isArray(dashboardPayload.tasks) ? dashboardPayload.tasks : []);
+
+        if (!dashboardPayload.linked || !resolvedClient) {
+          setNotice("Your account is signed in, but no safely linked client record was found. Ask VEXORA support to verify the account email and client link.");
+        }
         setAcademyLoading(true);
         setAcademyError("");
         try {
@@ -770,65 +762,7 @@ export default function ClientPage() {
           setRequestsLoading(false);
         }
 
-        if (!clientResult.data) {
-          setProjects([]);
-          setTasks([]);
-          setProjectRequests([]);
 
-          setNotice(
-            "Your account is active, but no client record is linked yet. Please contact VEXORA support."
-          );
-
-          return;
-        }
-
-        const projectResult = await supabase
-          .from("projects")
-          .select(
-            "id, title, description, status, deadline, budget, created_at"
-          )
-          .eq("client_id", clientResult.data.id)
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(50);
-
-        if (projectResult.error) {
-          console.error("Client projects query failed:", projectResult.error);
-          throw new Error("Unable to load your projects. Please refresh or contact VEXORA support.");
-        }
-
-        const projectRows = (projectResult.data ?? []) as Project[];
-
-        setProjects(projectRows);
-
-        if (projectRows.length === 0) {
-          setTasks([]);
-          return;
-        }
-
-        const projectIds = projectRows.map(
-          (project) => project.id
-        );
-
-        const taskResult = await supabase
-          .from("tasks")
-          .select(
-            "id, project_id, title, description, status, priority, due_date"
-          )
-          .in("project_id", projectIds)
-          .order("due_date", {
-            ascending: true,
-            nullsFirst: false,
-          })
-          .limit(100);
-
-        if (taskResult.error) {
-          console.error("Client tasks query failed:", taskResult.error);
-          throw new Error("Unable to load your project tasks. Please refresh or contact VEXORA support.");
-        }
-
-        setTasks((taskResult.data ?? []) as Task[]);
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -1587,21 +1521,21 @@ export default function ClientPage() {
                   <div className="hero-data-tag tag-a">
                     PROJECTS
                     <strong>
-                      {projects.length}
+                      {loading ? "…" : projects.length}
                     </strong>
                   </div>
 
                   <div className="hero-data-tag tag-b">
                     TASKS
                     <strong>
-                      {tasks.length}
+                      {loading ? "…" : tasks.length}
                     </strong>
                   </div>
 
                   <div className="hero-data-tag tag-c">
                     COMPLETION
                     <strong>
-                      {completionRate}%
+                      {loading ? "…" : `${completionRate}%`}
                     </strong>
                   </div>
                 </div>
