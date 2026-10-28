@@ -102,8 +102,8 @@ export default async function ClientInvoicesPage() {
     .maybeSingle();
 
   if (
-    clientResult.error &&
-    /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message)
+    (!clientResult.data && !clientResult.error) ||
+    (clientResult.error && /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message))
   ) {
     clientResult = await supabase
       .from("clients")
