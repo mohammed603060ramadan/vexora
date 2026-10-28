@@ -240,12 +240,14 @@ export default async function AdminFinancePage() {
     (expense) => expense.status === "recorded",
   );
 
-  const paidByInvoice = new Map<string, number>();
+  const paidByInvoiceCurrency = new Map<string, number>();
   for (const payment of balancePayments) {
     if (payment.invoice_id) {
-      paidByInvoice.set(
-        payment.invoice_id,
-        (paidByInvoice.get(payment.invoice_id) ?? 0) + Number(payment.amount || 0),
+      const currency = (payment.currency || "USD").trim().toUpperCase();
+      const key = `${payment.invoice_id}:${currency}`;
+      paidByInvoiceCurrency.set(
+        key,
+        (paidByInvoiceCurrency.get(key) ?? 0) + Number(payment.amount || 0),
       );
     }
   }
@@ -255,7 +257,7 @@ export default async function AdminFinancePage() {
     const currency = (invoice.currency || "USD").trim();
     const balance = Math.max(
       0,
-      Number(invoice.total_amount || 0) - (paidByInvoice.get(invoice.id) ?? 0),
+      Number(invoice.total_amount || 0) - (paidByInvoiceCurrency.get(`${invoice.id}:${(invoice.currency || "USD").trim().toUpperCase()}`) ?? 0),
     );
     outstandingByCurrency.set(
       currency,
