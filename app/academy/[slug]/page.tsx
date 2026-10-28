@@ -150,7 +150,7 @@ function CourseDetailsContent() {
           courseData = {
             ...courseData,
             subtitle: typeof courseData.subtitle === "string" ? courseData.subtitle : null,
-            price: courseData.price == null ? null : Number(courseData.price),
+            price: 0,
             currency: typeof courseData.currency === "string" ? courseData.currency : null,
             cover_image_url: typeof courseData.cover_image_url === "string" ? courseData.cover_image_url : null,
             promo_video_url: typeof courseData.promo_video_url === "string" ? courseData.promo_video_url : null,
