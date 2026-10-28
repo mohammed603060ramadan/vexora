@@ -558,8 +558,13 @@ export default function AcademyPage() {
       if (payload.free && payload.enrolled) {
         setAccessRequestResult(null);
         setAccessRequestError("");
+        const enrolledSlug = selectedCourse?.slug;
         setSelectedCourse(null);
-        router.push("/student");
+        if (enrolledSlug) {
+          router.push(`/academy/${encodeURIComponent(enrolledSlug)}`);
+        } else {
+          router.push("/student");
+        }
         return;
       }
       setAccessRequestResult({
