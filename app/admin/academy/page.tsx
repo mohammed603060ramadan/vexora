@@ -102,6 +102,7 @@ export default function AcademyPage() {
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [form, setForm] = useState<CourseForm>(initialForm);
   const [saving, setSaving] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -162,6 +163,26 @@ export default function AcademyPage() {
     setForm((current) => ({ ...current, [field]: value }));
     setFormError("");
     setSuccessMessage("");
+  }
+
+  async function uploadMedia(file: File, kind: "image" | "video") {
+    setUploadingMedia(kind);
+    setFormError("");
+    setSuccessMessage("");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      body.set("kind", kind);
+      const response = await fetch("/api/admin/course-media", { method: "POST", body });
+      const payload = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Upload failed.");
+      updateForm(kind === "image" ? "cover_image_url" : "promo_video_url", payload.url);
+      setSuccessMessage(kind === "image" ? "Cover image uploaded. Save the course to keep the change." : "Preview video uploaded. Save the course to keep the change.");
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : "Upload failed.");
+    } finally {
+      setUploadingMedia(null);
+    }
   }
 
   function startEditing(course: Course) {
@@ -469,12 +490,18 @@ export default function AcademyPage() {
                 <input id="course-currency" maxLength={3} value={form.currency} onChange={(event) => updateForm("currency", event.target.value.toUpperCase())} placeholder="USD or EGP" className={fieldClass} />
               </div>
               <div>
-                <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL</label>
+                <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL or upload</label>
                 <input id="course-cover-image" type="url" value={form.cover_image_url} onChange={(event) => updateForm("cover_image_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+                <label className="mt-3 block text-xs text-gray-400">Upload image (JPG, PNG, WebP, AVIF, GIF · max 15 MB)</label>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" disabled={Boolean(uploadingMedia) || saving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(file, "image"); event.currentTarget.value = ""; }} className="mt-2 block w-full text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:font-semibold file:text-white" />
+                {uploadingMedia === "image" && <p className="mt-2 text-xs text-blue-300">Uploading image…</p>}
               </div>
               <div>
-                <label htmlFor="course-promo-video" className="mb-2 block text-sm font-medium text-gray-300">Preview video URL</label>
+                <label htmlFor="course-promo-video" className="mb-2 block text-sm font-medium text-gray-300">Preview video URL or upload</label>
                 <input id="course-promo-video" type="url" value={form.promo_video_url} onChange={(event) => updateForm("promo_video_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+                <label className="mt-3 block text-xs text-gray-400">Upload video (MP4, WebM, MOV, OGG · max 50 MB)</label>
+                <input type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" disabled={Boolean(uploadingMedia) || saving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(file, "video"); event.currentTarget.value = ""; }} className="mt-2 block w-full text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:font-semibold file:text-white" />
+                {uploadingMedia === "video" && <p className="mt-2 text-xs text-blue-300">Uploading video…</p>}
               </div>
             </div>
 
@@ -607,7 +634,7 @@ export default function AcademyPage() {
             <div className="flex flex-wrap gap-3 border-t border-white/[0.08] pt-5">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || Boolean(uploadingMedia)}
                 className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? "Saving..." : editingCourseId ? "Save changes" : "Save course"}
