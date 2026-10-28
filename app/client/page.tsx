@@ -2170,7 +2170,7 @@ export default function ClientPage() {
               <div className="analytics-grid">
                 <AnalyticsCard
                   label="All projects"
-                  value={projects.length}
+                  value={loading ? "…" : projects.length}
                   description="Projects linked to your account."
                   icon="projects"
                   accent="blue"
@@ -2178,7 +2178,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Active"
-                  value={activeProjects.length}
+                  value={loading ? "…" : activeProjects.length}
                   description="Projects currently in progress."
                   icon="network"
                   accent="cyan"
@@ -2186,7 +2186,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Completed"
-                  value={completedProjects.length}
+                  value={loading ? "…" : completedProjects.length}
                   description="Projects marked as completed."
                   icon="check"
                   accent="green"
@@ -2194,7 +2194,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Recorded budget"
-                  value={recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded"}
+                  value={loading ? "…" : recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded"}
                   description="Total budget recorded across loaded projects."
                   icon="database"
                   accent="amber"
@@ -2326,7 +2326,7 @@ export default function ClientPage() {
               <div className="analytics-grid">
                 <AnalyticsCard
                   label="Total tasks"
-                  value={tasks.length}
+                  value={loading ? "…" : tasks.length}
                   description="Tasks loaded from your project records."
                   icon="tasks"
                   accent="blue"
@@ -2334,7 +2334,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Completed"
-                  value={completedTasks.length}
+                  value={loading ? "…" : completedTasks.length}
                   description="Tasks marked complete."
                   icon="check"
                   accent="green"
@@ -2342,7 +2342,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Pending"
-                  value={pendingTasks.length}
+                  value={loading ? "…" : pendingTasks.length}
                   description="Tasks that still require work."
                   icon="clock"
                   accent="cyan"
@@ -2350,7 +2350,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Overdue"
-                  value={overdueTasks.length}
+                  value={loading ? "…" : overdueTasks.length}
                   description="Unfinished tasks beyond their due date."
                   icon="alert"
                   accent="red"
@@ -2370,7 +2370,7 @@ export default function ClientPage() {
 
                   <div className="task-completion-mini">
                     <strong>
-                      {completionRate}%
+                      {loading ? "…" : `${completionRate}%`}
                     </strong>
                     complete
                   </div>
