@@ -44,12 +44,28 @@ type Payment = {
   paid_at: string | null;
 };
 
-const money = (amount: number | string, currency: string) =>
-  new Intl.NumberFormat("en", {
+function normalizeCurrency(currency: string | null | undefined): string {
+  const normalized = (currency ?? "").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : "UNKNOWN";
+}
+
+const money = (amount: number | string, currency: string) => {
+  const normalizedCurrency = normalizeCurrency(currency);
+  const numericAmount = Number(amount);
+  const safeAmount = Number.isFinite(numericAmount) ? numericAmount : 0;
+
+  if (normalizedCurrency === "UNKNOWN") {
+    return `UNKNOWN ${new Intl.NumberFormat("en", {
+      maximumFractionDigits: 2,
+    }).format(safeAmount)}`;
+  }
+
+  return new Intl.NumberFormat("en", {
     style: "currency",
-    currency: (currency || "USD").trim(),
+    currency: normalizedCurrency,
     maximumFractionDigits: 2,
-  }).format(Number(amount) || 0);
+  }).format(safeAmount);
+};
 
 const date = (value: string | null) => {
   if (!value) return "—";
@@ -216,7 +232,7 @@ export default async function ClientInvoicesPage() {
   const completedPaymentsByInvoiceCurrency = new Map<string, number>();
   for (const payment of balancePayments) {
     if (payment.status !== "completed" || !payment.invoice_id) continue;
-    const currency = (payment.currency || "USD").trim().toUpperCase();
+    const currency = normalizeCurrency(payment.currency);
     const key = `${payment.invoice_id}:${currency}`;
     completedPaymentsByInvoiceCurrency.set(
       key,
@@ -229,10 +245,10 @@ export default async function ClientInvoicesPage() {
   );
   const totalDueByCurrency = new Map<string, number>();
   for (const invoice of dueInvoices) {
-    const currency = (invoice.currency || "USD").trim();
+    const currency = normalizeCurrency(invoice.currency);
     const outstanding = Math.max(
       0,
-      Number(invoice.total_amount || 0) - (completedPaymentsByInvoiceCurrency.get(`${invoice.id}:${(invoice.currency || "USD").trim().toUpperCase()}`) ?? 0),
+      Number(invoice.total_amount || 0) - (completedPaymentsByInvoiceCurrency.get(`${invoice.id}:${normalizeCurrency(invoice.currency)}`) ?? 0),
     );
     totalDueByCurrency.set(
       currency,
@@ -300,7 +316,7 @@ export default async function ClientInvoicesPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-2xl font-semibold tabular-nums">{money(0, "USD")}</p>
+                  <p className="mt-3 text-2xl font-semibold tabular-nums">{money(0, "UNKNOWN")}</p>
                 )}
                 <p className="mt-2 text-xs text-slate-500">Completed payments are deducted; currencies are shown separately</p>
               </article>
