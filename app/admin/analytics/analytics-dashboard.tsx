@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -10,6 +10,9 @@ type Props = {
   projects: AnalyticsRow[];
   tasks: AnalyticsRow[];
   requests: AnalyticsRow[];
+  invoices: AnalyticsRow[];
+  payments: AnalyticsRow[];
+  expenses: AnalyticsRow[];
   errors: string[];
 };
 
@@ -122,6 +125,9 @@ export default function AnalyticsDashboard({
   projects,
   tasks,
   requests,
+  invoices,
+  payments,
+  expenses,
   errors,
 }: Props) {
   const [period, setPeriod] = useState<Period>("30");
@@ -178,6 +184,9 @@ export default function AnalyticsDashboard({
       ...projects,
       ...tasks,
       ...requests,
+      ...invoices,
+      ...payments,
+      ...expenses,
     ];
 
     for (const row of allRows) {
@@ -190,7 +199,7 @@ export default function AnalyticsDashboard({
     }
 
     return months;
-  }, [clients, projects, tasks, requests, days]);
+  }, [clients, projects, tasks, requests, invoices, payments, expenses, days]);
 
   const maxActivity = Math.max(1, ...monthlyActivity.map((item) => item.count));
 
@@ -240,6 +249,9 @@ export default function AnalyticsDashboard({
       ...projects.map((row) => ({ row, type: "Project", href: "/admin/projects", icon: "▦" })),
       ...tasks.map((row) => ({ row, type: "Task", href: "/admin/tasks", icon: "✓" })),
       ...requests.map((row) => ({ row, type: "Service request", href: "/admin/service-requests", icon: "↗" })),
+      ...invoices.map((row) => ({ row, type: "Invoice", href: "/admin/finance/invoices", icon: "$" })),
+      ...payments.map((row) => ({ row, type: "Payment", href: "/admin/finance/payments", icon: "↙" })),
+      ...expenses.map((row) => ({ row, type: "Expense", href: "/admin/finance/expenses", icon: "−" })),
     ];
 
     return entries
@@ -249,7 +261,7 @@ export default function AnalyticsDashboard({
         return dateB - dateA;
       })
       .slice(0, 6);
-  }, [clients, projects, tasks, requests]);
+  }, [clients, projects, tasks, requests, invoices, payments, expenses]);
 
   return (
     <main className="min-h-screen bg-[#080b10] px-4 py-6 text-white sm:px-7 sm:py-8">
@@ -306,9 +318,12 @@ export default function AnalyticsDashboard({
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total clients" number={clients.length} detail={`${filtered.clients.length} created in selected period`} icon="◉" accent="bg-blue-500/20" />
-          <MetricCard label="Total projects" number={projects.length} detail={`${activeProjects} currently active` } icon="▦" accent="bg-violet-500/20" />
+          <MetricCard label="Total projects" number={projects.length} detail={`${activeProjects} currently active`} icon="▦" accent="bg-violet-500/20" />
           <MetricCard label="Open service requests" number={openRequests} detail={`${filtered.requests.length} requests in selected period`} icon="↗" accent="bg-cyan-500/20" />
           <MetricCard label="Overdue tasks" number={overdueTasks} detail={`${completedTasks} tasks completed overall`} icon="◷" accent="bg-rose-500/20" />
+          <Link href="/admin/finance/invoices" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Invoices" number={invoices.length} detail="Open invoice register" icon="$" accent="bg-amber-500/20" /></Link>
+          <Link href="/admin/finance/payments" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Payments" number={payments.length} detail="Open payment register" icon="↙" accent="bg-emerald-500/20" /></Link>
+          <Link href="/admin/finance/expenses" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Expenses" number={expenses.length} detail="Open expense register" icon="−" accent="bg-rose-500/20" /></Link>
         </section>
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
