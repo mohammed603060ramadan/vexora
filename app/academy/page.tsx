@@ -1915,89 +1915,14 @@ export default function AcademyPage() {
               </button>
             </div>
 
-            <div className="academy-print-certificate relative overflow-hidden border-[5px] border-[#c6a96a] bg-[#f4f0e5] p-2 text-[#1a2d45] shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:border-[8px] sm:p-3">
-              <div className="relative overflow-hidden border border-[#9b854f] px-5 py-7 text-center sm:px-10 sm:py-10">
-                <Image
-                  src="/vexora-logo.png"
-                  alt=""
-                  width={560}
-                  height={560}
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-1/2 top-1/2 h-[82%] w-auto max-w-[75%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.055]"
-                />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
-                  <div className="rotate-[-18deg] whitespace-nowrap border-y-[3px] border-rose-700/35 px-8 py-3 text-center text-4xl font-black uppercase tracking-[0.22em] text-rose-800/20 sm:text-6xl">
-                    SAMPLE · NOT VALID · SAMPLE
-                  </div>
-                </div>
-                <div aria-hidden="true" className="pointer-events-none absolute inset-2 border border-[#bca56d]/60 sm:inset-3" />
-                <div aria-hidden="true" className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full border border-[#bca56d]/40" />
-                <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full border border-[#bca56d]/40" />
-
-                <div className="relative">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#b79b56] bg-[#e8dfc7] text-[#80662f] shadow-[0_0_0_5px_rgba(183,155,86,0.12)] sm:h-16 sm:w-16">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true">
-                      <path d="M12 2.8 14.5 8l5.7.8-4.1 4 .9 5.7-5-2.7-5 2.7.9-5.7-4.1-4L9.5 8 12 2.8Z" />
-                      <path d="m8.5 18.2-.8 3 4.3-2.2 4.3 2.2-.8-3" />
-                    </svg>
-                  </div>
-
-                  <Image
-                    src="/vexora-logo.png"
-                    alt="VEXORA Technology logo"
-                    width={180}
-                    height={70}
-                    className="mx-auto mt-3 h-10 w-auto object-contain sm:h-12"
-                  />
-
-                  <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.4em] text-[#526b88] sm:text-xs">
-                    VEXORA ACADEMY · PROFESSIONAL LEARNING
-                  </p>
-
-                  <div className="mx-auto mt-5 flex max-w-xl items-center gap-3 sm:mt-6">
-                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-[#b79b56] to-[#b79b56]" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a713c] sm:text-xs">Certificate of</span>
-                    <span className="h-px flex-1 bg-gradient-to-l from-transparent via-[#b79b56] to-[#b79b56]" />
-                  </div>
-
-                  <h2 className="mt-2 font-serif text-3xl font-bold tracking-wide text-[#1b3554] sm:text-5xl">
-                    Achievement
-                  </h2>
-                  <p className="mt-2 font-serif text-sm italic text-[#61748b] sm:text-lg">
-                    Learning · Practice · Progress
-                  </p>
-
-                  <p className="mx-auto mt-5 max-w-2xl text-[11px] leading-6 text-[#526b88] sm:mt-6 sm:text-sm sm:leading-7">
-                    This preview illustrates the VEXORA Academy certificate style for eligible learning programs. Official credentials are issued only after completion requirements and approval are verified.
-                  </p>
-
-                  <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.28em] text-[#8a713c] sm:mt-6 sm:text-xs">
-                    PROUDLY PRESENTED TO
-                  </p>
-
-                  <p className="mx-auto mt-2 max-w-2xl break-words font-serif text-2xl italic text-[#1b3554] sm:mt-3 sm:text-4xl">
-                    {""}
-                  </p>
-                  <div className="mx-auto mt-3 h-px w-2/3 max-w-md bg-gradient-to-r from-transparent via-[#b79b56] to-transparent" />
-
-                  <div className="mx-auto mt-6 grid max-w-xl grid-cols-2 gap-6 sm:mt-8 sm:gap-10">
-                    <div className="border-t border-[#b5a477] pt-2.5">
-                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Academic Director</p>
-                      <p className="mt-1 text-[8px] text-[#7188a3] sm:text-[10px]">Signature upon official issue</p>
-                    </div>
-                    <div className="border-t border-[#b5a477] pt-2.5">
-                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Credential reference</p>
-                      <p className="mt-1 font-mono text-[8px] text-[#7188a3] sm:text-[10px]">########</p>
-                    </div>
-                  </div>
-
-                  <p className="mt-6 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8a713c] sm:mt-8 sm:text-[10px]">
-                    ACADEMY DESIGN PREVIEW · OFFICIAL ISSUE SUBJECT TO VERIFICATION
-                  </p>
-                </div>
-              </div>
-            </div>
-
+            <Image
+              src="/academy-certificate.svg"
+              alt="VEXORA Academy certificate design preview with blank recipient name, Mohamed Ramadan signature, version 1.0, and masked reference number"
+              width={1600}
+              height={1050}
+              unoptimized
+              className="academy-print-certificate block h-auto w-full rounded-sm shadow-[0_25px_80px_rgba(0,0,0,0.35)]"
+            />
             <div className="academy-no-print mt-5 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
