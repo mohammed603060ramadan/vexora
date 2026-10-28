@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -9,27 +10,48 @@ async function getAdmin() {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {
-    return { supabase, user: null, response: NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 }
-    ) };
+    return {
+      user: null,
+      admin: null,
+      response: NextResponse.json({ error: "Authentication required." }, { status: 401 }),
+    };
   }
 
-  if (data.user.app_metadata?.role !== "admin") {
-    return { supabase, user: null, response: NextResponse.json(
-      { error: "Administrator access required." },
-      { status: 403 }
-    ) };
+  if (data.user.app_metadata?.role === "admin") {
+    return { user: data.user, admin: createAdminClient(), response: null };
   }
 
-  return { supabase, user: data.user, response: null };
+  // Keep compatibility with VEXORA's canonical admin registry. The registry
+  // is queried only on the server through the service-role client.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Settings schema is JSONB and admin registry is not in generated types.
+    const admin: any = createAdminClient();
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    if (!registryError && registry) {
+      return { user: data.user, admin, response: null };
+    }
+  } catch (registryError) {
+    console.error("Administrator registry check failed:", registryError);
+  }
+
+  return {
+    user: null,
+    admin: null,
+    response: NextResponse.json({ error: "Administrator access required." }, { status: 403 }),
+  };
 }
 
 export async function GET() {
-  const { supabase, response } = await getAdmin();
+  const { admin, response } = await getAdmin();
   if (response) return response;
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- site_settings JSONB is intentionally flexible.
+  const { data, error } = await (admin as any)
     .from("site_settings")
     .select("settings, updated_at")
     .eq("id", "global")
@@ -50,7 +72,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const { supabase, user, response } = await getAdmin();
+  const { admin, user, response } = await getAdmin();
   if (response) return response;
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -105,7 +127,8 @@ export async function PUT(request: Request) {
 
   const settings = settingsValue as Json;
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- site_settings JSONB is intentionally flexible.
+  const { data, error } = await (admin as any)
     .from("site_settings")
     .upsert(
       {
