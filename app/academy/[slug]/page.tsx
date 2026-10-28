@@ -199,9 +199,9 @@ function CourseDetailsContent() {
             }
           }
         } else {
-          const missingSectionSchema =
-            /course_sections|relation .* does not exist|column .* does not exist|schema cache/i.test(sectionResult.error.message);
-          if (!missingSectionSchema) throw sectionResult.error;
+          // Section data is optional for displaying the published course itself.
+          // Keep the course page available and attempt the legacy lesson schema below.
+          console.error("Course sections could not be loaded:", sectionResult.error);
         }
 
         // Legacy VEXORA schema stores lessons directly in course_lessons,
@@ -225,9 +225,13 @@ function CourseDetailsContent() {
               error: { message: string } | null;
             };
 
-          if (legacyResult.error) throw legacyResult.error;
+          if (legacyResult.error) {
+            // Do not turn an optional lesson-schema/RLS issue into a full course-page failure.
+            // Keep lessons unavailable unless a permitted query returns them.
+            console.error("Legacy course lessons could not be loaded:", legacyResult.error);
+          }
 
-          if ((legacyResult.data ?? []).length > 0) {
+          if (!legacyResult.error && (legacyResult.data ?? []).length > 0) {
             loadedSections = [{
               id: courseData.id,
               title: "Course content",
@@ -256,8 +260,13 @@ function CourseDetailsContent() {
             .eq("student_id", signedInUser.id)
             .in("status", ["active", "completed"])
             .maybeSingle();
-          if (enrollmentError) throw enrollmentError;
-          setHasCourseAccess(Boolean(enrollment));
+          if (enrollmentError) {
+            // Fail closed: a failed enrollment check never grants access.
+            console.error("Course enrollment check failed:", enrollmentError);
+            setHasCourseAccess(false);
+          } else {
+            setHasCourseAccess(Boolean(enrollment));
+          }
         } else {
           setHasCourseAccess(false);
         }
