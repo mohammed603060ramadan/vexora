@@ -56,7 +56,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
   SELECT (SELECT auth.uid()) IS NOT NULL
     AND (
       (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
@@ -66,7 +66,7 @@ AS $
         WHERE administrators.user_id = (SELECT auth.uid())
       )
     );
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.is_vexora_academy_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_vexora_academy_admin() TO anon, authenticated, service_role;
@@ -144,17 +144,17 @@ CREATE TRIGGER course_access_requests_grant_enrollment
   FOR EACH ROW
   EXECUTE FUNCTION public.grant_course_enrollment_on_access_approval();
 
--- Published course metadata is public; lesson rows stay private until
--- the signed-in student has an active/completed enrollment, including preview lessons.
-DROP POLICY IF EXISTS lessons_read ON public.lessons;
-CREATE POLICY lessons_read
-ON public.lessons
+-- Published course metadata is public; course_lessons stay private until
+-- the signed-in student has an active/completed enrollment.
+DROP POLICY IF EXISTS course_lessons_read ON public.course_lessons;
+CREATE POLICY course_lessons_read
+ON public.course_lessons
 FOR SELECT TO anon, authenticated
 USING (
-  status = 'published'
+  is_published = true
   AND EXISTS (
     SELECT 1 FROM public.courses c
-    WHERE c.id = lessons.course_id AND c.status = 'published'
+    WHERE c.id = course_lessons.course_id AND c.status = 'published'
   )
   AND (
     (SELECT auth.uid()) IS NOT NULL
@@ -162,13 +162,13 @@ USING (
       public.is_vexora_academy_admin()
       OR EXISTS (
         SELECT 1 FROM public.enrollments e
-        WHERE e.course_id = lessons.course_id
+        WHERE e.course_id = course_lessons.course_id
           AND e.student_id = (SELECT auth.uid())
           AND e.status IN ('active', 'completed')
       )
       OR EXISTS (
         SELECT 1 FROM public.courses c
-        WHERE c.id = lessons.course_id
+        WHERE c.id = course_lessons.course_id
           AND c.instructor_id = (SELECT auth.uid())
       )
     )

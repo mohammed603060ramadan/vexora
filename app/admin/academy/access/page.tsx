@@ -40,13 +40,12 @@ export default function CourseAccessAdminPage() {
   const [busy, setBusy] = useState("");
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
     try {
       const response = await fetch("/api/admin/course-access", { cache: "no-store" });
       const payload = await response.json() as { requests?: AccessRequest[]; error?: string };
       if (!response.ok) throw new Error(payload.error || "Could not load requests.");
       const rows = Array.isArray(payload.requests) ? payload.requests : [];
+      setError("");
       setItems(rows);
       setNotes(Object.fromEntries(rows.map((row) => [row.id, row.admin_note ?? ""])));
     } catch (cause) {
@@ -56,7 +55,11 @@ export default function CourseAccessAdminPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    // Initial data loading is asynchronous; the callback updates state after the network request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -107,7 +110,7 @@ export default function CourseAccessAdminPage() {
               <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">Course access requests<span className="text-cyan-300">.</span></h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">Review purchase inquiries, check the reference code, and explicitly grant course access. Approving a request creates the Academy enrollment.</p>
             </div>
-            <button type="button" onClick={() => void load()} disabled={loading} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold transition hover:border-cyan-200/40 disabled:opacity-50">{loading ? "Refreshing…" : "↻ Refresh requests"}</button>
+            <button type="button" onClick={() => { setLoading(true); setError(""); void load(); }} disabled={loading} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold transition hover:border-cyan-200/40 disabled:opacity-50">{loading ? "Refreshing…" : "↻ Refresh requests"}</button>
           </div>
         </header>
         {error && <div role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-4 text-sm text-rose-100">{error}</div>}

@@ -218,6 +218,7 @@ export default function ClientsPage() {
         } else {
           setClients((data ?? []) as Client[]);
         }
+        await loadCourseRegistrations();
       } catch {
         if (active) {
           setError("An unexpected error occurred while loading clients.");
@@ -230,7 +231,6 @@ export default function ClientsPage() {
     }
 
     void initialLoad();
-    void loadCourseRegistrations();
 
     return () => {
       active = false;

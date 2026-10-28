@@ -1,11 +1,12 @@
 # VEXORA Project QA Checklist
 
-Last generated from the GitHub `master` tree. This is a tracking checklist, not a claim that every item has passed.
+Audit checklist for `audit/vexora-hardening-2026-10`. This is a tracking checklist, not a claim that every item has passed.
 
 ## Automated validation
 - [ ] GitHub Actions ESLint passes on the latest commit.
 - [ ] GitHub Actions production build passes on the latest commit.
 - [ ] Supabase migration `202610250001_portfolio_categories_and_storage_admin.sql` has been reviewed and applied to the intended project.
+- [ ] Supabase migration `20261026100000_restore_public_published_course_read.sql` has been reviewed and applied to the intended project; verify anonymous users can read published course metadata but cannot read protected lessons.
 - [ ] Confirm deployed environment contains `SUPABASE_SERVICE_ROLE_KEY` and Supabase URL/anon key; never expose service-role key to client code.
 
 ## Route-by-route manual smoke tests
