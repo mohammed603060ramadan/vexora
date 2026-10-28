@@ -30,6 +30,34 @@ function normalizedStatus(row: AnalyticsRow): string {
   return value(row, "status").toLowerCase().replaceAll("_", " ").trim();
 }
 
+function completedPaymentTotals(rows: AnalyticsRow[]): string {
+  const totals = new Map<string, number>();
+
+  for (const row of rows) {
+    if (normalizedStatus(row) !== "completed") continue;
+    const amount = Number(value(row, "amount"));
+    if (!Number.isFinite(amount)) continue;
+
+    const rawCurrency = value(row, "currency").trim().toUpperCase();
+    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "USD";
+    totals.set(currency, (totals.get(currency) ?? 0) + amount);
+  }
+
+  if (totals.size === 0) return "No completed payments";
+
+  return [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([currency, amount]) => {
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "decimal",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+      return `${currency} ${formatted}`;
+    })
+    .join(" · ");
+}
+
 function isCompleted(row: AnalyticsRow): boolean {
   return ["completed", "complete", "done", "closed"].includes(
     normalizedStatus(row)
@@ -331,6 +359,7 @@ export default function AnalyticsDashboard({
           <MetricCard label="Overdue tasks" number={overdueTasks} detail={`${completedTasks} tasks completed overall`} icon="◷" accent="bg-rose-500/20" />
           <Link href="/admin/finance/invoices" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Invoices" number={invoices.length} detail="Open invoice register" icon="$" accent="bg-amber-500/20" /></Link>
           <Link href="/admin/finance/payments" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Payments" number={payments.length} detail="Open payment register" icon="↙" accent="bg-emerald-500/20" /></Link>
+          <div className="sm:col-span-2"><MetricCard label="Completed payment value" number={completedPaymentTotals(payments)} detail="Grouped by currency · completed payments only" icon="¤" accent="bg-cyan-500/20" /></div>
           <Link href="/admin/finance/expenses" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Expenses" number={expenses.length} detail="Open expense register" icon="−" accent="bg-rose-500/20" /></Link>
         </section>
 
