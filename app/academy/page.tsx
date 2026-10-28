@@ -529,7 +529,9 @@ export default function AcademyPage() {
         body: JSON.stringify({ courseId: selectedCourse.id }),
       });
       const payload = await response.json() as {
-        request?: { purchase_code?: string; status?: string };
+        free?: boolean;
+        enrolled?: boolean;
+        request?: { purchase_code?: string | null; status?: string };
         message?: string;
         error?: string;
       };
@@ -538,6 +540,13 @@ export default function AcademyPage() {
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");
+      if (payload.free && payload.enrolled) {
+        setAccessRequestResult(null);
+        setAccessRequestError("");
+        setSelectedCourse(null);
+        router.push("/student");
+        return;
+      }
       setAccessRequestResult({
         code: payload.request.purchase_code || "CODE PENDING",
         status: payload.request.status || "pending",
@@ -1730,7 +1739,11 @@ export default function AcademyPage() {
                         disabled={accessRequestLoading}
                         className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
                       >
-                        {accessRequestLoading ? "Creating request…" : "Request purchase / access code"}
+                        {accessRequestLoading
+                          ? (selectedCourse.price != null && Number(selectedCourse.price) === 0 ? "Enrolling…" : "Creating request…")
+                          : selectedCourse.price != null && Number(selectedCourse.price) === 0
+                            ? "Enroll for free"
+                            : "Request purchase / access code"}
                         <Icon name="arrow" size={18} />
                       </button>
                       {accessRequestError && <p role="alert" className="mt-3 rounded-lg border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessRequestError}</p>}
