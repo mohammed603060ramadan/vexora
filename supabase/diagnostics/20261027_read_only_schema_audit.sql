@@ -56,8 +56,11 @@ WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
  'departments','site_settings','events','inquiries','service_requests','vexora_admins')
 ORDER BY tc.table_name, kcu.column_name;
 
--- 5) Migration history, if this Supabase metadata table is accessible.
--- If it is not, inspect migration history in the Supabase dashboard instead.
-SELECT version, name
-FROM supabase_migrations.schema_migrations
-ORDER BY version DESC LIMIT 50;
+-- 5) Optional migration history check.
+-- Run this separately only if the metadata table exists and is readable.
+-- Keeping it separate prevents a missing/inaccessible Supabase metadata table
+-- from making the main schema/RLS audit batch report an avoidable SQL error.
+-- If unavailable, inspect migration history in the Supabase dashboard instead.
+-- SELECT version, name
+-- FROM supabase_migrations.schema_migrations
+-- ORDER BY version DESC LIMIT 50;
