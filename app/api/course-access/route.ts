@@ -64,25 +64,43 @@ export async function POST(request: Request) {
     if (courseError) throw courseError;
     if (!course) return fail("This course is not available for access requests.", 404);
 
-    const { data: existing, error: existingError } = await admin
+    // Return an existing pending/approved request first. There may be multiple
+    // historical rejected/cancelled rows, so never use maybeSingle() across all
+    // statuses after enabling resubmission in the database.
+    const { data: openRequest, error: openRequestError } = await admin
       .from("course_access_requests")
-      .select("id,purchase_code,status")
+      .select("id,purchase_code,status,course_id,created_at")
       .eq("course_id", courseId)
       .eq("student_id", user.id)
+      .in("status", ["pending", "approved"])
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    if (existingError) throw existingError;
-    if (existing) {
-      if (existing.status === "rejected" || existing.status === "cancelled") {
-        const { data: reopened, error: reopenError } = await admin
-          .from("course_access_requests")
-          .update({ status: "pending", student_message: studentMessage, admin_note: null, reviewed_by: null, reviewed_at: null, updated_at: new Date().toISOString() })
-          .eq("id", existing.id)
-          .select("id,purchase_code,status,course_id,created_at")
-          .single();
-        if (reopenError) throw reopenError;
-        return NextResponse.json({ request: reopened, message: "Your access request has been resubmitted." }, { status: 200, headers });
-      }
-      return NextResponse.json({ request: existing, message: "You already have an access request for this course." }, { status: 200, headers });
+    if (openRequestError) throw openRequestError;
+    if (openRequest) {
+      return NextResponse.json({ request: openRequest, message: "You already have an access request for this course." }, { status: 200, headers });
+    }
+
+    // Reopen the most recent closed request if one exists; otherwise create one.
+    const { data: closedRequest, error: closedRequestError } = await admin
+      .from("course_access_requests")
+      .select("id,purchase_code,status,course_id,created_at")
+      .eq("course_id", courseId)
+      .eq("student_id", user.id)
+      .in("status", ["rejected", "cancelled"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (closedRequestError) throw closedRequestError;
+    if (closedRequest) {
+      const { data: reopened, error: reopenError } = await admin
+        .from("course_access_requests")
+        .update({ status: "pending", student_message: studentMessage, admin_note: null, reviewed_by: null, reviewed_at: null, updated_at: new Date().toISOString() })
+        .eq("id", closedRequest.id)
+        .select("id,purchase_code,status,course_id,created_at")
+        .single();
+      if (reopenError) throw reopenError;
+      return NextResponse.json({ request: reopened, message: "Your access request has been resubmitted." }, { status: 200, headers });
     }
 
     const { data: created, error: insertError } = await admin
