@@ -54,6 +54,8 @@ export default async function AdminPage() {
     countRows(supabase, "events", "status", "published"),
   ]);
 
+  const hasMetricErrors = [projects, clients, tasks, inquiries, courses, events].some((value) => value === null);
+
   const metrics = [
     { label: "Projects", value: projects, note: "Tracked delivery work", code: "PR" },
     { label: "Clients", value: clients, note: "Client records", code: "CL" },
@@ -84,6 +86,12 @@ export default async function AdminPage() {
             </div>
           </div>
         </header>
+
+        {hasMetricErrors && (
+          <div role="status" className="mt-5 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-sm leading-6 text-amber-100">
+            Some dashboard counts could not be loaded from Supabase. A dash (—) marks unavailable data, not zero. Check table availability, administrator read permissions, and the latest database migrations.
+          </div>
+        )}
 
         <section aria-label="Live platform metrics" className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {metrics.map((metric) => (
