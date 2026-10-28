@@ -634,6 +634,7 @@ export default function ClientPage() {
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const [error, setError] = useState("");
@@ -728,6 +729,7 @@ export default function ClientPage() {
         setClient(resolvedClient ? { ...resolvedClient, company: null } : null);
         setProjects(Array.isArray(dashboardPayload.projects) ? dashboardPayload.projects : []);
         setTasks(Array.isArray(dashboardPayload.tasks) ? dashboardPayload.tasks : []);
+        setLastSyncedAt(new Date().toISOString());
 
         if (!dashboardPayload.linked || !resolvedClient) {
           setNotice("Your account is signed in, but no safely linked client record was found. Ask VEXORA support to verify the account email and client link.");
@@ -791,6 +793,16 @@ export default function ClientPage() {
     return () => {
       window.clearTimeout(timer);
     };
+  }, [user, loadDashboard]);
+
+  // Keep the dashboard fresh while the client portal remains open.
+  // The endpoint always re-authenticates the session and scopes data to the linked client.
+  useEffect(() => {
+    if (!user) return;
+    const refreshInterval = window.setInterval(() => {
+      void loadDashboard();
+    }, 60_000);
+    return () => window.clearInterval(refreshInterval);
   }, [user, loadDashboard]);
 
   /* =========================================================
@@ -1585,7 +1597,7 @@ export default function ClientPage() {
                   </div>
 
                   <span className="data-source">
-                    SOURCE: SUPABASE
+                    {lastSyncedAt ? `SYNCED: ${new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date(lastSyncedAt))}` : loading ? "CONNECTING TO SUPABASE" : "SOURCE: SUPABASE"}
                   </span>
                 </div>
 
@@ -2050,8 +2062,8 @@ export default function ClientPage() {
                       <span>
                         Database
                       </span>
-                      <strong className="signal-ok">
-                        Live
+                      <strong className={lastSyncedAt ? "signal-ok" : error ? "signal-warning" : "signal-muted"}>
+                        {lastSyncedAt ? "Connected" : error ? "Unavailable" : loading ? "Connecting…" : "Not synced"}
                       </strong>
                     </div>
 
