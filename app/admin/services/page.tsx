@@ -95,9 +95,6 @@ export default function AdminServicesPage() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   const loadServices = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
     try {
       const { data, error: queryError } = await supabase
         .from("services")
@@ -109,6 +106,7 @@ export default function AdminServicesPage() {
 
       if (queryError) throw queryError;
 
+      setError("");
       setServices((data ?? []) as Service[]);
     } catch (err) {
       setError(getErrorMessage(err));
