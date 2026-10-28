@@ -139,7 +139,7 @@ export default async function ClientInvoicesPage() {
     }
 
     const invoiceIds = invoices.map((invoice) => invoice.id);
-    const [itemResult, paymentResult, balancePaymentResult] = await Promise.all([
+    const [itemResult, paymentResult] = await Promise.all([
       invoiceIds.length
         ? supabase
             .from("invoice_items" as never)
@@ -152,16 +152,37 @@ export default async function ClientInvoicesPage() {
         .eq("client_id", client.id)
         .order("created_at", { ascending: false })
         .limit(100) as unknown as Promise<{ data: Payment[] | null; error: { message: string } | null }>,
-      invoiceIds.length
-        ? supabase
-            .from("payments" as never)
-            .select("id, invoice_id, payment_number, amount, currency, payment_method, status, paid_at")
-            .eq("client_id", client.id)
-            .in("invoice_id", invoiceIds)
-            .eq("status", "completed")
-            .limit(5000) as unknown as Promise<{ data: Payment[] | null; error: { message: string } | null }>
-        : Promise.resolve({ data: [] as Payment[], error: null }),
     ]);
+
+    const balancePaymentResult = await (async (): Promise<{
+      data: Payment[] | null;
+      error: { message: string } | null;
+    }> => {
+      const allPayments: Payment[] = [];
+      if (!invoiceIds.length) return { data: allPayments, error: null };
+
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const page = await supabase
+          .from("payments" as never)
+          .select("id, invoice_id, payment_number, amount, currency, payment_method, status, paid_at")
+          .eq("client_id", client.id)
+          .in("invoice_id", invoiceIds)
+          .eq("status", "completed")
+          .order("created_at", { ascending: true })
+          .range(offset, offset + pageSize - 1) as unknown as {
+            data: Payment[] | null;
+            error: { message: string } | null;
+          };
+
+        if (page.error) return { data: null, error: page.error };
+        const rows = page.data ?? [];
+        allPayments.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+
+      return { data: allPayments, error: null };
+    })();
 
     if (itemResult.error) {
       console.error("Client invoice items query failed:", itemResult.error);
