@@ -118,40 +118,8 @@ export default function AdminServicesPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function initializeServices() {
-      try {
-        const { data, error: queryError } = await supabase
-          .from("services")
-          .select(
-            "id, department_id, slug, name, description, starting_price, currency, estimated_days, status, display_order, created_at, updated_at",
-          )
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: false });
-
-        if (queryError) throw queryError;
-
-        if (!cancelled) {
-          setServices((data ?? []) as Service[]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void initializeServices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadServices();
+  }, [loadServices]);
 
   const filteredServices = services.filter((service) => {
     const searchText = search.trim().toLowerCase();
