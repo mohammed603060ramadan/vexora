@@ -18,7 +18,10 @@ type ClientRow = {
 };
 
 async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId: string, email: string | null) {
-  const modern = await admin
+  // The repository Supabase Database type does not include every legacy clients column.
+  // Keep this compatibility route dynamically typed at the query boundary only.
+  const db = admin as any;
+  const modern = await db
     .from("clients")
     .select("id, name, email, phone, company, created_at")
     .eq("auth_user_id", userId)
@@ -60,7 +63,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
       return { client: null, linkColumn: "auth_user_id" as const };
     }
     if (!candidate.auth_user_id) {
-      const linked = await admin.from("clients")
+      const linked = await db.from("clients")
         .update({ auth_user_id: userId })
         .eq("id", candidate.id)
         .is("auth_user_id", null)
@@ -91,7 +94,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
     return { client: null, linkColumn: "user_id" as const };
   }
   if (!candidate.user_id) {
-    const linked = await admin.from("clients")
+    const linked = await db.from("clients")
       .update({ user_id: userId })
       .eq("id", candidate.id)
       .is("user_id", null)
@@ -116,7 +119,8 @@ export async function GET() {
       return NextResponse.json({ client: null, projects: [], tasks: [], linked: false }, { headers });
     }
 
-    const projectBase = admin.from("projects")
+    const db = admin as any;
+    const projectBase = db.from("projects")
       .select("id, title, description, status, deadline, created_at")
       .eq("client_id", resolved.client.id)
       .order("created_at", { ascending: false })
@@ -128,7 +132,7 @@ export async function GET() {
     let projects = (projectResult.data ?? []).map((project) => ({ ...project, budget: null as number | null }));
 
     if (projectIds.length) {
-      const budgetResult = await admin.from("projects")
+      const budgetResult = await db.from("projects")
         .select("id, budget")
         .in("id", projectIds);
       if (!budgetResult.error) {
@@ -144,7 +148,7 @@ export async function GET() {
       status: string; priority: string; due_date: string | null;
     }> = [];
     if (projectIds.length) {
-      const taskResult = await admin.from("tasks")
+      const taskResult = await db.from("tasks")
         .select("id, project_id, title, description, status, priority, due_date")
         .in("project_id", projectIds)
         .order("due_date", { ascending: true, nullsFirst: false })
