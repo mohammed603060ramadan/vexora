@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const BUCKET = "course-media";
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
