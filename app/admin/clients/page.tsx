@@ -107,7 +107,7 @@ function downloadClientsCsv(clients: Client[]) {
   const csv = [
     headers.map(escapeCsv).join(","),
     ...rows.map((row) => row.map(escapeCsv).join(",")),
-  ].join("\r\n");
+  ].join("\\r\\n");
 
   const blob = new Blob(["\uFEFF", csv], {
     type: "text/csv;charset=utf-8;",
@@ -230,6 +230,8 @@ export default function ClientsPage() {
     }
 
     void initialLoad();
+    // Fetch the related registration list as part of the initial page load.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCourseRegistrations();
 
     return () => {

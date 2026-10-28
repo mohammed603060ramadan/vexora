@@ -17,8 +17,6 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
@@ -762,7 +760,7 @@ function CourseDetailsContent() {
               </button>
             )}
             {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
-            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>
+            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>}
 
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
               <div className="flex items-start gap-3">

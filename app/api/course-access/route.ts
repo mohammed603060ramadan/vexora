@@ -15,22 +15,14 @@ async function getSignedInUser() {
   return data.user;
 }
 
-async function isAdministrator(user: NonNullable<Awaited<ReturnType<typeof getSignedInUser>>>) {
-  if (user.app_metadata?.role === "admin") return true;
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("vexora_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  return !error && Boolean(data);
-}
-
 export async function GET() {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in to view course access requests.", 401);
   try {
-    const admin = createAdminClient();
+    // The generated Supabase types do not include this table in the current schema snapshot.
+    // Keep this compatibility cast scoped to this API route.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any;
     const { data, error } = await admin
       .from("course_access_requests")
       .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type,cover_image_url,promo_video_url)")
@@ -62,7 +54,10 @@ export async function POST(request: Request) {
   const studentMessage = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) || null : null;
 
   try {
-    const admin = createAdminClient();
+    // The generated Supabase types do not include this table in the current schema snapshot.
+  // Keep this compatibility cast scoped to this API route.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createAdminClient() as any;
     const { data: course, error: courseError } = await admin
       .from("courses")
       .select("id,title,status,price")
