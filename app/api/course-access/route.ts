@@ -81,6 +81,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ request: openRequest, message: "You already have an access request for this course." }, { status: 200, headers });
     }
 
+    // A student who already has an active/completed enrollment should not
+    // create a fresh purchase/access request for the same course.
+    const { data: enrollment, error: enrollmentError } = await admin
+      .from("enrollments")
+      .select("id,status")
+      .eq("course_id", courseId)
+      .eq("student_id", user.id)
+      .in("status", ["active", "completed"])
+      .limit(1)
+      .maybeSingle();
+
+    if (enrollmentError) throw enrollmentError;
+    if (enrollment) {
+      return NextResponse.json(
+        {
+          request: {
+            id: null,
+            course_id: courseId,
+            status: "approved",
+            purchase_code: null,
+          },
+          message: "You already have access to this course.",
+        },
+        { status: 200, headers },
+      );
+    }
+
     // Reopen the most recent closed request if one exists; otherwise create one.
     const { data: closedRequest, error: closedRequestError } = await admin
       .from("course_access_requests")
