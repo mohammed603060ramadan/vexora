@@ -124,9 +124,8 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
 DECLARE
-  enrollment_source_column TEXT;
   enrollment_updated_at_clause TEXT := '';
   enrollment_insert_sql TEXT;
 BEGIN
@@ -149,7 +148,6 @@ BEGIN
         AND table_name = 'enrollments'
         AND column_name = 'enrolled_by'
     ) THEN
-      enrollment_source_column := 'enrolled_by';
       enrollment_insert_sql := format(
         'INSERT INTO public.enrollments AS existing_enrollment
            (course_id, student_id, enrolled_by, status, progress_percent)
@@ -170,7 +168,6 @@ BEGIN
         AND table_name = 'enrollments'
         AND column_name = 'enrollment_source'
     ) THEN
-      enrollment_source_column := 'enrollment_source';
       enrollment_insert_sql := format(
         'INSERT INTO public.enrollments AS existing_enrollment
            (course_id, student_id, enrollment_source, status, progress_percent)
@@ -208,7 +205,7 @@ BEGIN
   NEW.updated_at := now();
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS course_access_requests_grant_enrollment
   ON public.course_access_requests;
