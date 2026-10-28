@@ -64,6 +64,61 @@ export async function POST(request: Request) {
     if (courseError) throw courseError;
     if (!course) return fail("This course is not available for access requests.", 404);
 
+    // Free courses are enrolled directly; they must never create a purchase
+    // request or enter a payment workflow. Price must be explicitly zero.
+    if (course.price != null && Number(course.price) === 0) {
+      const { data: existingEnrollment, error: existingEnrollmentError } = await admin
+        .from("enrollments")
+        .select("id,status")
+        .eq("course_id", courseId)
+        .eq("student_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingEnrollmentError) throw existingEnrollmentError;
+
+      if (!existingEnrollment || !["active", "completed"].includes(existingEnrollment.status)) {
+        const enrollmentPayload = {
+          course_id: courseId,
+          student_id: user.id,
+          status: "active",
+          progress_percent: 0,
+        };
+        let enrollmentInsert = await admin
+          .from("enrollments")
+          .insert({ ...enrollmentPayload, enrolled_by: user.id });
+
+        if (enrollmentInsert.error && /enrolled_by|column .* does not exist|schema cache/i.test(enrollmentInsert.error.message)) {
+          enrollmentInsert = await admin
+            .from("enrollments")
+            .insert({ ...enrollmentPayload, enrollment_source: "self" });
+        }
+
+        if (enrollmentInsert.error && enrollmentInsert.error.code === "23505") {
+          // A concurrent request may have created the enrollment; verify it.
+          const { data: racedEnrollment, error: racedError } = await admin
+            .from("enrollments")
+            .select("id,status")
+            .eq("course_id", courseId)
+            .eq("student_id", user.id)
+            .limit(1)
+            .maybeSingle();
+          if (racedError || !racedEnrollment || !["active", "completed"].includes(racedEnrollment.status)) {
+            throw enrollmentInsert.error;
+          }
+        } else if (enrollmentInsert.error) {
+          throw enrollmentInsert.error;
+        }
+      }
+
+      return NextResponse.json({
+        free: true,
+        enrolled: true,
+        request: { id: null, course_id: courseId, status: "approved", purchase_code: null },
+        message: "This course is free. You are enrolled—no payment or purchase request is needed.",
+      }, { status: 200, headers });
+    }
+
     // Return an existing pending/approved request first. There may be multiple
     // historical rejected/cancelled rows, so never use maybeSingle() across all
     // statuses after enabling resubmission in the database.
