@@ -153,8 +153,18 @@ export default async function FinanceSectionPage({
   const rows = (data ?? []) as unknown as Row[];
   const amountKey = section === "invoices" ? "total_amount" : "amount";
   const totalsByCurrency = new Map<string, number>();
+  const includedStatuses = section === "payments"
+    ? new Set(["completed", "paid", "succeeded"])
+    : section === "expenses"
+      ? new Set(["paid", "completed", "posted"])
+      : null;
 
   for (const row of rows) {
+    // Outstanding invoices and unsuccessful/pending payments must not be
+    // counted as received cash. Expenses are counted only when paid/posted.
+    if (includedStatuses && !includedStatuses.has(String(row.status ?? "").trim().toLowerCase())) {
+      continue;
+    }
     const value = row[amountKey];
     const amount =
       typeof value === "number"
