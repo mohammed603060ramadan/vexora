@@ -20,6 +20,7 @@ type ClientRow = {
 async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId: string, email: string | null) {
   // The repository Supabase Database type does not include every legacy clients column.
   // Keep this compatibility route dynamically typed at the query boundary only.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Legacy Supabase columns differ across deployed schemas; isolate the compatibility cast here.
   const db = admin as any;
   const modern = await db
     .from("clients")
@@ -72,7 +73,8 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
       if (linked.error) throw linked.error;
       if (!linked.data) return { client: null, linkColumn: "auth_user_id" as const };
     }
-    const { auth_user_id: _ignored, ...client } = candidate;
+    const client = { ...candidate };
+    delete (client as { auth_user_id?: string | null }).auth_user_id;
     return { client: client as ClientRow, linkColumn: "auth_user_id" as const };
   }
 
@@ -103,7 +105,8 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
     if (linked.error) throw linked.error;
     if (!linked.data) return { client: null, linkColumn: "user_id" as const };
   }
-  const { user_id: _ignored, ...client } = candidate;
+  const client = { ...candidate };
+  delete (client as { user_id?: string | null }).user_id;
   return { client: client as ClientRow, linkColumn: "user_id" as const };
 }
 
@@ -114,6 +117,7 @@ export async function GET() {
     if (error || !data.user) return jsonError("Sign in to view your client workspace.", 401);
 
     const admin = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Keep legacy schema compatibility scoped to this server-only query boundary.
     const db = admin as any;
     const resolved = await resolveClient(admin, data.user.id, data.user.email?.trim().toLowerCase() ?? null);
     if (!resolved.client) {
