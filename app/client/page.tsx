@@ -696,7 +696,7 @@ export default function ClientPage() {
             .maybeSingle(),
           supabase
             .from("clients")
-            .select("id, name, email, company, phone, created_at")
+            .select("id, name, email, company:company_name, phone, created_at")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
@@ -716,7 +716,7 @@ export default function ClientPage() {
         ) {
           clientResult = await supabase
             .from("clients")
-            .select("id, name, email, company, phone, created_at")
+            .select("id, name, email, company:company_name, phone, created_at")
             .eq("user_id", user.id)
             .maybeSingle();
         }
