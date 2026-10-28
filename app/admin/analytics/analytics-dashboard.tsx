@@ -39,7 +39,7 @@ function completedPaymentTotals(rows: AnalyticsRow[]): string {
     if (!Number.isFinite(amount)) continue;
 
     const rawCurrency = value(row, "currency").trim().toUpperCase();
-    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "USD";
+    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "UNKNOWN";
     totals.set(currency, (totals.get(currency) ?? 0) + amount);
   }
 
