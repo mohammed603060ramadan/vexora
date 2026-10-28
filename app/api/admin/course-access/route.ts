@@ -63,6 +63,16 @@ export async function PATCH(request: Request) {
       .maybeSingle();
     if (currentError) throw currentError;
     if (!current) return fail("Access request not found.", 404);
+
+    // Approval activates a real enrollment. Do not let a later status edit
+    // make the request look unapproved while leaving that enrollment active.
+    if (current.status === "approved" && status !== "approved") {
+      return fail(
+        "This request is already approved and the student has course access. Approved requests cannot be reverted here.",
+        409,
+      );
+    }
+
     if (status === "approved") {
       const { data: course, error: courseError } = await admin.from("courses").select("id,status").eq("id", current.course_id).maybeSingle();
       if (courseError) throw courseError;
