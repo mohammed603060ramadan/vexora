@@ -91,6 +91,12 @@ CREATE POLICY course_access_requests_student_create
     AND status = 'pending'
     AND reviewed_by IS NULL
     AND reviewed_at IS NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.courses AS c
+      WHERE c.id = course_access_requests.course_id
+        AND c.status = 'published'
+    )
   );
 
 DROP POLICY IF EXISTS course_access_requests_admin_read ON public.course_access_requests;
@@ -131,7 +137,7 @@ BEGIN
     ON CONFLICT (course_id, student_id)
     DO UPDATE SET
       status = CASE
-        WHEN existing_enrollment.status = 'cancelled' THEN 'active'
+        WHEN existing_enrollment.status IN ('pending', 'cancelled') THEN 'active'
         ELSE existing_enrollment.status
       END,
       updated_at = now();
