@@ -96,14 +96,19 @@ export async function POST(request: Request) {
 
     if (
       enrollmentError &&
-      !/relation .*enrollments.* does not exist|could not find the table .*enrollments.*schema cache/i.test(
+      /relation .*enrollments.* does not exist|could not find the table .*enrollments.*schema cache/i.test(
         enrollmentError.message,
       )
     ) {
-      throw enrollmentError;
+      return fail(
+        "Course enrollment is not configured in the database yet. Apply and verify the Academy access migration before accepting requests.",
+        503,
+      );
     }
 
-    if (!enrollmentError && enrollment) {
+    if (enrollmentError) throw enrollmentError;
+
+    if (enrollment) {
       return NextResponse.json(
         {
           request: {
