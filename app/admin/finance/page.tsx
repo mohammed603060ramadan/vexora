@@ -12,6 +12,8 @@ export const metadata = {
 
 type Invoice = {
   id: string;
+  client_id: string;
+  project_id: string | null;
   invoice_number: number;
   total_amount: number | string;
   currency: string;
@@ -22,6 +24,8 @@ type Invoice = {
 
 type Payment = {
   id: string;
+  client_id: string;
+  invoice_id: string | null;
   payment_number: number;
   amount: number | string;
   currency: string;
@@ -128,12 +132,12 @@ export default async function AdminFinancePage() {
   ] = await Promise.all([
     financeDb
       .from("invoices" as never)
-      .select("id, invoice_number, total_amount, currency, status, issue_date, due_date")
+      .select("id, invoice_number, client_id, project_id, total_amount, currency, status, issue_date, due_date")
       .order("created_at", { ascending: false })
       .limit(10),
     financeDb
       .from("payments" as never)
-      .select("id, payment_number, amount, currency, status, paid_at")
+      .select("id, payment_number, client_id, invoice_id, amount, currency, status, paid_at")
       .order("created_at", { ascending: false })
       .limit(10),
     financeDb
@@ -147,10 +151,34 @@ export default async function AdminFinancePage() {
   const payments = (paymentsResult.data ?? []) as Payment[];
   const expenses = (expensesResult.data ?? []) as Expense[];
 
+  // Resolve linked client/project names from their canonical records instead
+  // of displaying orphaned IDs or relying on guessed relationship aliases.
+  const clientIds = Array.from(new Set([
+    ...invoices.map((invoice) => invoice.client_id),
+    ...payments.map((payment) => payment.client_id),
+  ].filter(Boolean)));
+  const projectIds = Array.from(new Set(invoices.map((invoice) => invoice.project_id).filter((id): id is string => Boolean(id))));
+  const [clientsResult, projectsResult] = await Promise.all([
+    clientIds.length
+      ? financeDb.from("clients").select("id, name, company_name").in("id", clientIds)
+      : Promise.resolve({ data: [], error: null }),
+    projectIds.length
+      ? financeDb.from("projects").select("id, name").in("id", projectIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const clientNames = new Map((clientsResult.data ?? []).map((client) => [
+    client.id,
+    client.company_name || client.name || "Unnamed client",
+  ]));
+  const projectNames = new Map((projectsResult.data ?? []).map((project) => [project.id, project.name || "Unnamed project"]));
+
   const queryErrors = [
     invoicesResult.error,
     paymentsResult.error,
     expensesResult.error,
+    clientsResult.error,
+    projectsResult.error,
   ].filter(Boolean);
 
   const outstandingInvoices = invoices.filter((invoice) =>
@@ -269,10 +297,11 @@ export default async function AdminFinancePage() {
               </p>
             ) : (
               <div className="mt-5 overflow-x-auto">
-                <table className="w-full min-w-[540px] text-left text-sm">
+                <table className="w-full min-w-[680px] text-left text-sm">
                   <thead className="text-xs uppercase text-slate-500">
                     <tr>
                       <th className="pb-3 pr-4 font-medium">Invoice</th>
+                      <th className="pb-3 pr-4 font-medium">Client / Project</th>
                       <th className="pb-3 pr-4 font-medium">Issued</th>
                       <th className="pb-3 pr-4 font-medium">Amount</th>
                       <th className="pb-3 font-medium">Status</th>
@@ -286,6 +315,10 @@ export default async function AdminFinancePage() {
                       >
                         <td className="py-3 pr-4 font-medium">
                           #{invoice.invoice_number}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium text-slate-200">{clientNames.get(invoice.client_id) ?? "Client unavailable"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{invoice.project_id ? projectNames.get(invoice.project_id) ?? "Project unavailable" : "No project linked"}</p>
                         </td>
                         <td className="py-3 pr-4 text-slate-400">
                           {formatDate(invoice.issue_date)}
@@ -316,10 +349,11 @@ export default async function AdminFinancePage() {
               </p>
             ) : (
               <div className="mt-5 overflow-x-auto">
-                <table className="w-full min-w-[480px] text-left text-sm">
+                <table className="w-full min-w-[600px] text-left text-sm">
                   <thead className="text-xs uppercase text-slate-500">
                     <tr>
                       <th className="pb-3 pr-4 font-medium">Payment</th>
+                      <th className="pb-3 pr-4 font-medium">Client / Invoice</th>
                       <th className="pb-3 pr-4 font-medium">Date</th>
                       <th className="pb-3 pr-4 font-medium">Amount</th>
                       <th className="pb-3 font-medium">Status</th>
@@ -333,6 +367,10 @@ export default async function AdminFinancePage() {
                       >
                         <td className="py-3 pr-4 font-medium">
                           #{payment.payment_number}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium text-slate-200">{clientNames.get(payment.client_id) ?? "Client unavailable"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{payment.invoice_id ? `Invoice #${invoices.find((invoice) => invoice.id === payment.invoice_id)?.invoice_number ?? "unavailable"}` : "Unallocated payment"}</p>
                         </td>
                         <td className="py-3 pr-4 text-slate-400">
                           {formatDate(payment.paid_at)}
