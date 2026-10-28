@@ -35,7 +35,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   if (modern.error && !modernColumnMissing) throw modern.error;
 
   if (modernColumnMissing) {
-    const legacy = await admin
+    const legacy = await db
       .from("clients")
       .select("id, name, email, phone, company, created_at")
       .eq("user_id", userId)
@@ -48,7 +48,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
 
   // Admin-created client records may predate account linking. Link only one
   // exact-email match whose account link is empty; never take over another user.
-  const modernCandidates = await admin
+  const modernCandidates = await db
     .from("clients")
     .select("id, name, email, phone, company, created_at, auth_user_id")
     .eq("email", email)
@@ -80,7 +80,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
     throw modernCandidates.error;
   }
 
-  const legacyCandidates = await admin
+  const legacyCandidates = await db
     .from("clients")
     .select("id, name, email, phone, company, created_at, user_id")
     .eq("email", email)
@@ -114,6 +114,7 @@ export async function GET() {
     if (error || !data.user) return jsonError("Sign in to view your client workspace.", 401);
 
     const admin = createAdminClient();
+    const db = admin as any;
     const resolved = await resolveClient(admin, data.user.id, data.user.email?.trim().toLowerCase() ?? null);
     if (!resolved.client) {
       return NextResponse.json({ client: null, projects: [], tasks: [], linked: false }, { headers });
