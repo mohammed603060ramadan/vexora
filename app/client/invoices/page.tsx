@@ -183,12 +183,14 @@ export default async function ClientInvoicesPage() {
     itemsByInvoice.set(item.invoice_id, current);
   }
 
-  const completedPaymentsByInvoice = new Map<string, number>();
+  const completedPaymentsByInvoiceCurrency = new Map<string, number>();
   for (const payment of payments) {
     if (payment.status !== "completed" || !payment.invoice_id) continue;
-    completedPaymentsByInvoice.set(
-      payment.invoice_id,
-      (completedPaymentsByInvoice.get(payment.invoice_id) ?? 0) + Number(payment.amount || 0),
+    const currency = (payment.currency || "USD").trim().toUpperCase();
+    const key = `${payment.invoice_id}:${currency}`;
+    completedPaymentsByInvoiceCurrency.set(
+      key,
+      (completedPaymentsByInvoiceCurrency.get(key) ?? 0) + Number(payment.amount || 0),
     );
   }
 
@@ -200,7 +202,7 @@ export default async function ClientInvoicesPage() {
     const currency = (invoice.currency || "USD").trim();
     const outstanding = Math.max(
       0,
-      Number(invoice.total_amount || 0) - (completedPaymentsByInvoice.get(invoice.id) ?? 0),
+      Number(invoice.total_amount || 0) - (completedPaymentsByInvoiceCurrency.get(`${invoice.id}:${(invoice.currency || "USD").trim().toUpperCase()}`) ?? 0),
     );
     totalDueByCurrency.set(
       currency,
