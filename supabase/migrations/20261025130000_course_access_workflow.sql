@@ -124,30 +124,91 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $$
+AS $
+DECLARE
+  enrollment_source_column TEXT;
+  enrollment_updated_at_clause TEXT := '';
+  enrollment_insert_sql TEXT;
 BEGIN
   IF NEW.status = 'approved'
      AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
-    INSERT INTO public.enrollments AS existing_enrollment (
-      course_id, student_id, enrolled_by, status, progress_percent
-    )
-    VALUES (
-      NEW.course_id, NEW.student_id, NEW.reviewed_by, 'active', 0
-    )
-    ON CONFLICT (course_id, student_id)
-    DO UPDATE SET
-      status = CASE
-        WHEN existing_enrollment.status IN ('pending', 'cancelled') THEN 'active'
-        ELSE existing_enrollment.status
-      END,
-      updated_at = now();
+    -- VEXORA deployments differ: the canonical schema uses enrolled_by (UUID),
+    -- while some legacy schemas use enrollment_source (text: self/admin).
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'updated_at'
+    ) THEN
+      enrollment_updated_at_clause := ', updated_at = now()';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'enrolled_by'
+    ) THEN
+      enrollment_source_column := 'enrolled_by';
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, enrolled_by, status, progress_percent)
+         VALUES ($1, $2, $3, ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id, NEW.reviewed_by;
+    ELSIF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'enrollment_source'
+    ) THEN
+      enrollment_source_column := 'enrollment_source';
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, enrollment_source, status, progress_percent)
+         VALUES ($1, $2, ''admin'', ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id;
+    ELSE
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, status, progress_percent)
+         VALUES ($1, $2, ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id;
+    END IF;
+
     NEW.reviewed_at := COALESCE(NEW.reviewed_at, now());
   END IF;
 
   NEW.updated_at := now();
   RETURN NEW;
 END;
-$$;
+$;
 
 DROP TRIGGER IF EXISTS course_access_requests_grant_enrollment
   ON public.course_access_requests;
