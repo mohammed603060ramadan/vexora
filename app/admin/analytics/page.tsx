@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
-type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests" | "invoices" | "payments" | "expenses";
+type AnalyticsTable = "clients" | "projects" | "tasks" | "project_requests" | "service_requests" | "invoices" | "payments" | "expenses";
 
 const ANALYTICS_FIELDS = [
   "id",
@@ -81,6 +81,8 @@ async function queryTablePage(
       return await supabase.from("tasks").select("*").order("id", { ascending: true }).range(from, to);
     case "service_requests":
       return await supabase.from("service_requests").select("*").order("id", { ascending: true }).range(from, to);
+    case "project_requests":
+      return await supabase.from("project_requests" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
     case "invoices":
       return await supabase.from("invoices" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
     case "payments":
@@ -88,6 +90,26 @@ async function queryTablePage(
     case "expenses":
       return await supabase.from("expenses" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
   }
+}
+
+async function loadRequests(
+  supabase: ReturnType<typeof createAdminClient>,
+): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
+  // VEXORA deployments may use the legacy service_requests table or the
+  // project_requests table created by the current project-request migration.
+  const legacy = await loadTable(supabase, "service_requests");
+  if (!legacy.error) return legacy;
+
+  const isMissingTable = /service_requests|relation .* does not exist|schema cache/i.test(legacy.error);
+  if (!isMissingTable) return legacy;
+
+  const current = await loadTable(supabase, "project_requests");
+  if (!current.error) return current;
+
+  return {
+    rows: [],
+    error: "Project requests: Neither service_requests nor project_requests could be loaded. Check the database schema and administrator permissions.",
+  };
 }
 
 async function loadTable(
@@ -138,7 +160,7 @@ export default async function AnalyticsPage() {
     loadTable(supabase, "clients"),
     loadTable(supabase, "projects"),
     loadTable(supabase, "tasks"),
-    loadTable(supabase, "service_requests"),
+    loadRequests(supabase),
     loadTable(supabase, "invoices"),
     loadTable(supabase, "payments"),
     loadTable(supabase, "expenses"),
