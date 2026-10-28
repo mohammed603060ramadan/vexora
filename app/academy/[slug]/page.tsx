@@ -116,21 +116,43 @@ function CourseDetailsContent() {
         const { data: authData } = await supabase.auth.getUser();
         const signedInUser = authData.user;
 
-        let { data: courseData, error: courseError } = await supabase
-          .from("courses")
-          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
-          .eq("slug", slug)
-          .eq("status", "published")
-          .maybeSingle();
+        const courseQueries = [
+          "id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url",
+          "id, title, slug, description, difficulty, course_type, price, currency, estimated_hours",
+          "id, title, slug, description, difficulty, course_type, estimated_hours",
+        ];
+        let courseData: Record<string, unknown> | null = null;
+        let courseError: { message: string } | null = null;
 
-        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
-          const fallback = await supabase.from("courses")
-            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
+        for (const columns of courseQueries) {
+          const result = await supabase
+            .from("courses")
+            .select(columns)
             .eq("slug", slug)
             .eq("status", "published")
             .maybeSingle();
-          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
-          courseError = fallback.error;
+
+          if (!result.error) {
+            courseData = result.data as Record<string, unknown> | null;
+            courseError = null;
+            break;
+          }
+
+          courseError = result.error;
+          if (!/column .* does not exist|schema cache|could not find .* column/i.test(result.error.message)) {
+            break;
+          }
+        }
+
+        if (courseData) {
+          courseData = {
+            ...courseData,
+            subtitle: typeof courseData.subtitle === "string" ? courseData.subtitle : null,
+            price: courseData.price == null ? null : Number(courseData.price),
+            currency: typeof courseData.currency === "string" ? courseData.currency : null,
+            cover_image_url: typeof courseData.cover_image_url === "string" ? courseData.cover_image_url : null,
+            promo_video_url: typeof courseData.promo_video_url === "string" ? courseData.promo_video_url : null,
+          };
         }
         if (courseError) throw courseError;
 
