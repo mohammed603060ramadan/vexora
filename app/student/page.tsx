@@ -350,11 +350,6 @@ export default function StudentDashboard() {
     } catch (caughtError) {
       console.error("Student dashboard loading failed:", caughtError);
 
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : "An unexpected error occurred.";
-
       setError("Some student workspace data could not be loaded. Please refresh the page.");
     } finally {
       setLoading(false);
