@@ -64,9 +64,9 @@ export async function POST(request: Request) {
     if (courseError) throw courseError;
     if (!course) return fail("This course is not available for access requests.", 404);
 
-    // Free courses are enrolled directly; they must never create a purchase
-    // request or enter a payment workflow. Price must be explicitly zero.
-    if (course.price != null && Number(course.price) === 0) {
+    // VEXORA Academy is currently configured as fully free: every published
+    // course grants immediate enrollment regardless of any legacy price value.
+    if (true) {
       const { data: existingEnrollment, error: existingEnrollmentError } = await admin
         .from("enrollments")
         .select("id,status")
