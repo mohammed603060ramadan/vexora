@@ -340,6 +340,7 @@ export default function AcademyPage() {
   const router = useRouter();
   const [userReady, setUserReady] = useState(false);
   const [usingSampleCourses, setUsingSampleCourses] = useState(false);
+  const [typedNotice, setTypedNotice] = useState("");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
   const [mode, setMode] = useState<FilterMode>("all");
@@ -357,6 +358,30 @@ export default function AcademyPage() {
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
   const [accessRequestError, setAccessRequestError] = useState("");
   const [accessRequestResult, setAccessRequestResult] = useState<{ code: string; status: string; message: string } | null>(null);
+
+  useEffect(() => {
+    const message = "Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.";
+    let position = 0;
+    let deleting = false;
+    let pause = 0;
+    const timer = window.setInterval(() => {
+      if (!deleting && position === message.length) {
+        if (pause < 22) {
+          pause += 1;
+          return;
+        }
+        deleting = true;
+      } else if (deleting && position === 0) {
+        deleting = false;
+        pause = 0;
+      }
+
+      position += deleting ? -1 : 1;
+      setTypedNotice(message.slice(0, position));
+    }, 65);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -1115,7 +1140,12 @@ export default function AcademyPage() {
                 Explore sample learning paths across technology and business.
                 Filter the catalog to find a subject and format that fit you.
               </p>
-              {usingSampleCourses && <p className="mt-4 max-w-xl rounded-lg border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3 text-xs leading-6 text-amber-100/80">Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.</p>}
+              <div className="mt-4 flex max-w-xl items-start gap-3 rounded-xl border border-blue-300/20 bg-blue-400/[0.06] px-4 py-3 text-xs leading-6 text-blue-100/90 shadow-[0_0_24px_rgba(59,130,246,0.06)]">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-300/20 bg-blue-300/[0.08] text-blue-200" aria-hidden="true"><Icon name="academy" size={17} /></span>
+                <p aria-live="polite" className="min-h-[3rem]">
+                  {typedNotice}<span className="ml-0.5 inline-block h-4 w-px translate-y-0.5 animate-pulse bg-blue-300" aria-hidden="true" />
+                </p>
+              </div>
               <div className="mt-5 flex flex-wrap gap-3"><Link href="/academy/categories" className="inline-flex items-center gap-2 rounded-xl border border-blue-300/25 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/50 hover:bg-blue-400/10">Explore 5 learning tracks <span aria-hidden="true">↗</span></Link><Link href="/academy/courses" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">Open full course directory <span aria-hidden="true">↗</span></Link></div>
             </div>
 
@@ -1891,6 +1921,11 @@ export default function AcademyPage() {
 
             <div className="academy-print-certificate relative overflow-hidden border-[5px] border-[#c6a96a] bg-[#f4f0e5] p-2 text-[#1a2d45] shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:border-[8px] sm:p-3">
               <div className="relative overflow-hidden border border-[#9b854f] px-5 py-7 text-center sm:px-10 sm:py-10">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
+                  <div className="rotate-[-18deg] whitespace-nowrap border-y-[3px] border-rose-700/35 px-8 py-3 text-center text-4xl font-black uppercase tracking-[0.22em] text-rose-800/20 sm:text-6xl">
+                    SAMPLE · NOT VALID · SAMPLE
+                  </div>
+                </div>
                 <div aria-hidden="true" className="pointer-events-none absolute inset-2 border border-[#bca56d]/60 sm:inset-3" />
                 <div aria-hidden="true" className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full border border-[#bca56d]/40" />
                 <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full border border-[#bca56d]/40" />
@@ -1953,7 +1988,7 @@ export default function AcademyPage() {
                   </div>
 
                   <p className="mt-6 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8a713c] sm:mt-8 sm:text-[10px]">
-                    SAMPLE PREVIEW · NOT A VALID CREDENTIAL
+                    DECORATIVE SAMPLE ONLY · NOT AN OFFICIAL OR VALID CERTIFICATE
                   </p>
                 </div>
               </div>
