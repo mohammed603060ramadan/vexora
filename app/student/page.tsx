@@ -262,7 +262,7 @@ export default function StudentDashboard() {
         console.error("Student profile loading failed:", profileError);
         setProfile(null);
         setError(
-          `Profile error: ${profileError.message} (code: ${profileError.code || "unknown"})`
+          "Your profile could not be loaded. Please refresh or contact VEXORA support."
         );
       } else {
         setProfile(profileData);
@@ -283,7 +283,7 @@ export default function StudentDashboard() {
 
         setEnrollments([]);
         setCoursesError(
-          `Enrollment error: ${enrollmentError.message} (code: ${enrollmentError.code || "unknown"})`
+          "Your course enrollments could not be loaded. Please try again shortly."
         );
         return;
       }
@@ -328,7 +328,7 @@ export default function StudentDashboard() {
 
         setEnrollments([]);
         setCoursesError(
-          `Course details error: ${courseError.message} (code: ${courseError.code || "unknown"})`
+          "Course details could not be loaded. Please try again shortly."
         );
         return;
       }
@@ -355,7 +355,7 @@ export default function StudentDashboard() {
           ? caughtError.message
           : "An unexpected error occurred.";
 
-      setError(`Dashboard error: ${message}`);
+      setError("Some student workspace data could not be loaded. Please refresh the page.");
     } finally {
       setLoading(false);
       setCoursesLoading(false);
