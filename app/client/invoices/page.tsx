@@ -1,5 +1,3 @@
-"use server";
-
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -128,6 +126,7 @@ export default async function ClientInvoicesPage() {
     const invoiceResult = await supabase
       .from("invoices" as never)
       .select("id, invoice_number, project_id, issue_date, due_date, subtotal, discount_amount, tax_amount, total_amount, currency, status, notes")
+      .eq("client_id", client.id)
       .order("created_at", { ascending: false })
       .limit(100) as unknown as { data: Invoice[] | null; error: { message: string } | null };
 
