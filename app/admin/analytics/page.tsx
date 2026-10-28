@@ -6,13 +6,43 @@ import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
 type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests" | "invoices" | "payments" | "expenses";
 
+const ANALYTICS_FIELDS = [
+  "id",
+  "title",
+  "name",
+  "full_name",
+  "status",
+  "created_at",
+  "requested_at",
+  "created_on",
+  "due_date",
+  "request_number",
+] as const;
+
 function normalizeRows(
   table: AnalyticsTable,
   result: { data: unknown[] | null; error: { message: string } | null },
 ): { rows: AnalyticsRow[]; error: string | null } {
+  const rows = (result.data ?? []).map((item) => {
+    const source = item && typeof item === "object"
+      ? item as Record<string, unknown>
+      : {};
+    const safeRow: AnalyticsRow = {};
+    for (const field of ANALYTICS_FIELDS) {
+      if (field in source) safeRow[field] = source[field];
+    }
+    return safeRow;
+  });
+
+  if (result.error) {
+    console.error(`Admin analytics query failed for ${table}:`, result.error);
+  }
+
   return {
-    rows: (result.data ?? []) as AnalyticsRow[],
-    error: result.error ? `${table}: ${result.error.message}` : null,
+    rows,
+    error: result.error
+      ? `${table}: Records could not be loaded. Check the table schema and administrator permissions.`
+      : null,
   };
 }
 
