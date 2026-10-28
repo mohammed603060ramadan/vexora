@@ -168,20 +168,34 @@ export default async function AdminFinancePage() {
   // The latest-payment list is intentionally separate and must not drive
   // outstanding balances, because an older payment can still reduce a balance.
   const invoiceIds = invoices.map((invoice) => invoice.id);
-  const balancePaymentsResult = invoiceIds.length
-    ? await financeDb
+  const balancePaymentsResult = await (async (): Promise<{
+    data: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> | null;
+    error: { message: string } | null;
+  }> => {
+    const allPayments: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> = [];
+    if (!invoiceIds.length) return { data: allPayments, error: null };
+
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const page = await financeDb
         .from("payments" as never)
         .select("invoice_id, amount, currency, status")
         .in("invoice_id", invoiceIds)
         .eq("status", "completed")
-        .limit(5000) as unknown as {
+        .order("created_at", { ascending: true })
+        .range(offset, offset + pageSize - 1) as unknown as {
           data: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> | null;
           error: { message: string } | null;
-        }
-    : {
-        data: [] as Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }>,
-        error: null,
-      };
+        };
+
+      if (page.error) return { data: null, error: page.error };
+      const rows = page.data ?? [];
+      allPayments.push(...rows);
+      if (rows.length < pageSize) break;
+    }
+
+    return { data: allPayments, error: null };
+  })();
   const balancePayments = balancePaymentsResult.data ?? [];
 
   // Resolve linked client/project names from their canonical records instead
