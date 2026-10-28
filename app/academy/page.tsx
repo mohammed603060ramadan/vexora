@@ -339,6 +339,7 @@ function Icon({
 export default function AcademyPage() {
   const router = useRouter();
   const [userReady, setUserReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [usingSampleCourses, setUsingSampleCourses] = useState(false);
   const [typedNotice, setTypedNotice] = useState("");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
@@ -358,6 +359,20 @@ export default function AcademyPage() {
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
   const [accessRequestError, setAccessRequestError] = useState("");
   const [accessRequestResult, setAccessRequestResult] = useState<{ code: string; status: string; message: string } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (active) setIsAuthenticated(!error && Boolean(data.session?.user));
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const message = "Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.";
@@ -950,6 +965,39 @@ export default function AcademyPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="academy-focus hidden rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:text-white sm:inline-flex"
+            >
+              Home
+            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/client"
+                onClick={() => setMobileMenuOpen(false)}
+                className="academy-focus inline-flex items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/20 sm:px-4 sm:py-2.5"
+              >
+                My Account
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="academy-focus inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-gray-200 transition hover:text-white sm:px-4 sm:py-2.5"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/login?mode=signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="academy-focus hidden items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/20 sm:inline-flex sm:px-4 sm:py-2.5"
+                >
+                  Create Account
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={() => scrollToSection("programs")}
@@ -988,6 +1036,15 @@ export default function AcademyPage() {
         {mobileMenuOpen && (
           <div className="academy-glass border-t border-white/10 px-5 py-4 md:hidden">
             <div className="mx-auto flex max-w-7xl flex-col gap-2">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white">Home</Link>
+              {isAuthenticated ? (
+                <Link href="/client" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm font-semibold text-blue-200 hover:bg-white/5">My Account</Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white">Log In</Link>
+                  <Link href="/login?mode=signup" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm font-semibold text-blue-200 hover:bg-white/5">Create Account</Link>
+                </>
+              )}
               {[
                 ["Programs", "programs"],
                 ["Learning", "experience"],
