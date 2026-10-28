@@ -182,7 +182,7 @@ export async function GET() {
       ? await admin
           .from("projects")
           .select(
-            "id,title,description,status,deadline,client_id"
+            "id,title,description,status,deadline,progress_percent,client_id"
           )
           .in("id", projectIds)
       : { data: [], error: null };
