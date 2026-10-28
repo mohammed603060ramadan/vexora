@@ -609,10 +609,6 @@ export default function AcademyPage() {
     }
   }
 
-  function printCertificate() {
-    window.print();
-  }
-
   if (!userReady) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#05080e] px-5 text-white">
@@ -1921,6 +1917,14 @@ export default function AcademyPage() {
 
             <div className="academy-print-certificate relative overflow-hidden border-[5px] border-[#c6a96a] bg-[#f4f0e5] p-2 text-[#1a2d45] shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:border-[8px] sm:p-3">
               <div className="relative overflow-hidden border border-[#9b854f] px-5 py-7 text-center sm:px-10 sm:py-10">
+                <Image
+                  src="/vexora-logo.png"
+                  alt=""
+                  width={560}
+                  height={560}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-[82%] w-auto max-w-[75%] -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.055]"
+                />
                 <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden">
                   <div className="rotate-[-18deg] whitespace-nowrap border-y-[3px] border-rose-700/35 px-8 py-3 text-center text-4xl font-black uppercase tracking-[0.22em] text-rose-800/20 sm:text-6xl">
                     SAMPLE · NOT VALID · SAMPLE
@@ -1972,7 +1976,7 @@ export default function AcademyPage() {
                   </p>
 
                   <p className="mx-auto mt-2 max-w-2xl break-words font-serif text-2xl italic text-[#1b3554] sm:mt-3 sm:text-4xl">
-                    {learnerName.trim() || "Your Name Here"}
+                    {""}
                   </p>
                   <div className="mx-auto mt-3 h-px w-2/3 max-w-md bg-gradient-to-r from-transparent via-[#b79b56] to-transparent" />
 
@@ -1983,12 +1987,12 @@ export default function AcademyPage() {
                     </div>
                     <div className="border-t border-[#b5a477] pt-2.5">
                       <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Credential reference</p>
-                      <p className="mt-1 font-mono text-[8px] text-[#7188a3] sm:text-[10px]">PREVIEW · NOT ISSUED</p>
+                      <p className="mt-1 font-mono text-[8px] text-[#7188a3] sm:text-[10px]">########</p>
                     </div>
                   </div>
 
                   <p className="mt-6 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8a713c] sm:mt-8 sm:text-[10px]">
-                    DECORATIVE SAMPLE ONLY · NOT AN OFFICIAL OR VALID CERTIFICATE
+                    ACADEMY DESIGN PREVIEW · OFFICIAL ISSUE SUBJECT TO VERIFICATION
                   </p>
                 </div>
               </div>
@@ -2001,14 +2005,6 @@ export default function AcademyPage() {
                 className="academy-button academy-focus rounded-lg border border-white/15 px-5 py-3 text-sm font-semibold text-gray-200 hover:bg-white/[0.05]"
               >
                 Close preview
-              </button>
-              <button
-                type="button"
-                onClick={printCertificate}
-                className="academy-button academy-focus inline-flex items-center gap-2 rounded-lg border border-blue-300/30 bg-blue-400/[0.08] px-5 py-3 text-sm font-semibold text-blue-100 hover:bg-blue-400/[0.14]"
-              >
-                <Icon name="print" size={18} />
-                Print / Save PDF
               </button>
             </div>
           </div>
