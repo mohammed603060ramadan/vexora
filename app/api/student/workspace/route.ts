@@ -73,6 +73,14 @@ async function findClientForUser(admin: AdminDb, userId: string) {
     return byAuthUser.data;
   }
 
+  const authColumnMissing =
+    byAuthUser.error &&
+    /auth_user_id|column .* does not exist|schema cache/i.test(byAuthUser.error.message);
+
+  if (byAuthUser.error && !authColumnMissing) {
+    throw byAuthUser.error;
+  }
+
   const byLegacyUser = await admin
     .from("clients")
     .select("id")
@@ -80,7 +88,7 @@ async function findClientForUser(admin: AdminDb, userId: string) {
     .maybeSingle();
 
   if (byLegacyUser.error) {
-    if (byAuthUser.error) {
+    if (byAuthUser.error && !authColumnMissing) {
       throw byAuthUser.error;
     }
 
