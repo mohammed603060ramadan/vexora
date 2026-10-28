@@ -268,6 +268,14 @@ export default function DataAnalyticsPage() {
 
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
           </Link>
+
+          <Link
+            href="/contact"
+            className="group relative shrink-0 overflow-hidden rounded-full border border-sky-400/30 bg-sky-400/[0.07] px-4 py-2.5 text-xs font-semibold text-sky-200 transition duration-300 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-400/15 hover:shadow-[0_0_25px_rgba(56,189,248,0.12)] sm:px-5 sm:text-sm"
+          >
+            <span className="relative z-10">Start a Project ↗</span>
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          </Link>
         </div>
       </header>
 
