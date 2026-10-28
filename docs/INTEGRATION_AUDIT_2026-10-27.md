@@ -22,6 +22,12 @@ No production database was modified. The companion SQL file is metadata-only and
 - Admin service/settings edits → persisted database row → public service catalogue/settings.
 - Approved public projects/events → homepage and public directories, without exposing private client or project data.
 
+## Forward migration added during follow-up review
+
+A separate forward migration, `supabase/migrations/20261028101500_project_requests_client_link_compat.sql`, recreates the project-request client RLS policies using the account-link column that actually exists (`clients.auth_user_id` preferred, otherwise legacy `clients.user_id`). It fails closed if neither column exists. This is separate from the original migration so databases that already recorded the original migration can receive the policy fix.
+
+The migration is committed to the review branch only. It has **not** been applied to the live Supabase project and still requires review against the read-only schema audit and normal migration procedure before production use.
+
 ## Live database inspection
 Run `supabase/diagnostics/20261027_read_only_schema_audit.sql` in the intended Supabase project. It only reads PostgreSQL metadata. Compare expected table presence, columns/types/nullability/defaults, RLS status, policy predicates, foreign keys, and migration history.
 
