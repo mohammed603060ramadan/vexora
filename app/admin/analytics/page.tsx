@@ -1,5 +1,7 @@
-﻿import { connection } from "next/server";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { redirect } from "next/navigation";
 import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
 type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests";
@@ -15,7 +17,7 @@ function normalizeRows(
 }
 
 async function loadTable(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   table: AnalyticsTable,
 ): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
   switch (table) {
@@ -33,7 +35,28 @@ async function loadTable(
 export default async function AnalyticsPage() {
   await connection();
 
-  const supabase = await createClient();
+  const sessionClient = await createClient();
+  const { data: authData, error: authError } = await sessionClient.auth.getUser();
+
+  if (authError || !authData.user) redirect("/login?next=/admin/analytics");
+
+  let authorized = authData.user.app_metadata?.role === "admin";
+  const admin = createAdminClient();
+
+  if (!authorized) {
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    authorized = !registryError && Boolean(registry);
+  }
+
+  if (!authorized) redirect("/client");
+
+  // Analytics are administrator-only; use the server-side service-role client
+  // after explicit identity and administrator-registry authorization.
+  const supabase = admin;
 
   const [clients, projects, tasks, requests] = await Promise.all([
     loadTable(supabase, "clients"),
