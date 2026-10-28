@@ -46,26 +46,46 @@ function normalizeRows(
   };
 }
 
+async function queryTablePage(
+  supabase: ReturnType<typeof createAdminClient>,
+  table: AnalyticsTable,
+  from: number,
+  to: number,
+): Promise<{ data: unknown[] | null; error: { message: string } | null }> {
+  switch (table) {
+    case "clients":
+      return await supabase.from("clients").select("*").order("id", { ascending: true }).range(from, to);
+    case "projects":
+      return await supabase.from("projects").select("*").order("id", { ascending: true }).range(from, to);
+    case "tasks":
+      return await supabase.from("tasks").select("*").order("id", { ascending: true }).range(from, to);
+    case "service_requests":
+      return await supabase.from("service_requests").select("*").order("id", { ascending: true }).range(from, to);
+    case "invoices":
+      return await supabase.from("invoices" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
+    case "payments":
+      return await supabase.from("payments" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
+    case "expenses":
+      return await supabase.from("expenses" as never).select("*").order("id", { ascending: true }).range(from, to) as unknown as { data: unknown[] | null; error: { message: string } | null };
+  }
+}
+
 async function loadTable(
   supabase: ReturnType<typeof createAdminClient>,
   table: AnalyticsTable,
 ): Promise<{ rows: AnalyticsRow[]; error: string | null }> {
-  switch (table) {
-    case "clients":
-      return normalizeRows(table, await supabase.from("clients").select("*").limit(2000));
-    case "projects":
-      return normalizeRows(table, await supabase.from("projects").select("*").limit(2000));
-    case "tasks":
-      return normalizeRows(table, await supabase.from("tasks").select("*").limit(2000));
-    case "service_requests":
-      return normalizeRows(table, await supabase.from("service_requests").select("*").limit(2000));
-    case "invoices":
-      return normalizeRows(table, await supabase.from("invoices" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
-    case "payments":
-      return normalizeRows(table, await supabase.from("payments" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
-    case "expenses":
-      return normalizeRows(table, await supabase.from("expenses" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
+  const allRows: unknown[] = [];
+  const pageSize = 1000;
+
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await queryTablePage(supabase, table, offset, offset + pageSize - 1);
+    if (result.error) return normalizeRows(table, result);
+    const page = result.data ?? [];
+    allRows.push(...page);
+    if (page.length < pageSize) break;
   }
+
+  return normalizeRows(table, { data: allRows, error: null });
 }
 
 export default async function AnalyticsPage() {
