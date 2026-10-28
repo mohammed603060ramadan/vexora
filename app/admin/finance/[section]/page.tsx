@@ -139,24 +139,33 @@ export default async function FinanceSectionPage({
     .order("created_at", { ascending: false })
     .limit(100);
 
+  if (error) {
+    console.error(`Admin finance register query failed (${section}):`, error);
+  }
+
   const rows = (data ?? []) as unknown as Row[];
-  const amountKey =
-    section === "invoices"
-      ? "total_amount"
-      : "amount";
+  const amountKey = section === "invoices" ? "total_amount" : "amount";
+  const totalsByCurrency = new Map<string, number>();
 
-  const total = rows.reduce((sum, row) => {
+  for (const row of rows) {
     const value = row[amountKey];
+    const amount =
+      typeof value === "number"
+        ? value
+        : typeof value === "string" && value.trim() !== ""
+          ? Number(value)
+          : 0;
 
-    if (typeof value === "number") return sum + value;
-
-    if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return sum + parsed;
-    }
-
-    return sum;
-  }, 0);
+    if (!Number.isFinite(amount)) continue;
+    const currency =
+      typeof row.currency === "string" && row.currency.trim()
+        ? row.currency.trim()
+        : "USD";
+    totalsByCurrency.set(
+      currency,
+      (totalsByCurrency.get(currency) ?? 0) + amount,
+    );
+  }
 
   const currencies = Array.from(
     new Set(
@@ -235,14 +244,18 @@ export default async function FinanceSectionPage({
 
           <div className="rounded-2xl border border-white/10 bg-[#10151e] p-5">
             <p className="text-sm text-slate-400">
-              Sum of displayed amounts
+              Displayed totals by currency
             </p>
             <p className="mt-3 break-words text-3xl font-bold tabular-nums">
               {error
                 ? "—"
-                : new Intl.NumberFormat("en-US", {
-                    maximumFractionDigits: 2,
-                  }).format(total)}
+                : [...totalsByCurrency.entries()]
+                    .map(([currency, amount]) =>
+                      `${currency} ${new Intl.NumberFormat("en-US", {
+                        maximumFractionDigits: 2,
+                      }).format(amount)}`,
+                    )
+                    .join(" · ") || "0.00"}
             </p>
             <p className="mt-2 text-xs text-slate-500">
               {currencies.length === 0
@@ -270,8 +283,8 @@ export default async function FinanceSectionPage({
               <p className="font-semibold">
                 Could not load {current.title.toLowerCase()}.
               </p>
-              <p className="mt-2 break-words text-red-200/80">
-                {error.message}
+              <p className="mt-2 text-red-200/80">
+                The finance records could not be loaded. Check the server logs for diagnostic details.
               </p>
               <p className="mt-2 text-xs text-slate-400">
                 Check the table schema, Supabase connection, and the current
