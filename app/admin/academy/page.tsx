@@ -121,6 +121,19 @@ export default function AcademyPage() {
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
         queryError = fallback.error;
+
+        if (queryError && /category|column .* does not exist|schema cache/i.test(queryError.message)) {
+          const legacy = await supabase.from("courses")
+            .select("id, title, slug, description, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency")
+            .order("created_at", { ascending: false });
+          data = (legacy.data ?? []).map((row) => ({
+            ...row,
+            category: "Cybersecurity",
+            cover_image_url: null,
+            promo_video_url: null,
+          })) as typeof data;
+          queryError = legacy.error;
+        }
       }
 
       if (queryError) {
