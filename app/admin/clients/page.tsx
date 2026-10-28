@@ -218,6 +218,25 @@ export default function ClientsPage() {
         } else {
           setClients((data ?? []) as Client[]);
         }
+
+        const {
+          data: registrationData,
+          error: registrationError,
+        } = await supabase
+          .from("student_registrations")
+          .select("id, full_name, email, track, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (!active) return;
+
+        if (registrationError) {
+          setCourseRegistrationsError("Course registrations could not be loaded. Check the Academy registration table and admin permissions.");
+          setCourseRegistrations([]);
+        } else {
+          setCourseRegistrations((registrationData ?? []) as CourseRegistration[]);
+          setCourseRegistrationsError("");
+        }
       } catch {
         if (active) {
           setError("An unexpected error occurred while loading clients.");
@@ -230,7 +249,6 @@ export default function ClientsPage() {
     }
 
     void initialLoad();
-    void loadCourseRegistrations();
 
     return () => {
       active = false;

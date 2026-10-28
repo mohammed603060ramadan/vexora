@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -17,8 +17,6 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
@@ -78,6 +76,7 @@ function formatDuration(minutes: number) {
 
 function CourseDetailsContent() {
   const params = useParams<{ slug: string }>();
+  const router = useRouter();
   const slug = params.slug;
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -117,23 +116,24 @@ function CourseDetailsContent() {
         const { data: authData } = await supabase.auth.getUser();
         const signedInUser = authData.user;
 
-        let { data: courseData, error: courseError } = await supabase
+        const { data: courseRow, error: courseError } = await supabase
           .from("courses")
-          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
+          .select("id, title, slug, description, difficulty, course_type, estimated_hours")
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
-
-        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
-          const fallback = await supabase.from("courses")
-            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
-            .eq("slug", slug)
-            .eq("status", "published")
-            .maybeSingle();
-          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
-          courseError = fallback.error;
-        }
         if (courseError) throw courseError;
+
+        const courseData = courseRow
+          ? {
+              ...courseRow,
+              subtitle: null,
+              price: null,
+              currency: null,
+              cover_image_url: null,
+              promo_video_url: null,
+            }
+          : null;
 
         if (!courseData) {
           setCourse(null);
@@ -307,7 +307,7 @@ function CourseDetailsContent() {
       });
       const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
       if (response.status === 401) {
-        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
@@ -451,9 +451,9 @@ function CourseDetailsContent() {
                 {course.title}
               </h1>
 
-              {course.subtitle && (
+              {(course.subtitle || course.description) && (
                 <p className="mt-5 max-w-3xl text-lg leading-8 text-white/65">
-                  {course.subtitle}
+                  {course.subtitle || course.description}
                 </p>
               )}
 
@@ -762,7 +762,7 @@ function CourseDetailsContent() {
               </button>
             )}
             {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
-            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>
+            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>}
 
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
               <div className="flex items-start gap-3">
