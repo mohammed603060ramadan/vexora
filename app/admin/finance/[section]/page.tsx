@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Row = Record<string, unknown>;
+
+function normalizeCurrency(value: unknown): string {
+  if (typeof value !== "string") return "UNKNOWN";
+  const currency = value.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(currency) ? currency : "UNKNOWN";
+}
+
 type Section = "invoices" | "payments" | "expenses";
 
 const config: Record<
@@ -157,10 +164,7 @@ export default async function FinanceSectionPage({
           : 0;
 
     if (!Number.isFinite(amount)) continue;
-    const currency =
-      typeof row.currency === "string" && row.currency.trim()
-        ? row.currency.trim()
-        : "USD";
+    const currency = normalizeCurrency(row.currency);
     totalsByCurrency.set(
       currency,
       (totalsByCurrency.get(currency) ?? 0) + amount,
@@ -169,12 +173,7 @@ export default async function FinanceSectionPage({
 
   const currencies = Array.from(
     new Set(
-      rows
-        .map((row) => row.currency)
-        .filter(
-          (currency): currency is string =>
-            typeof currency === "string" && currency.length > 0,
-        ),
+      rows.map((row) => normalizeCurrency(row.currency)),
     ),
   );
 
@@ -244,7 +243,7 @@ export default async function FinanceSectionPage({
 
           <div className="rounded-2xl border border-white/10 bg-[#10151e] p-5">
             <p className="text-sm text-slate-400">
-              Displayed totals by currency
+              Totals for the latest 100 records, grouped by currency
             </p>
             <p className="mt-3 break-words text-3xl font-bold tabular-nums">
               {error
@@ -259,7 +258,7 @@ export default async function FinanceSectionPage({
             </p>
             <p className="mt-2 text-xs text-slate-500">
               {currencies.length === 0
-                ? "Currency totals are not consolidated"
+                ? "Totals are limited to the latest 100 records and are not consolidated across currencies"
                 : currencies.length === 1
                   ? `Currency: ${currencies[0]}`
                   : "Multiple currencies — totals are not comparable"}
