@@ -82,7 +82,9 @@ export async function POST(request: Request) {
     }
 
     // A student who already has an active/completed enrollment should not
-    // create a fresh purchase/access request for the same course.
+    // create a fresh purchase/access request for the same course. Older
+    // deployments may not have an enrollments table or may use other statuses;
+    // only treat a confirmed enrollment as a reason to stop the request.
     const { data: enrollment, error: enrollmentError } = await admin
       .from("enrollments")
       .select("id,status")
@@ -92,8 +94,16 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    if (enrollmentError) throw enrollmentError;
-    if (enrollment) {
+    if (
+      enrollmentError &&
+      !/relation .*enrollments.* does not exist|could not find the table .*enrollments.*schema cache/i.test(
+        enrollmentError.message,
+      )
+    ) {
+      throw enrollmentError;
+    }
+
+    if (!enrollmentError && enrollment) {
       return NextResponse.json(
         {
           request: {
