@@ -233,14 +233,14 @@ function CourseDetailsContent() {
 
           if (!legacyResult.error && (legacyResult.data ?? []).length > 0) {
             loadedSections = [{
-              id: courseData.id,
+              id: String(courseData.id),
               title: "Course content",
               description: null,
               sequence_number: 1,
             }];
             loadedLessons = (legacyResult.data ?? []).map((lesson) => ({
               id: lesson.id,
-              section_id: courseData.id,
+              section_id: String(courseData.id),
               title: lesson.title,
               description: lesson.content,
               lesson_type: lesson.video_url ? "video" : "article",
