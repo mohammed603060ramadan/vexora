@@ -183,12 +183,16 @@ export default async function AdminFinancePage() {
   const projectNames = new Map(projectRows.map((project) => [project.id, project.name || "Unnamed project"]));
 
   const queryErrors = [
-    invoicesResult.error,
-    paymentsResult.error,
-    expensesResult.error,
-    clientsResult.error,
-    projectsResult.error,
-  ].filter(Boolean);
+    { source: "Invoices", error: invoicesResult.error },
+    { source: "Payments", error: paymentsResult.error },
+    { source: "Expenses", error: expensesResult.error },
+    { source: "Client records", error: clientsResult.error },
+    { source: "Project records", error: projectsResult.error },
+  ].filter((item): item is { source: string; error: NonNullable<typeof item.error> } => Boolean(item.error));
+
+  for (const item of queryErrors) {
+    console.error(`Admin finance query failed (${item.source}):`, item.error);
+  }
 
   const outstandingInvoices = invoices.filter((invoice) =>
     ["issued", "partially_paid", "overdue"].includes(invoice.status),
@@ -271,8 +275,8 @@ export default async function AdminFinancePage() {
           >
             <p>Some finance data could not be loaded. Check the Supabase table schema and migrations. No financial data has been modified.</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/80">
-              {queryErrors.map((item, index) => (
-                <li key={index}>{item?.message ?? "Unknown database error"}</li>
+              {queryErrors.map((item) => (
+                <li key={item.source}>{item.source}: records unavailable. Check the server logs for diagnostic details.</li>
               ))}
             </ul>
           </section>
