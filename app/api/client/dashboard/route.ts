@@ -17,6 +17,16 @@ type ClientRow = {
   created_at: string;
 };
 
+type ProjectRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  deadline: string | null;
+  created_at: string;
+};
+type ProjectBudgetRow = { id: string; budget: number | null };
+
 async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId: string, email: string | null) {
   // The repository Supabase Database type does not include every legacy clients column.
   // Keep this compatibility route dynamically typed at the query boundary only.
@@ -132,16 +142,18 @@ export async function GET() {
     const projectResult = await projectBase;
     if (projectResult.error) throw projectResult.error;
 
-    const projectIds = (projectResult.data ?? []).map((project) => project.id);
-    let projects = (projectResult.data ?? []).map((project) => ({ ...project, budget: null as number | null }));
+    const projectRows = (projectResult.data ?? []) as ProjectRow[];
+    const projectIds = projectRows.map((project: ProjectRow) => project.id);
+    let projects = projectRows.map((project: ProjectRow) => ({ ...project, budget: null as number | null }));
 
     if (projectIds.length) {
       const budgetResult = await db.from("projects")
         .select("id, budget")
         .in("id", projectIds);
       if (!budgetResult.error) {
-        const budgetById = new Map((budgetResult.data ?? []).map((project) => [project.id, project.budget]));
-        projects = projects.map((project) => ({ ...project, budget: budgetById.get(project.id) ?? null }));
+        const budgetRows = (budgetResult.data ?? []) as ProjectBudgetRow[];
+        const budgetById = new Map(budgetRows.map((project: ProjectBudgetRow) => [project.id, project.budget]));
+        projects = projects.map((project: ProjectRow & { budget: number | null }) => ({ ...project, budget: budgetById.get(project.id) ?? null }));
       } else if (!/budget|column .* does not exist|schema cache/i.test(budgetResult.error.message)) {
         throw budgetResult.error;
       }
