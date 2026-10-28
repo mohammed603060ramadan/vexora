@@ -124,7 +124,7 @@ export async function GET() {
           ? admin
               .from("projects")
               .select(
-                "id,title,description,status,deadline,progress_percent,client_id"
+                "id,title,description,status,deadline,client_id"
               )
               .eq("client_id", client.id)
               .order("created_at", { ascending: false })
@@ -190,7 +190,7 @@ export async function GET() {
       ? await admin
           .from("projects")
           .select(
-            "id,title,description,status,deadline,progress_percent,client_id"
+            "id,title,description,status,deadline,client_id"
           )
           .in("id", projectIds)
       : { data: [], error: null };
@@ -225,9 +225,9 @@ export async function GET() {
       .map((item) => ({
         ...item,
         title: item.title || "Project",
-        progress_percent: Number.isFinite(Number(item.progress_percent))
-          ? Math.max(0, Math.min(100, Number(item.progress_percent)))
-          : 0,
+        // This column is absent in the deployed projects schema. Preserve the
+        // response field for existing UI consumers without querying a missing DB column.
+        progress_percent: null,
       }));
 
     return NextResponse.json(
