@@ -22,7 +22,6 @@ type ProjectRequestsDatabase = {
         {
           id: string;
           title: string;
-          portfolio_category: string | null;
           show_on_projects_page: boolean;
           status: string;
         },
@@ -159,7 +158,7 @@ export async function GET() {
     const { data: projects, error: projectsError } = projectIds.length
       ? await admin
           .from("projects")
-          .select("id,title,portfolio_category")
+          .select("id,title")
           .in("id", projectIds)
       : { data: [], error: null };
 
