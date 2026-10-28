@@ -120,6 +120,7 @@ export default async function ClientInvoicesPage() {
   let invoices: Invoice[] = [];
   let items: InvoiceItem[] = [];
   let payments: Payment[] = [];
+  let balancePayments: Payment[] = [];
   let loadError = Boolean(clientResult.error);
 
   if (client) {
@@ -138,28 +139,29 @@ export default async function ClientInvoicesPage() {
     }
 
     const invoiceIds = invoices.map((invoice) => invoice.id);
-    const [itemResult, paymentResult] = invoiceIds.length
-      ? await Promise.all([
-          supabase
+    const [itemResult, paymentResult, balancePaymentResult] = await Promise.all([
+      invoiceIds.length
+        ? supabase
             .from("invoice_items" as never)
             .select("id, invoice_id, description, quantity, unit_price, line_total")
-            .in("invoice_id", invoiceIds) as unknown as Promise<{ data: InvoiceItem[] | null; error: { message: string } | null }>,
-          supabase
+            .in("invoice_id", invoiceIds) as unknown as Promise<{ data: InvoiceItem[] | null; error: { message: string } | null }>
+        : Promise.resolve({ data: [] as InvoiceItem[], error: null }),
+      supabase
+        .from("payments" as never)
+        .select("id, invoice_id, payment_number, amount, currency, payment_method, status, paid_at")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(100) as unknown as Promise<{ data: Payment[] | null; error: { message: string } | null }>,
+      invoiceIds.length
+        ? supabase
             .from("payments" as never)
             .select("id, invoice_id, payment_number, amount, currency, payment_method, status, paid_at")
             .eq("client_id", client.id)
-            .order("created_at", { ascending: false })
-            .limit(100) as unknown as Promise<{ data: Payment[] | null; error: { message: string } | null }>,
-        ])
-      : [
-          { data: [] as InvoiceItem[], error: null },
-          await supabase
-            .from("payments" as never)
-            .select("id, invoice_id, payment_number, amount, currency, payment_method, status, paid_at")
-            .eq("client_id", client.id)
-            .order("created_at", { ascending: false })
-            .limit(100) as unknown as { data: Payment[] | null; error: { message: string } | null },
-        ];
+            .in("invoice_id", invoiceIds)
+            .eq("status", "completed")
+            .limit(5000) as unknown as Promise<{ data: Payment[] | null; error: { message: string } | null }>
+        : Promise.resolve({ data: [] as Payment[], error: null }),
+    ]);
 
     if (itemResult.error) {
       console.error("Client invoice items query failed:", itemResult.error);
@@ -174,6 +176,13 @@ export default async function ClientInvoicesPage() {
     } else {
       payments = paymentResult.data ?? [];
     }
+
+    if (balancePaymentResult.error) {
+      console.error("Client invoice balance payment query failed:", balancePaymentResult.error);
+      loadError = true;
+    } else {
+      balancePayments = balancePaymentResult.data ?? [];
+    }
   }
 
   const itemsByInvoice = new Map<string, InvoiceItem[]>();
@@ -184,7 +193,7 @@ export default async function ClientInvoicesPage() {
   }
 
   const completedPaymentsByInvoiceCurrency = new Map<string, number>();
-  for (const payment of payments) {
+  for (const payment of balancePayments) {
     if (payment.status !== "completed" || !payment.invoice_id) continue;
     const currency = (payment.currency || "USD").trim().toUpperCase();
     const key = `${payment.invoice_id}:${currency}`;
