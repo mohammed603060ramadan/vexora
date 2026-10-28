@@ -156,8 +156,8 @@ CREATE TRIGGER course_access_requests_grant_enrollment
 DO $$
 BEGIN
   IF to_regclass('public.lessons') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS lessons_read ON public.lessons';
     EXECUTE $policy$
-      DROP POLICY IF EXISTS lessons_read ON public.lessons;
       CREATE POLICY lessons_read
       ON public.lessons
       FOR SELECT TO anon, authenticated
@@ -182,7 +182,7 @@ BEGIN
               AND c.instructor_id = (SELECT auth.uid())
           )
         )
-      );
+      )
     $policy$;
   ELSIF to_regclass('public.course_lessons') IS NOT NULL THEN
     RAISE NOTICE 'VEXORA uses public.course_lessons; its existing RLS policies were preserved. Review the read-only schema audit before changing lesson access policies.';
