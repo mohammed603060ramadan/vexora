@@ -190,10 +190,11 @@ function CourseDetailsContent() {
               .order("sequence_number", { ascending: true });
 
             if (lessonResult.error) {
-              const missingLessonSchema =
-                /lessons|relation .* does not exist|column .* does not exist|schema cache/i.test(lessonResult.error.message);
-              if (!missingLessonSchema) throw lessonResult.error;
-              lessonSchemaUnavailable = missingLessonSchema;
+              // The newer lessons query is optional for legacy deployments and
+              // can also fail because of RLS. Try the supported legacy table;
+              // never fail the whole course page for a curriculum query.
+              console.error("Published lessons could not be loaded; trying legacy schema:", lessonResult.error);
+              lessonSchemaUnavailable = true;
             } else {
               loadedLessons = (lessonResult.data ?? []) as Lesson[];
             }
