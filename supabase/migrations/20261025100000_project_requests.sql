@@ -19,7 +19,7 @@ create index if not exists project_requests_project_status_idx
 
 -- Enforce that the requested project belongs to the same client recorded on
 -- the request. The pair constraint is additive and does not change existing rows.
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -30,9 +30,9 @@ BEGIN
       ADD CONSTRAINT projects_id_client_id_unique UNIQUE (id, client_id);
   END IF;
 END;
-$;
+$$;
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -46,7 +46,7 @@ BEGIN
       ON DELETE CASCADE NOT VALID;
   END IF;
 END;
-$;
+$$;
 
 -- NOT VALID preserves existing data while enforcing the relationship for
 -- new/updated requests. Validate after the live schema audit confirms legacy rows.
