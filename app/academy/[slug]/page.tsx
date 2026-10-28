@@ -38,6 +38,7 @@ type Lesson = {
   is_preview: boolean;
   sequence_number: number;
   status: string;
+  video_url?: string | null;
 };
 
 type FilteredSection = Section & {
@@ -92,6 +93,7 @@ function CourseDetailsContent() {
   const [accessError, setAccessError] = useState("");
   const [accessResult, setAccessResult] = useState<{ code: string; status: string; message: string } | null>(null);
   const [hasCourseAccess, setHasCourseAccess] = useState(false);
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
 
   const loadCourse = useCallback(
     async (isRefresh = false) => {
@@ -249,6 +251,7 @@ function CourseDetailsContent() {
               is_preview: false,
               sequence_number: lesson.sort_order ?? 0,
               status: "published",
+              video_url: lesson.video_url,
             }));
           }
         }
@@ -630,6 +633,23 @@ function CourseDetailsContent() {
             </section>
 
             <section className="mt-14">
+              {activeLesson?.video_url && (
+                <div className="mb-7 overflow-hidden rounded-2xl border border-[#45a5ff]/25 bg-black">
+                  <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                    <p className="text-sm font-semibold">{activeLesson.title}</p>
+                    <button type="button" onClick={() => setActiveLesson(null)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 hover:text-white">Close player</button>
+                  </div>
+                  {(() => {
+                    const videoUrl = activeLesson.video_url || "";
+                    const youtubeMatch = videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i);
+                    const vimeoMatch = videoUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+                    if (youtubeMatch) return <iframe title={activeLesson.title} className="aspect-video w-full" src={`https://www.youtube-nocookie.com/embed/${youtubeMatch[1]}?rel=0`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />;
+                    if (vimeoMatch) return <iframe title={activeLesson.title} className="aspect-video w-full" src={`https://player.vimeo.com/video/${vimeoMatch[1]}`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />;
+                    if (/\.(mp4|webm|ogg)(?:[?#].*)?$/i.test(videoUrl)) return <video className="aspect-video w-full" src={videoUrl} controls playsInline />;
+                    return <a className="block p-5 text-sm text-sky-300 underline" href={videoUrl} target="_blank" rel="noreferrer">Open this video in a new tab ↗</a>;
+                  })()}
+                </div>
+              )}
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
@@ -781,6 +801,9 @@ function CourseDetailsContent() {
                                       </span>
                                     </span>
 
+                                    {lesson.video_url && (
+                                      <button type="button" onClick={() => { setActiveLesson(lesson); }} className="shrink-0 rounded-full border border-[#45a5ff]/30 bg-[#1687ff]/10 px-3 py-2 text-xs font-semibold text-[#9bd1ff] transition hover:bg-[#1687ff]/20">▶ Watch here</button>
+                                    )}
                                     <span className="shrink-0 text-right">
                                       {lesson.is_preview && (
                                         <span className="block text-xs font-medium text-[#79bdff]">
