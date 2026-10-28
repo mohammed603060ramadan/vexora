@@ -626,6 +626,10 @@ export default function ClientPage() {
   const [requestsError, setRequestsError] = useState("");
 
   const [activeView, setActiveView] = useState<View>("overview");
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("all");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -914,6 +918,32 @@ export default function ClientPage() {
     ),
     1
   );
+
+  const filteredProjects = useMemo(() => {
+    const query = projectSearch.trim().toLowerCase();
+    return projects.filter((project) => {
+      const matchesQuery = !query || [project.title, project.description ?? "", project.status]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesStatus = projectStatusFilter === "all"
+        || (projectStatusFilter === "active" && isActiveProject(project.status))
+        || (projectStatusFilter === "completed" && isCompleted(project.status))
+        || (projectStatusFilter === "cancelled" && isCancelled(project.status));
+      return matchesQuery && matchesStatus;
+    });
+  }, [projects, projectSearch, projectStatusFilter]);
+
+  const filteredTasks = useMemo(() => {
+    const query = taskSearch.trim().toLowerCase();
+    return tasks.filter((task) => {
+      const matchesQuery = !query || [task.title, task.description ?? "", task.priority, task.status]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesStatus = taskStatusFilter === "all"
+        || (taskStatusFilter === "completed" && isCompleted(task.status))
+        || (taskStatusFilter === "overdue" && isOverdue(task.due_date, task.status))
+        || (taskStatusFilter === "open" && !isCompleted(task.status) && !isCancelled(task.status));
+      return matchesQuery && matchesStatus;
+    });
+  }, [tasks, taskSearch, taskStatusFilter]);
 
   /* =========================================================
      NAVIGATION
@@ -2159,8 +2189,20 @@ export default function ClientPage() {
                 />
               </div>
 
+              <div className="mb-5 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-[minmax(0,1fr)_190px]">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Search projects</span>
+                  <input value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder="Search title, details, or status…" className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/10" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Project status</span>
+                  <select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)} className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-3 text-sm text-white outline-none focus:border-blue-400/50">
+                    <option value="all">All projects</option><option value="active">Active</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option>
+                  </select>
+                </label>
+              </div>
               <div className="project-cards-grid">
-                {projects.map((project, index) => (
+                {filteredProjects.map((project, index) => (
                   <article
                     key={project.id}
                     className="premium-project-card"
@@ -2235,7 +2277,7 @@ export default function ClientPage() {
                   </article>
                 ))}
 
-                {projects.length === 0 && (
+                {filteredProjects.length === 0 && (
                   <div className="empty-state full-span">
                     <div>
                       <Icon
@@ -2245,13 +2287,11 @@ export default function ClientPage() {
                     </div>
 
                     <h3>
-                      No projects available
+                      No matching projects
                     </h3>
 
                     <p>
-                      There are currently no
-                      projects connected to this
-                      client account.
+                      Try changing your search or status filter. If you expected projects here, confirm that the client record is linked.
                     </p>
                   </div>
                 )}
@@ -2324,8 +2364,20 @@ export default function ClientPage() {
                   </div>
                 </div>
 
+                <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Find a task</span>
+                    <input value={taskSearch} onChange={(event) => setTaskSearch(event.target.value)} placeholder="Search task, priority, or status…" className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/10" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Show tasks</span>
+                    <select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value)} className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-3 text-sm text-white outline-none focus:border-blue-400/50">
+                      <option value="all">All tasks</option><option value="open">Open</option><option value="completed">Completed</option><option value="overdue">Overdue</option>
+                    </select>
+                  </label>
+                </div>
                 <div className="tasks-list">
-                  {tasks.map((task) => {
+                  {filteredTasks.map((task) => {
                     const overdue = isOverdue(
                       task.due_date,
                       task.status
@@ -2413,10 +2465,9 @@ export default function ClientPage() {
                     );
                   })}
 
-                  {tasks.length === 0 && (
+                  {filteredTasks.length === 0 && (
                     <div className="small-empty">
-                      No tasks are currently
-                      attached to your projects.
+                      No tasks match these filters. Try a different search or status.
                     </div>
                   )}
                 </div>
