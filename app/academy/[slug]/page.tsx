@@ -151,6 +151,7 @@ function CourseDetailsContent() {
 
         let loadedSections: Section[] = [];
         let loadedLessons: Lesson[] = [];
+        let lessonSchemaUnavailable = false;
 
         if (!sectionResult.error) {
           loadedSections = (sectionResult.data ?? []) as Section[];
@@ -170,6 +171,7 @@ function CourseDetailsContent() {
               const missingLessonSchema =
                 /lessons|relation .* does not exist|column .* does not exist|schema cache/i.test(lessonResult.error.message);
               if (!missingLessonSchema) throw lessonResult.error;
+              lessonSchemaUnavailable = missingLessonSchema;
             } else {
               loadedLessons = (lessonResult.data ?? []) as Lesson[];
             }
@@ -182,7 +184,7 @@ function CourseDetailsContent() {
 
         // Legacy VEXORA schema stores lessons directly in course_lessons,
         // without course_sections or the newer lessons table.
-        if (loadedSections.length === 0) {
+        if (loadedSections.length === 0 || lessonSchemaUnavailable) {
           const legacyResult = await supabase
             .from("course_lessons" as never)
             .select("id, course_id, title, content, video_url, sort_order, is_published" as never)
