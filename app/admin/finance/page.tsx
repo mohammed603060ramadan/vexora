@@ -167,11 +167,20 @@ export default async function AdminFinancePage() {
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const clientNames = new Map((clientsResult.data ?? []).map((client) => [
+  const clientRows = (clientsResult.data ?? []) as Array<{
+    id: string;
+    name: string | null;
+    company_name: string | null;
+  }>;
+  const projectRows = (projectsResult.data ?? []) as Array<{
+    id: string;
+    name: string | null;
+  }>;
+  const clientNames = new Map(clientRows.map((client) => [
     client.id,
     client.company_name || client.name || "Unnamed client",
   ]));
-  const projectNames = new Map((projectsResult.data ?? []).map((project) => [project.id, project.name || "Unnamed project"]));
+  const projectNames = new Map(projectRows.map((project) => [project.id, project.name || "Unnamed project"]));
 
   const queryErrors = [
     invoicesResult.error,
