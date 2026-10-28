@@ -2,9 +2,9 @@ name: VEXORA CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, fix/client-portal-live-data-and-ux-2026-10-28]
   pull_request:
-    branches: [master]
+    branches: [master, fix/integrated-admin-client-db-audit-2026-10-27]
 
 permissions:
   contents: read
