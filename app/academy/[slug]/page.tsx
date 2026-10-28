@@ -384,12 +384,19 @@ function CourseDetailsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
       });
-      const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
+      const payload = await response.json() as { free?: boolean; enrolled?: boolean; request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
       if (response.status === 401) {
         router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
+      if (payload.free && payload.enrolled) {
+        setHasCourseAccess(true);
+        setAccessResult(null);
+        setAccessError("");
+        setLastUpdated(new Date());
+        return;
+      }
       setAccessResult({ code: payload.request.purchase_code || "CODE PENDING", status: payload.request.status || "pending", message: payload.message || "Access will be enabled after administrator approval." });
     } catch (cause) {
       setAccessError(cause instanceof Error ? cause.message : "Unable to request course access.");
@@ -830,6 +837,15 @@ function CourseDetailsContent() {
 
             {hasCourseAccess ? (
               <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">✓ Open my courses</Link>
+            ) : course.price != null && Number(course.price) === 0 ? (
+              <button
+                type="button"
+                onClick={() => void requestAccess()}
+                disabled={accessLoading}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
+              >
+                {accessLoading ? "Enrolling…" : "Enroll for free"}
+              </button>
             ) : (
               <button
                 type="button"
