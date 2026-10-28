@@ -351,6 +351,14 @@ function Icon({
         </svg>
       );
 
+    case "invoices":
+      return (
+        <svg {...common}>
+          <path d="M6 3.5h9l4 4V21l-2-1.5L15 21l-3-1.5L9 21l-3-1.5L4 21V5.5A2 2 0 0 1 6 3.5Z" />
+          <path d="M14.5 3.8V8H19M8 12h7M8 15.5h7" />
+        </svg>
+      );
+
     case "check":
       return (
         <svg {...common}>
@@ -1331,6 +1339,20 @@ export default function ClientPage() {
               </button>
             );
           })}
+
+          <Link
+            href="/client/invoices"
+            className="sidebar-nav-item"
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <span className="sidebar-nav-icon">
+              <Icon name="invoices" size={19} />
+            </span>
+            <span className="sidebar-nav-text">
+              <strong>Invoices & Payments</strong>
+              <small>Billing and payment history</small>
+            </span>
+          </Link>
         </nav>
 
         <div className="sidebar-help">
