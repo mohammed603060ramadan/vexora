@@ -17,6 +17,40 @@ create index if not exists project_requests_client_created_idx
 create index if not exists project_requests_project_status_idx
   on public.project_requests (project_id, status);
 
+-- Enforce that the requested project belongs to the same client recorded on
+-- the request. The pair constraint is additive and does not change existing rows.
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.projects'::regclass
+      AND conname = 'projects_id_client_id_unique'
+  ) THEN
+    ALTER TABLE public.projects
+      ADD CONSTRAINT projects_id_client_id_unique UNIQUE (id, client_id);
+  END IF;
+END;
+$;
+
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.project_requests'::regclass
+      AND conname = 'project_requests_project_client_fk'
+  ) THEN
+    ALTER TABLE public.project_requests
+      ADD CONSTRAINT project_requests_project_client_fk
+      FOREIGN KEY (project_id, client_id)
+      REFERENCES public.projects (id, client_id)
+      ON DELETE CASCADE NOT VALID;
+  END IF;
+END;
+$;
+
+-- NOT VALID preserves existing data while enforcing the relationship for
+-- new/updated requests. Validate after the live schema audit confirms legacy rows.
+
 -- One active request per client/project. Closed requests may be submitted again.
 create unique index if not exists project_requests_one_open_per_client_project
   on public.project_requests (client_id, project_id)
