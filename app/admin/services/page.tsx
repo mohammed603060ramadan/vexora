@@ -278,14 +278,21 @@ export default function AdminServicesPage() {
     setSaving(true);
 
     try {
+      // Preserve an existing department relationship when editing a service.
+      // New services remain unassigned until the form supports department selection.
+      const existingDepartmentId = editingId
+        ? services.find((service) => service.id === editingId)?.department_id ?? null
+        : null;
+
       const payload = {
         name,
         slug,
-        department_id: null,
+        department_id: existingDepartmentId,
         description: form.description.trim() || null,
         starting_price: price,
         currency,
-        estimated_days: days ?? undefined,
+        // Send null when the field is cleared so edits can remove the old value.
+        estimated_days: days,
         status: form.status,
         display_order: displayOrder,
       };
