@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { connection } from "next/server";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type Row = Record<string, unknown>;
 type Section = "invoices" | "payments" | "expenses";
@@ -118,11 +119,21 @@ export default async function FinanceSectionPage({
     redirect("/login?next=/admin/finance/" + section);
   }
 
-  if (user.app_metadata?.role !== "admin") {
-    redirect("/client");
+  let authorized = user.app_metadata?.role === "admin";
+  const admin = createAdminClient();
+
+  if (!authorized) {
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    authorized = !registryError && Boolean(registry);
   }
 
-  const { data, error } = await supabase
+  if (!authorized) redirect("/client");
+
+  const { data, error } = await admin
     .from(current.table as never)
     .select("*")
     .order("created_at", { ascending: false })
