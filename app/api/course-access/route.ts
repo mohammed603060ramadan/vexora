@@ -39,6 +39,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in before requesting course access.", 401);
+  const userId = userId;
   const email = user.email?.trim().toLowerCase();
   if (!email) return fail("Your account needs a verified email address.", 400);
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
         .from("enrollments")
         .select("id,status")
         .eq("course_id", courseId)
-        .eq("student_id", user.id)
+        .eq("student_id", userId)
         .limit(1)
         .maybeSingle();
 
@@ -80,13 +81,13 @@ export async function POST(request: Request) {
       if (!existingEnrollment || !["active", "completed"].includes(existingEnrollment.status)) {
         const enrollmentPayload = {
           course_id: courseId,
-          student_id: user.id,
+          student_id: userId,
           status: "active",
           progress_percent: 0,
         };
         let enrollmentInsert = await admin
           .from("enrollments")
-          .insert({ ...enrollmentPayload, enrolled_by: user.id });
+          .insert({ ...enrollmentPayload, enrolled_by: userId });
 
         if (enrollmentInsert.error && /enrolled_by|column .* does not exist|schema cache/i.test(enrollmentInsert.error.message)) {
           enrollmentInsert = await admin
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
             .from("enrollments")
             .select("id,status")
             .eq("course_id", courseId)
-            .eq("student_id", user.id)
+            .eq("student_id", userId)
             .limit(1)
             .maybeSingle();
           if (racedError || !racedEnrollment || !["active", "completed"].includes(racedEnrollment.status)) {
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
       .from("course_access_requests")
       .select("id,purchase_code,status,course_id,created_at")
       .eq("course_id", courseId)
-      .eq("student_id", user.id)
+      .eq("student_id", userId)
       .in("status", ["pending", "approved"])
       .order("created_at", { ascending: false })
       .limit(1)
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
       .from("enrollments")
       .select("id,status")
       .eq("course_id", courseId)
-      .eq("student_id", user.id)
+      .eq("student_id", userId)
       .in("status", ["active", "completed"])
       .limit(1)
       .maybeSingle();
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
       .from("course_access_requests")
       .select("id,purchase_code,status,course_id,created_at")
       .eq("course_id", courseId)
-      .eq("student_id", user.id)
+      .eq("student_id", userId)
       .in("status", ["rejected", "cancelled"])
       .order("created_at", { ascending: false })
       .limit(1)
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
 
     const { data: created, error: insertError } = await admin
       .from("course_access_requests")
-      .insert({ course_id: courseId, student_id: user.id, email, student_message: studentMessage })
+      .insert({ course_id: courseId, student_id: userId, email, student_message: studentMessage })
       .select("id,purchase_code,status,course_id,created_at")
       .single();
     if (insertError) throw insertError;
@@ -224,7 +225,7 @@ export async function POST(request: Request) {
           .from("course_access_requests")
           .select("id,purchase_code,status,course_id,created_at")
           .eq("course_id", courseId)
-          .eq("student_id", user.id)
+          .eq("student_id", userId)
           .in("status", ["pending", "approved"])
           .order("created_at", { ascending: false })
           .limit(1)
