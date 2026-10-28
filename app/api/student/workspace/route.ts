@@ -116,7 +116,7 @@ export async function GET() {
           ? admin
               .from("projects")
               .select(
-                "id,title,description,status,deadline,client_id"
+                "id,title,description,status,deadline,progress_percent,client_id"
               )
               .eq("client_id", client.id)
               .order("created_at", { ascending: false })
@@ -217,7 +217,9 @@ export async function GET() {
       .map((item) => ({
         ...item,
         title: item.title || "Project",
-        progress_percent: null,
+        progress_percent: Number.isFinite(Number(item.progress_percent))
+          ? Math.max(0, Math.min(100, Number(item.progress_percent)))
+          : 0,
       }));
 
     return NextResponse.json(
