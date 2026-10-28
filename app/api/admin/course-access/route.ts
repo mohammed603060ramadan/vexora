@@ -13,7 +13,8 @@ async function authorizeAdmin() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return { user: null, response: fail("Sign in required.", 401) };
   if (data.user.app_metadata?.role === "admin") return { user: data.user, response: null };
-  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  const admin: any = createAdminClient();
   const { data: registry, error: registryError } = await admin
     .from("vexora_admins")
     .select("user_id")
@@ -27,7 +28,8 @@ export async function GET() {
   const auth = await authorizeAdmin();
   if (auth.response) return auth.response;
   try {
-    const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  const admin: any = createAdminClient();
     const { data, error } = await admin
       .from("course_access_requests")
       .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type,cover_image_url,promo_video_url)")
@@ -52,7 +54,8 @@ export async function PATCH(request: Request) {
   const status = body.status as "approved" | "rejected" | "pending";
   const adminNote = "adminNote" in body && typeof body.adminNote === "string" ? body.adminNote.trim().slice(0, 1500) || null : null;
   try {
-    const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types do not include course_access_requests yet.
+  const admin: any = createAdminClient();
     const { data: current, error: currentError } = await admin
       .from("course_access_requests")
       .select("id,status,course_id,student_id")
@@ -60,6 +63,16 @@ export async function PATCH(request: Request) {
       .maybeSingle();
     if (currentError) throw currentError;
     if (!current) return fail("Access request not found.", 404);
+
+    // Approval activates a real enrollment. Do not let a later status edit
+    // make the request look unapproved while leaving that enrollment active.
+    if (current.status === "approved" && status !== "approved") {
+      return fail(
+        "This request is already approved and the student has course access. Approved requests cannot be reverted here.",
+        409,
+      );
+    }
+
     if (status === "approved") {
       const { data: course, error: courseError } = await admin.from("courses").select("id,status").eq("id", current.course_id).maybeSingle();
       if (courseError) throw courseError;

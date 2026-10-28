@@ -115,14 +115,14 @@ function CyberVisual() {
             VEXORA / SECURITY
           </p>
           <p className="mt-1 font-mono text-[8px] text-gray-600">
-            SECURITY OPERATIONS INTERFACE
+            ILLUSTRATIVE SECURITY CONCEPT
           </p>
         </div>
 
         <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-3 py-1.5">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
           <span className="font-mono text-[8px] tracking-wider text-emerald-300">
-            SECURE
+            CONCEPT
           </span>
         </div>
       </div>
@@ -194,23 +194,23 @@ function CyberVisual() {
       <div className="absolute bottom-6 left-6 right-6 grid grid-cols-3 gap-2">
         <div className="rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur-md">
           <p className="font-mono text-[7px] tracking-widest text-gray-600">
-            THREATS
+            THREAT VISIBILITY
           </p>
-          <p className="mt-1 text-[10px] text-emerald-300">MONITORED</p>
+          <p className="mt-1 text-[10px] text-emerald-300">ILLUSTRATIVE</p>
         </div>
 
         <div className="rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur-md">
           <p className="font-mono text-[7px] tracking-widest text-gray-600">
             NETWORK
           </p>
-          <p className="mt-1 text-[10px] text-cyan-300">ACTIVE</p>
+          <p className="mt-1 text-[10px] text-cyan-300">PROTECTION</p>
         </div>
 
         <div className="rounded-xl border border-white/5 bg-black/30 p-3 backdrop-blur-md">
           <p className="font-mono text-[7px] tracking-widest text-gray-600">
             SYSTEM
           </p>
-          <p className="mt-1 text-[10px] text-blue-300">SECURE</p>
+          <p className="mt-1 text-[10px] text-blue-300">RESILIENCE</p>
         </div>
       </div>
 
@@ -253,13 +253,13 @@ function CapabilityVisual({
     return (
       <div className="mt-7 rounded-xl border border-white/5 bg-black/20 p-3 font-mono text-[8px] leading-4 text-cyan-300/60">
         <div>
-          <span className="text-blue-400">GET</span> /api/security
+          <span className="text-blue-400">EXAMPLE</span> application request
         </div>
         <div>
-          <span className="text-emerald-400">200</span> response
+          <span className="text-emerald-400">DEMO</span> response status
         </div>
         <div>
-          <span className="text-violet-300">AUTH</span> verified
+          <span className="text-violet-300">AUTH</span> control example
         </div>
       </div>
     );
@@ -441,6 +441,13 @@ export default function CybersecurityPage() {
               Contact
             </Link>
           </nav>
+
+          <Link
+            href="/contact"
+            className="shrink-0 rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] px-4 py-2 text-xs font-semibold text-cyan-100 transition duration-300 hover:border-cyan-200/60 hover:bg-cyan-300/[0.14] sm:text-sm"
+          >
+            Start a Project <span aria-hidden="true">↗</span>
+          </Link>
         </div>
       </header>
 
@@ -632,7 +639,7 @@ export default function CybersecurityPage() {
                 <div className="relative mt-6 flex items-center justify-between border-t border-white/[0.06] pt-4">
                   <span className="flex items-center gap-2 font-mono text-[8px] tracking-[0.2em] text-gray-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-                    ACTIVE
+                    SERVICE OFFERING
                   </span>
 
                   <span className="text-sm text-gray-600 transition duration-300 group-hover:translate-x-1 group-hover:text-blue-300">
@@ -680,13 +687,10 @@ export default function CybersecurityPage() {
                   <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
 
                   <span className="font-mono text-[9px] tracking-[0.2em] text-emerald-300">
-                    PROCESS STATUS: ACTIVE
+                    ENGAGEMENT WORKFLOW
                   </span>
                 </div>
 
-                <div className="mt-5 h-1 overflow-hidden rounded-full bg-white/5">
-                  <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-blue-500 to-cyan-300" />
-                </div>
               </div>
             </div>
 
@@ -727,18 +731,18 @@ export default function CybersecurityPage() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-2xl border border-yellow-500/10 bg-yellow-500/[0.025] p-5">
-            <div className="flex gap-4">
-              <span className="mt-1 text-yellow-400">!</span>
-
-              <p className="max-w-4xl text-sm leading-7 text-gray-500">
-                Security assessments are performed only on systems and assets
-                that the client owns or is explicitly authorized to have
-                assessed. Scope and deliverables are agreed upon before work
-                begins.
-              </p>
+          <aside aria-labelledby="ethical-security-heading" className="mt-10 rounded-2xl border border-cyan-300/15 bg-gradient-to-r from-cyan-300/[0.06] to-blue-500/[0.025] p-6 sm:p-7">
+            <div className="flex items-start gap-4">
+              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/[0.08] font-mono text-sm text-cyan-300">01</span>
+              <div>
+                <p className="font-mono text-[9px] tracking-[0.25em] text-cyan-300">ETHICAL SECURITY PRACTICE</p>
+                <h3 id="ethical-security-heading" className="mt-2 text-lg font-semibold text-white">Authorized, agreed, and clearly scoped.</h3>
+                <p className="mt-3 max-w-4xl text-sm leading-7 text-gray-400">
+                  Security assessments are performed only on systems and assets that the client owns or is explicitly authorized to have assessed. Scope, objectives, and deliverables are agreed upon before work begins.
+                </p>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </section>
 

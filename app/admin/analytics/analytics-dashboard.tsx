@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -10,6 +10,9 @@ type Props = {
   projects: AnalyticsRow[];
   tasks: AnalyticsRow[];
   requests: AnalyticsRow[];
+  invoices: AnalyticsRow[];
+  payments: AnalyticsRow[];
+  expenses: AnalyticsRow[];
   errors: string[];
 };
 
@@ -25,6 +28,34 @@ function value(row: AnalyticsRow, key: string): string {
 
 function normalizedStatus(row: AnalyticsRow): string {
   return value(row, "status").toLowerCase().replaceAll("_", " ").trim();
+}
+
+function completedPaymentTotals(rows: AnalyticsRow[]): string {
+  const totals = new Map<string, number>();
+
+  for (const row of rows) {
+    if (normalizedStatus(row) !== "completed") continue;
+    const amount = Number(value(row, "amount"));
+    if (!Number.isFinite(amount)) continue;
+
+    const rawCurrency = value(row, "currency").trim().toUpperCase();
+    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "UNKNOWN";
+    totals.set(currency, (totals.get(currency) ?? 0) + amount);
+  }
+
+  if (totals.size === 0) return "No completed payments";
+
+  return [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([currency, amount]) => {
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "decimal",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+      return `${currency} ${formatted}`;
+    })
+    .join(" · ");
 }
 
 function isCompleted(row: AnalyticsRow): boolean {
@@ -122,6 +153,9 @@ export default function AnalyticsDashboard({
   projects,
   tasks,
   requests,
+  invoices,
+  payments,
+  expenses,
   errors,
 }: Props) {
   const [period, setPeriod] = useState<Period>("30");
@@ -178,6 +212,9 @@ export default function AnalyticsDashboard({
       ...projects,
       ...tasks,
       ...requests,
+      ...invoices,
+      ...payments,
+      ...expenses,
     ];
 
     for (const row of allRows) {
@@ -190,7 +227,7 @@ export default function AnalyticsDashboard({
     }
 
     return months;
-  }, [clients, projects, tasks, requests, days]);
+  }, [clients, projects, tasks, requests, invoices, payments, expenses, days]);
 
   const maxActivity = Math.max(1, ...monthlyActivity.map((item) => item.count));
 
@@ -240,6 +277,9 @@ export default function AnalyticsDashboard({
       ...projects.map((row) => ({ row, type: "Project", href: "/admin/projects", icon: "▦" })),
       ...tasks.map((row) => ({ row, type: "Task", href: "/admin/tasks", icon: "✓" })),
       ...requests.map((row) => ({ row, type: "Service request", href: "/admin/service-requests", icon: "↗" })),
+      ...invoices.map((row) => ({ row, type: "Invoice", href: "/admin/finance/invoices", icon: "$" })),
+      ...payments.map((row) => ({ row, type: "Payment", href: "/admin/finance/payments", icon: "↙" })),
+      ...expenses.map((row) => ({ row, type: "Expense", href: "/admin/finance/expenses", icon: "−" })),
     ];
 
     return entries
@@ -249,7 +289,7 @@ export default function AnalyticsDashboard({
         return dateB - dateA;
       })
       .slice(0, 6);
-  }, [clients, projects, tasks, requests]);
+  }, [clients, projects, tasks, requests, invoices, payments, expenses]);
 
   return (
     <main className="min-h-screen bg-[#080b10] px-4 py-6 text-white sm:px-7 sm:py-8">
@@ -275,8 +315,16 @@ export default function AnalyticsDashboard({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2 text-xs text-emerald-300">
-              ● Connected to current page data
+            <span
+              role="status"
+              aria-live="polite"
+              className={errors.length > 0
+                ? "rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-2 text-xs text-amber-200"
+                : "rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2 text-xs text-emerald-300"}
+            >
+              {errors.length > 0
+                ? `● Partial data · ${errors.length} source${errors.length === 1 ? "" : "s"} unavailable`
+                : "● Connected to current page data"}
             </span>
             <label className="sr-only" htmlFor="analytics-period">Analytics period</label>
             <select
@@ -306,9 +354,13 @@ export default function AnalyticsDashboard({
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total clients" number={clients.length} detail={`${filtered.clients.length} created in selected period`} icon="◉" accent="bg-blue-500/20" />
-          <MetricCard label="Total projects" number={projects.length} detail={`${activeProjects} currently active` } icon="▦" accent="bg-violet-500/20" />
+          <MetricCard label="Total projects" number={projects.length} detail={`${activeProjects} currently active`} icon="▦" accent="bg-violet-500/20" />
           <MetricCard label="Open service requests" number={openRequests} detail={`${filtered.requests.length} requests in selected period`} icon="↗" accent="bg-cyan-500/20" />
           <MetricCard label="Overdue tasks" number={overdueTasks} detail={`${completedTasks} tasks completed overall`} icon="◷" accent="bg-rose-500/20" />
+          <Link href="/admin/finance/invoices" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Invoices" number={invoices.length} detail="Open invoice register" icon="$" accent="bg-amber-500/20" /></Link>
+          <Link href="/admin/finance/payments" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Payments" number={payments.length} detail="Open payment register" icon="↙" accent="bg-emerald-500/20" /></Link>
+          <div className="sm:col-span-2"><MetricCard label="Completed payment value" number={completedPaymentTotals(payments)} detail="Grouped by currency · completed payments only" icon="¤" accent="bg-cyan-500/20" /></div>
+          <Link href="/admin/finance/expenses" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"><MetricCard label="Expenses" number={expenses.length} detail="Open expense register" icon="−" accent="bg-rose-500/20" /></Link>
         </section>
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
@@ -341,14 +393,8 @@ export default function AnalyticsDashboard({
                     );
                   })}
                 </div>
-                <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[0.07] pt-4 text-xs text-slate-400">
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-sky-400" />Clients</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-blue-500" />Projects</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-violet-400" />Tasks</span>
-                  <span><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-cyan-400" />Service requests</span>
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  Bars show combined new records per month; they are not a revenue forecast.
+                <p className="mt-5 border-t border-white/[0.07] pt-4 text-xs leading-5 text-slate-500">
+                  Each bar combines dated client, project, task, service-request, invoice, payment, and expense records for that month. This is operational activity, not revenue.
                 </p>
               </div>
             ) : (

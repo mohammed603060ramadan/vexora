@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TabId =
   | "overview"
@@ -248,6 +248,64 @@ export default function AdminSettingsPage() {
   const [showModuleForm, setShowModuleForm] = useState(false);
   const [moduleFilter, setModuleFilter] = useState("All");
   const [saving, setSaving] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsLoadSucceeded, setSettingsLoadSucceeded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        const response = await fetch("/api/admin/settings", {
+          method: "GET",
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        const result = (await response.json()) as {
+          settings?: Record<string, unknown>;
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(result.error || "Could not load saved settings.");
+        }
+
+        if (cancelled) return;
+        const saved = result.settings ?? {};
+        if (saved.company && typeof saved.company === "object" && !Array.isArray(saved.company)) {
+          setCompany((current) => ({ ...current, ...(saved.company as Partial<typeof current>) }));
+        }
+        if (saved.website && typeof saved.website === "object" && !Array.isArray(saved.website)) {
+          setWebsite((current) => ({ ...current, ...(saved.website as Partial<typeof current>) }));
+        }
+        if (saved.branding && typeof saved.branding === "object" && !Array.isArray(saved.branding)) {
+          setBranding((current) => ({ ...current, ...(saved.branding as Partial<typeof current>) }));
+        }
+        if (Array.isArray(saved.modules)) setModules(saved.modules as ModuleItem[]);
+        if (Array.isArray(saved.preferences)) setPreferences(saved.preferences as ToggleItem[]);
+        if (saved.security && typeof saved.security === "object" && !Array.isArray(saved.security)) {
+          setSecurity((current) => ({ ...current, ...(saved.security as Partial<typeof current>) }));
+        }
+        if (saved.integrations && typeof saved.integrations === "object" && !Array.isArray(saved.integrations)) {
+          setIntegrations((current) => ({ ...current, ...(saved.integrations as Partial<typeof current>) }));
+        }
+        if (saved.advanced && typeof saved.advanced === "object" && !Array.isArray(saved.advanced)) {
+          setAdvanced((current) => ({ ...current, ...(saved.advanced as Partial<typeof current>) }));
+        }
+        setSettingsLoadSucceeded(true);
+        setNotice("Saved settings loaded from the database.");
+      } catch (error) {
+        if (!cancelled) {
+          setNotice(error instanceof Error ? error.message : "Could not load saved settings. Check database migration and permissions.");
+        }
+      } finally {
+        if (!cancelled) setSettingsLoaded(true);
+      }
+    }
+
+    void loadSettings();
+    return () => { cancelled = true; };
+  }, []);
 
   const enabledModules = useMemo(() => modules.filter((module) => module.enabled).length, [modules]);
   const filteredModules = useMemo(() => {
@@ -338,10 +396,29 @@ export default function AdminSettingsPage() {
     setNotice("Settings preview exported as a JSON file.");
   }
 
-  function savePreview() {
+  async function savePreview() {
     setSaving(true);
-    setNotice("Your current changes are active in this page preview. Shared database settings are not connected yet.");
-    setSaving(false);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          settings: { company, website, branding, modules, preferences, security, integrations, advanced },
+        }),
+      });
+      const result = (await response.json()) as { error?: string; updatedAt?: string };
+      if (!response.ok) throw new Error(result.error || "Could not save settings.");
+      setNotice(result.updatedAt
+        ? `Settings saved to the database at ${new Date(result.updatedAt).toLocaleString()}.`
+        : "Settings saved to the database.");
+    } catch (error) {
+      setNotice(error instanceof Error
+        ? error.message
+        : "Could not save settings. Check the site_settings migration and administrator permissions.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetPreview() {
@@ -413,7 +490,7 @@ export default function AdminSettingsPage() {
             <div className="relative flex flex-wrap gap-3 xl:max-w-[360px] xl:justify-end">
               <a href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</a>
               <button type="button" onClick={exportSettings} className="rounded-xl border border-blue-300/20 bg-blue-400/[0.08] px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-400/[0.15]">Export configuration ↓</button>
-              <button type="button" onClick={savePreview} disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Apply preview changes ✓"}</button>
+              <button type="button" onClick={savePreview} disabled={saving || !settingsLoaded || !settingsLoadSucceeded} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Save settings"}</button>
             </div>
           </div>
         </header>
@@ -777,10 +854,10 @@ export default function AdminSettingsPage() {
             )}
 
             <div className="flex flex-col justify-between gap-3 rounded-2xl border border-white/[0.08] bg-[#0c111b] p-4 sm:flex-row sm:items-center sm:p-5">
-              <div><p className="text-sm font-medium text-slate-200">Configuration preview</p><p className="mt-1 text-xs leading-5 text-slate-500">Changes are interactive but are not yet saved to a shared database.</p></div>
+              <div><p className="text-sm font-medium text-slate-200">Configuration preview</p><p className="mt-1 text-xs leading-5 text-slate-500">Changes are saved to the shared database when you select Save settings.</p></div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={exportSettings} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.04]">Export</button>
-                <button type="button" onClick={savePreview} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400">Apply preview</button>
+                <button type="button" onClick={savePreview} disabled={saving || !settingsLoaded || !settingsLoadSucceeded} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Saving..." : "Save settings"}</button>
               </div>
             </div>
           </div>
@@ -788,7 +865,7 @@ export default function AdminSettingsPage() {
 
         <footer className="flex flex-col gap-2 border-t border-white/[0.06] pt-5 text-xs leading-5 text-slate-600 sm:flex-row sm:justify-between">
           <p>VEXORA Command Center · Administration</p>
-          <p>Preview interface · Database persistence and operational actions are not connected</p>
+          <p>Database-backed settings · Operational security controls require separate implementation</p>
         </footer>
       </div>
     </main>

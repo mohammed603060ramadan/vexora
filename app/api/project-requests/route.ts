@@ -22,7 +22,6 @@ type ProjectRequestsDatabase = {
         {
           id: string;
           title: string;
-          portfolio_category: string | null;
           show_on_projects_page: boolean;
           status: string;
         },
@@ -86,19 +85,27 @@ async function findClientForUser(admin: ReturnType<typeof getAdminClient>, userI
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  if (!byAuthUser.error && byAuthUser.data) return byAuthUser.data;
+  if (!byAuthUser.error) {
+    // If the modern column exists, its null result is authoritative. Do not
+    // silently resolve a different/stale legacy account link for this user.
+    return byAuthUser.data;
+  }
 
-  // Compatibility with installations created before auth_user_id was added.
+  const modernColumnMissing =
+    /auth_user_id|column .* does not exist|schema cache/i.test(
+      byAuthUser.error.message,
+    );
+
+  if (!modernColumnMissing) throw byAuthUser.error;
+
+  // Compatibility only when this database does not have auth_user_id.
   const byLegacyUser = await admin
     .from("clients")
     .select("id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (byLegacyUser.error) {
-    if (byAuthUser.error) throw byAuthUser.error;
-    throw byLegacyUser.error;
-  }
+  if (byLegacyUser.error) throw byLegacyUser.error;
   return byLegacyUser.data;
 }
 
@@ -151,7 +158,7 @@ export async function GET() {
     const { data: projects, error: projectsError } = projectIds.length
       ? await admin
           .from("projects")
-          .select("id,title,portfolio_category")
+          .select("id,title")
           .in("id", projectIds)
       : { data: [], error: null };
 

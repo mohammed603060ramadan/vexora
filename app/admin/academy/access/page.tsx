@@ -56,7 +56,10 @@ export default function CourseAccessAdminPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -142,7 +145,7 @@ export default function CourseAccessAdminPage() {
                 <div className="relative mt-4 flex flex-wrap gap-2">
                   <button type="button" disabled={busy === item.id || item.status === "approved"} onClick={() => void updateRequest(item, "approved")} className="rounded-xl bg-emerald-300 px-4 py-2.5 text-sm font-bold text-[#052218] transition hover:bg-emerald-200 disabled:opacity-40">✓ Approve & grant access</button>
                   <button type="button" disabled={busy === item.id || item.status === "rejected"} onClick={() => void updateRequest(item, "rejected")} className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] px-4 py-2.5 text-sm font-semibold text-rose-100 transition hover:bg-rose-300/10 disabled:opacity-40">Reject</button>
-                  {item.status !== "pending" && <button type="button" disabled={busy === item.id} onClick={() => void updateRequest(item, "pending")} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-cyan-200/30 disabled:opacity-40">Return to pending</button>}
+                  {item.status !== "pending" && item.status !== "approved" && <button type="button" disabled={busy === item.id} onClick={() => void updateRequest(item, "pending")} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-cyan-200/30 disabled:opacity-40">Return to pending</button>}
                 </div>
               </article>
             ))}

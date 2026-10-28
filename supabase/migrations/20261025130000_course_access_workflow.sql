@@ -33,10 +33,16 @@ CREATE TABLE IF NOT EXISTS public.course_access_requests (
   reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   reviewed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT course_access_one_open_request
-    UNIQUE (course_id, student_id)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Permit a new request after a previous request was rejected or cancelled,
+-- while preventing duplicate pending requests for the same student/course.
+ALTER TABLE public.course_access_requests
+  DROP CONSTRAINT IF EXISTS course_access_one_open_request;
+CREATE UNIQUE INDEX IF NOT EXISTS course_access_one_pending_request
+  ON public.course_access_requests (course_id, student_id)
+  WHERE status = 'pending';
 
 CREATE INDEX IF NOT EXISTS course_access_requests_status_created_idx
   ON public.course_access_requests (status, created_at DESC);
@@ -56,7 +62,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
   SELECT (SELECT auth.uid()) IS NOT NULL
     AND (
       (SELECT auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
@@ -66,7 +72,7 @@ AS $
         WHERE administrators.user_id = (SELECT auth.uid())
       )
     );
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.is_vexora_academy_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_vexora_academy_admin() TO anon, authenticated, service_role;
@@ -85,6 +91,12 @@ CREATE POLICY course_access_requests_student_create
     AND status = 'pending'
     AND reviewed_by IS NULL
     AND reviewed_at IS NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.courses AS c
+      WHERE c.id = course_access_requests.course_id
+        AND c.status = 'published'
+    )
   );
 
 DROP POLICY IF EXISTS course_access_requests_admin_read ON public.course_access_requests;
@@ -113,22 +125,80 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  enrollment_updated_at_clause TEXT := '';
+  enrollment_insert_sql TEXT;
 BEGIN
   IF NEW.status = 'approved'
      AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
-    INSERT INTO public.enrollments AS existing_enrollment (
-      course_id, student_id, enrolled_by, status, progress_percent
-    )
-    VALUES (
-      NEW.course_id, NEW.student_id, NEW.reviewed_by, 'active', 0
-    )
-    ON CONFLICT (course_id, student_id)
-    DO UPDATE SET
-      status = CASE
-        WHEN existing_enrollment.status = 'cancelled' THEN 'active'
-        ELSE existing_enrollment.status
-      END,
-      updated_at = now();
+    -- VEXORA deployments differ: the canonical schema uses enrolled_by (UUID),
+    -- while some legacy schemas use enrollment_source (text: self/admin).
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'updated_at'
+    ) THEN
+      enrollment_updated_at_clause := ', updated_at = now()';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'enrolled_by'
+    ) THEN
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, enrolled_by, status, progress_percent)
+         VALUES ($1, $2, $3, ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id, NEW.reviewed_by;
+    ELSIF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'enrollments'
+        AND column_name = 'enrollment_source'
+    ) THEN
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, enrollment_source, status, progress_percent)
+         VALUES ($1, $2, ''admin'', ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id;
+    ELSE
+      enrollment_insert_sql := format(
+        'INSERT INTO public.enrollments AS existing_enrollment
+           (course_id, student_id, status, progress_percent)
+         VALUES ($1, $2, ''active'', 0)
+         ON CONFLICT (course_id, student_id)
+         DO UPDATE SET
+           status = CASE
+             WHEN existing_enrollment.status IN (''pending'', ''cancelled'') THEN ''active''
+             ELSE existing_enrollment.status
+           END%s',
+        enrollment_updated_at_clause
+      );
+      EXECUTE enrollment_insert_sql
+        USING NEW.course_id, NEW.student_id;
+    END IF;
+
     NEW.reviewed_at := COALESCE(NEW.reviewed_at, now());
   END IF;
 
@@ -144,36 +214,47 @@ CREATE TRIGGER course_access_requests_grant_enrollment
   FOR EACH ROW
   EXECUTE FUNCTION public.grant_course_enrollment_on_access_approval();
 
--- Published course metadata is public; lesson rows stay private until
--- the signed-in student has an active/completed enrollment, including preview lessons.
-DROP POLICY IF EXISTS lessons_read ON public.lessons;
-CREATE POLICY lessons_read
-ON public.lessons
-FOR SELECT TO anon, authenticated
-USING (
-  status = 'published'
-  AND EXISTS (
-    SELECT 1 FROM public.courses c
-    WHERE c.id = lessons.course_id AND c.status = 'published'
-  )
-  AND (
-    (SELECT auth.uid()) IS NOT NULL
-    AND (
-      public.is_vexora_academy_admin()
-      OR EXISTS (
-        SELECT 1 FROM public.enrollments e
-        WHERE e.course_id = lessons.course_id
-          AND e.student_id = (SELECT auth.uid())
-          AND e.status IN ('active', 'completed')
+-- Apply the lesson policy only when the canonical legacy lessons table exists.
+-- Some deployed VEXORA databases use course_lessons instead. Do not guess at or
+-- overwrite that table's existing RLS policies without inspecting the live policy set.
+DO $$
+BEGIN
+  IF to_regclass('public.lessons') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS lessons_read ON public.lessons';
+    EXECUTE $policy$
+      CREATE POLICY lessons_read
+      ON public.lessons
+      FOR SELECT TO anon, authenticated
+      USING (
+        status = 'published'
+        AND EXISTS (
+          SELECT 1 FROM public.courses c
+          WHERE c.id = lessons.course_id AND c.status = 'published'
+        )
+        AND (SELECT auth.uid()) IS NOT NULL
+        AND (
+          public.is_vexora_academy_admin()
+          OR EXISTS (
+            SELECT 1 FROM public.enrollments e
+            WHERE e.course_id = lessons.course_id
+              AND e.student_id = (SELECT auth.uid())
+              AND e.status IN ('active', 'completed')
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.courses c
+            WHERE c.id = lessons.course_id
+              AND c.instructor_id = (SELECT auth.uid())
+          )
+        )
       )
-      OR EXISTS (
-        SELECT 1 FROM public.courses c
-        WHERE c.id = lessons.course_id
-          AND c.instructor_id = (SELECT auth.uid())
-      )
-    )
-  )
-);
+    $policy$;
+  ELSIF to_regclass('public.course_lessons') IS NOT NULL THEN
+    RAISE NOTICE 'VEXORA uses public.course_lessons; its existing RLS policies were preserved. Review the read-only schema audit before changing lesson access policies.';
+  ELSE
+    RAISE NOTICE 'No supported lesson table was found. Course access workflow was installed without changing lesson policies.';
+  END IF;
+END;
+$$;
 
 NOTIFY pgrst, 'reload schema';
 COMMIT;

@@ -390,7 +390,7 @@ export default function Home() {
         .select("id,title,description,status,show_on_homepage")
         .eq("show_on_homepage", true)
         .in("status", ["in_progress", "completed"])
-        .order("name", { ascending: true })
+        .order("title", { ascending: true })
         .limit(3);
       if (active && !projectError) setFeaturedProjects((projectData ?? []) as HomepageProject[]);
     }

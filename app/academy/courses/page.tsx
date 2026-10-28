@@ -36,17 +36,24 @@ const categoryImages: Record<string, string> = {
   "Digital Marketing": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=80",
 };
 
+function categoryFor(course: { category?: unknown; course_type?: unknown }): string {
+  if (typeof course.category === "string" && categories.includes(course.category)) {
+    return course.category;
+  }
+  return "Software Development";
+}
+
 export default function AcademyCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const requestedCategory = new URLSearchParams(window.location.search).get("category");
     if (requestedCategory && categories.includes(requestedCategory)) {
-      // URL-driven initial filter is intentional; the value comes from browser navigation.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCategory(requestedCategory);
     }
@@ -54,29 +61,68 @@ export default function AcademyCoursesPage() {
 
   useEffect(() => {
     let active = true;
+
     async function load() {
-      let { data, error: queryError } = await supabase
-        .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,cover_image_url,promo_video_url")
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
-      if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
-        const fallback = await supabase
+      setLoading(true);
+      setError("");
+
+      const attempts = [
+        "id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,cover_image_url,promo_video_url,status,created_at",
+        "id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,status,created_at",
+        "id,title,slug,description,difficulty,course_type,estimated_hours,status,created_at",
+      ];
+
+      let rows: Record<string, unknown>[] | null = null;
+      let lastError: { message: string } | null = null;
+
+      for (const columns of attempts) {
+        const result = await supabase
           .from("courses")
-          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency")
+          .select(columns)
           .eq("status", "published")
           .order("created_at", { ascending: false });
-        data = (fallback.data ?? []).map((course) => ({ ...course, cover_image_url: null, promo_video_url: null }));
-        queryError = fallback.error;
+
+        if (!result.error) {
+          rows = (result.data ?? []) as unknown as Record<string, unknown>[];
+          lastError = null;
+          break;
+        }
+
+        lastError = result.error;
+        // Try a narrower schema only for missing-column/schema-cache errors.
+        if (!/column .* does not exist|schema cache|could not find .* column/i.test(result.error.message)) {
+          break;
+        }
       }
+
       if (!active) return;
-      if (queryError) setError("Published courses could not be loaded. Please refresh and try again.");
-      else setCourses((data ?? []) as Course[]);
+
+      if (lastError || !rows) {
+        console.error("Published course directory query failed:", lastError?.message);
+        setError("Published courses could not be loaded. Please refresh and try again.");
+        setCourses([]);
+      } else {
+        setCourses(rows.map((row) => ({
+          id: String(row.id),
+          title: String(row.title ?? "Untitled course"),
+          slug: String(row.slug ?? row.id),
+          description: typeof row.description === "string" ? row.description : null,
+          category: categoryFor(row),
+          difficulty: typeof row.difficulty === "string" ? row.difficulty : null,
+          course_type: typeof row.course_type === "string" ? row.course_type : null,
+          estimated_hours: row.estimated_hours == null ? null : Number(row.estimated_hours),
+          price: row.price == null ? null : Number(row.price),
+          currency: typeof row.currency === "string" ? row.currency.trim() : null,
+          cover_image_url: typeof row.cover_image_url === "string" ? row.cover_image_url : null,
+          promo_video_url: typeof row.promo_video_url === "string" ? row.promo_video_url : null,
+        })));
+      }
       setLoading(false);
     }
+
     void load();
     return () => { active = false; };
-  }, []);
+  }, [retryKey]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -112,7 +158,10 @@ export default function AcademyCoursesPage() {
         {loading ? (
           <div className="py-20 text-center text-sm text-slate-400">Loading published courses...</div>
         ) : error ? (
-          <div role="alert" className="mt-8 rounded-2xl border border-rose-400/20 bg-rose-400/5 p-6 text-sm text-rose-200">Unable to load courses: {error}</div>
+          <div role="alert" className="mt-8 rounded-2xl border border-rose-400/20 bg-rose-400/5 p-6 text-sm text-rose-200">
+            <p>Unable to load courses: {error}</p>
+            <button type="button" onClick={() => setRetryKey((value) => value + 1)} className="mt-4 rounded-lg border border-rose-200/20 px-4 py-2 text-white transition hover:bg-white/5">Try again</button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-12 text-center">
             <h2 className="text-xl font-semibold">No published courses found</h2>
@@ -133,13 +182,13 @@ export default function AcademyCoursesPage() {
                 <div className="p-6">
                   <div className="flex flex-wrap gap-2 text-xs text-slate-400">
                     {course.difficulty && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.difficulty}</span>}
-                    {course.course_type && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.course_type.replace("_", " ")}</span>}
+                    {course.course_type && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.course_type.replace(/_/g, " ")}</span>}
                     {course.estimated_hours !== null && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.estimated_hours} hours</span>}
-                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-semibold text-cyan-100">{course.price == null || Number(course.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(Number(course.price))}</span>
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-semibold text-cyan-100">{course.price == null || course.price === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(course.price)}</span>
                   </div>
                   <h2 className="mt-4 text-xl font-semibold leading-snug">{course.title}</h2>
                   <p className="mt-3 min-h-16 text-sm leading-6 text-slate-400">{course.description || "Course details will be announced soon."}</p>
-                  <Link href={`/academy/${course.slug}`} className="mt-5 flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">View course & request access <span aria-hidden="true">↗</span></Link>
+                  <Link href={`/academy/${encodeURIComponent(course.slug)}`} className="mt-5 flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">View course & request access <span aria-hidden="true">↗</span></Link>
                   <p className="mt-3 text-xs leading-5 text-slate-500">Course content stays locked until VEXORA approves your access request.</p>
                 </div>
               </article>

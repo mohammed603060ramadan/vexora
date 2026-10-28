@@ -95,9 +95,6 @@ export default function AdminServicesPage() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   const loadServices = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
     try {
       const { data, error: queryError } = await supabase
         .from("services")
@@ -109,6 +106,7 @@ export default function AdminServicesPage() {
 
       if (queryError) throw queryError;
 
+      setError("");
       setServices((data ?? []) as Service[]);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -118,40 +116,11 @@ export default function AdminServicesPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function initializeServices() {
-      try {
-        const { data, error: queryError } = await supabase
-          .from("services")
-          .select(
-            "id, department_id, slug, name, description, starting_price, currency, estimated_days, status, display_order, created_at, updated_at",
-          )
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: false });
-
-        if (queryError) throw queryError;
-
-        if (!cancelled) {
-          setServices((data ?? []) as Service[]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void initializeServices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    // This starts an asynchronous Supabase request; state updates occur after its await.
+    // The rule cannot see through the callback and flags the loader invocation itself.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadServices();
+  }, [loadServices]);
 
   const filteredServices = services.filter((service) => {
     const searchText = search.trim().toLowerCase();
@@ -278,12 +247,20 @@ export default function AdminServicesPage() {
     setSaving(true);
 
     try {
+      // Preserve an existing department relationship when editing a service.
+      // New services remain unassigned until the form supports department selection.
+      const existingDepartmentId = editingId
+        ? services.find((service) => service.id === editingId)?.department_id ?? null
+        : null;
+
       const payload = {
         name,
         slug,
+        department_id: existingDepartmentId,
         description: form.description.trim() || null,
         starting_price: price,
         currency,
+        // Send null when the field is cleared so edits can remove the old value.
         estimated_days: days,
         status: form.status,
         display_order: displayOrder,
@@ -292,7 +269,7 @@ export default function AdminServicesPage() {
       if (editingId) {
         const { error: updateError } = await supabase
           .from("services")
-          .update(payload as never)
+          .update(payload)
           .eq("id", editingId);
 
         if (updateError) throw updateError;
@@ -301,7 +278,7 @@ export default function AdminServicesPage() {
       } else {
         const { error: insertError } = await supabase
           .from("services")
-          .insert(payload as never);
+          .insert(payload);
 
         if (insertError) throw insertError;
 

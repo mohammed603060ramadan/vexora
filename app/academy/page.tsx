@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { FormEvent } from "react";
@@ -336,8 +337,10 @@ function Icon({
 }
 
 export default function AcademyPage() {
+  const router = useRouter();
   const [userReady, setUserReady] = useState(false);
-  const [usingSampleCourses, setUsingSampleCourses] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [typedNotice, setTypedNotice] = useState("");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
   const [mode, setMode] = useState<FilterMode>("all");
@@ -358,6 +361,44 @@ export default function AcademyPage() {
 
   useEffect(() => {
     let active = true;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (active) setIsAuthenticated(!error && Boolean(data.session?.user));
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const message = "Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.";
+    let position = 0;
+    let deleting = false;
+    let pause = 0;
+    const timer = window.setInterval(() => {
+      if (!deleting && position === message.length) {
+        if (pause < 22) {
+          pause += 1;
+          return;
+        }
+        deleting = true;
+      } else if (deleting && position === 0) {
+        deleting = false;
+        pause = 0;
+      }
+
+      position += deleting ? -1 : 1;
+      setTypedNotice(message.slice(0, position));
+    }, 65);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     async function loadPublishedCourses() {
       let { data, error: queryError } = await supabase
         .from("courses")
@@ -372,12 +413,26 @@ export default function AcademyPage() {
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
         queryError = fallback.error;
+
+        if (queryError && /category|column .* does not exist|schema cache/i.test(queryError.message)) {
+          const legacy = await supabase
+            .from("courses")
+            .select("id,title,slug,description,difficulty,course_type,estimated_hours,status,created_at,price,currency")
+            .eq("status", "published")
+            .order("created_at", { ascending: false });
+          data = (legacy.data ?? []).map((row) => ({
+            ...row,
+            category: "Cybersecurity",
+            cover_image_url: null,
+            promo_video_url: null,
+          })) as typeof data;
+          queryError = legacy.error;
+        }
       }
       if (!active) return;
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
         setCourses(initialCourses);
-        setUsingSampleCourses(true);
         setUserReady(true);
         return;
       }
@@ -392,7 +447,7 @@ export default function AcademyPage() {
         id: row.id,
         slug: row.slug,
         title: row.title,
-        price: row.price == null ? 0 : Number(row.price),
+        price: 0,
         currency: row.currency || "USD",
         promoVideoUrl: row.promo_video_url || null,
         category: row.category || "Cybersecurity",
@@ -406,7 +461,6 @@ export default function AcademyPage() {
       // Keep the ten fixed, classroom-based tracks separate from the
       // administrator-managed catalogue so neither replaces the other.
       setCourses([...initialCourses, ...mappedCourses]);
-      setUsingSampleCourses(mappedCourses.length === 0);
       setUserReady(true);
     }
     void loadPublishedCourses();
@@ -502,15 +556,32 @@ export default function AcademyPage() {
         body: JSON.stringify({ courseId: selectedCourse.id }),
       });
       const payload = await response.json() as {
-        request?: { purchase_code?: string; status?: string };
+        free?: boolean;
+        enrolled?: boolean;
+        request?: { purchase_code?: string | null; status?: string };
         message?: string;
         error?: string;
       };
       if (response.status === 401) {
-        window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
+        const nextPath = selectedCourse?.slug
+          ? `/academy/${encodeURIComponent(selectedCourse.slug)}`
+          : window.location.pathname;
+        router.push("/login?next=" + encodeURIComponent(nextPath));
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");
+      if (payload.free && payload.enrolled) {
+        setAccessRequestResult(null);
+        setAccessRequestError("");
+        const enrolledSlug = selectedCourse?.slug;
+        setSelectedCourse(null);
+        if (enrolledSlug) {
+          router.push(`/academy/${encodeURIComponent(enrolledSlug)}`);
+        } else {
+          router.push("/student");
+        }
+        return;
+      }
       setAccessRequestResult({
         code: payload.request.purchase_code || "CODE PENDING",
         status: payload.request.status || "pending",
@@ -580,10 +651,6 @@ export default function AcademyPage() {
     } finally {
       setRegistrationLoading(false);
     }
-  }
-
-  function printCertificate() {
-    window.print();
   }
 
   if (!userReady) {
@@ -895,6 +962,39 @@ export default function AcademyPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="academy-focus hidden rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:text-white sm:inline-flex"
+            >
+              Home
+            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/client"
+                onClick={() => setMobileMenuOpen(false)}
+                className="academy-focus inline-flex items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/20 sm:px-4 sm:py-2.5"
+              >
+                My Account
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="academy-focus inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-gray-200 transition hover:text-white sm:px-4 sm:py-2.5"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/login?mode=signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="academy-focus hidden items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-100 transition hover:bg-blue-500/20 sm:inline-flex sm:px-4 sm:py-2.5"
+                >
+                  Create Account
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={() => scrollToSection("programs")}
@@ -933,6 +1033,15 @@ export default function AcademyPage() {
         {mobileMenuOpen && (
           <div className="academy-glass border-t border-white/10 px-5 py-4 md:hidden">
             <div className="mx-auto flex max-w-7xl flex-col gap-2">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white">Home</Link>
+              {isAuthenticated ? (
+                <Link href="/client" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm font-semibold text-blue-200 hover:bg-white/5">My Account</Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white">Log In</Link>
+                  <Link href="/login?mode=signup" onClick={() => setMobileMenuOpen(false)} className="academy-focus rounded-lg px-3 py-3 text-left text-sm font-semibold text-blue-200 hover:bg-white/5">Create Account</Link>
+                </>
+              )}
               {[
                 ["Programs", "programs"],
                 ["Learning", "experience"],
@@ -1113,7 +1222,12 @@ export default function AcademyPage() {
                 Explore sample learning paths across technology and business.
                 Filter the catalog to find a subject and format that fit you.
               </p>
-              {usingSampleCourses && <p className="mt-4 max-w-xl rounded-lg border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3 text-xs leading-6 text-amber-100/80">Offline classroom programs are always available here. Courses published by the VEXORA team appear alongside them; administrator-managed course uploads remain unchanged.</p>}
+              <div className="mt-4 flex max-w-xl items-start gap-3 rounded-xl border border-blue-300/20 bg-blue-400/[0.06] px-4 py-3 text-xs leading-6 text-blue-100/90 shadow-[0_0_24px_rgba(59,130,246,0.06)]">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-300/20 bg-blue-300/[0.08] text-blue-200" aria-hidden="true"><Icon name="academy" size={17} /></span>
+                <p aria-live="polite" className="min-h-[3rem]">
+                  {typedNotice}<span className="ml-0.5 inline-block h-4 w-px translate-y-0.5 animate-pulse bg-blue-300" aria-hidden="true" />
+                </p>
+              </div>
               <div className="mt-5 flex flex-wrap gap-3"><Link href="/academy/categories" className="inline-flex items-center gap-2 rounded-xl border border-blue-300/25 bg-blue-400/[0.06] px-4 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-300/50 hover:bg-blue-400/10">Explore 5 learning tracks <span aria-hidden="true">↗</span></Link><Link href="/academy/courses" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">Open full course directory <span aria-hidden="true">↗</span></Link></div>
             </div>
 
@@ -1302,10 +1416,16 @@ export default function AcademyPage() {
 
                     <button
                       type="button"
-                      onClick={() => openCourse(course)}
+                      onClick={() => {
+                        if (!course.isOffline && course.slug) {
+                          router.push(`/academy/${encodeURIComponent(course.slug)}`);
+                          return;
+                        }
+                        openCourse(course);
+                      }}
                       className="academy-button academy-focus mt-6 flex w-full items-center justify-between border-t border-white/[0.08] pt-4 text-sm font-semibold hover:text-blue-200"
                     >
-                      Explore program
+                      {course.isOffline ? "Explore program" : "Open course"}
                       <Icon
                         name="arrow"
                         size={18}
@@ -1654,15 +1774,6 @@ export default function AcademyPage() {
                     {selectedCourse.description}
                   </p>
                   {!selectedCourse.isOffline && (
-                    <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
-                      <span className="text-sm text-gray-400">Course price</span>
-                      <strong className="text-lg text-cyan-100">
-                        {selectedCourse.price == null || Number(selectedCourse.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD", maximumFractionDigits: 2 }).format(Number(selectedCourse.price))}
-                      </strong>
-                    </div>
-                  )}
-
-                  {!selectedCourse.isOffline && (
                     <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm text-slate-400">Course price</span>
@@ -1711,7 +1822,11 @@ export default function AcademyPage() {
                         disabled={accessRequestLoading}
                         className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
                       >
-                        {accessRequestLoading ? "Creating request…" : "Request purchase / access code"}
+                        {accessRequestLoading
+                          ? (selectedCourse.price != null && Number(selectedCourse.price) === 0 ? "Enrolling…" : "Creating request…")
+                          : selectedCourse.price != null && Number(selectedCourse.price) === 0
+                            ? "Enroll for free"
+                            : "Request purchase / access code"}
                         <Icon name="arrow" size={18} />
                       </button>
                       {accessRequestError && <p role="alert" className="mt-3 rounded-lg border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessRequestError}</p>}
@@ -1738,8 +1853,8 @@ export default function AcademyPage() {
                     Registration received
                   </h2>
                   <p className="mx-auto mt-3 max-w-md leading-7 text-gray-400">
-                    Form validation worked successfully. This is a local
-                    demonstration only: your details were not sent or saved.
+                    Your registration has been submitted to the VEXORA Academy team.
+                    We will review your details and contact you using the email address provided.
                   </p>
                   <button
                     type="button"
@@ -1896,76 +2011,14 @@ export default function AcademyPage() {
               </button>
             </div>
 
-            <div className="academy-print-certificate relative overflow-hidden border-[5px] border-[#c6a96a] bg-[#f4f0e5] p-2 text-[#1a2d45] shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:border-[8px] sm:p-3">
-              <div className="relative overflow-hidden border border-[#9b854f] px-5 py-7 text-center sm:px-10 sm:py-10">
-                <div aria-hidden="true" className="pointer-events-none absolute inset-2 border border-[#bca56d]/60 sm:inset-3" />
-                <div aria-hidden="true" className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full border border-[#bca56d]/40" />
-                <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full border border-[#bca56d]/40" />
-
-                <div className="relative">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#b79b56] bg-[#e8dfc7] text-[#80662f] shadow-[0_0_0_5px_rgba(183,155,86,0.12)] sm:h-16 sm:w-16">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true">
-                      <path d="M12 2.8 14.5 8l5.7.8-4.1 4 .9 5.7-5-2.7-5 2.7.9-5.7-4.1-4L9.5 8 12 2.8Z" />
-                      <path d="m8.5 18.2-.8 3 4.3-2.2 4.3 2.2-.8-3" />
-                    </svg>
-                  </div>
-
-                  <Image
-                    src="/vexora-logo.png"
-                    alt="VEXORA Technology logo"
-                    width={180}
-                    height={70}
-                    className="mx-auto mt-3 h-10 w-auto object-contain sm:h-12"
-                  />
-
-                  <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.4em] text-[#526b88] sm:text-xs">
-                    VEXORA ACADEMY · PROFESSIONAL LEARNING
-                  </p>
-
-                  <div className="mx-auto mt-5 flex max-w-xl items-center gap-3 sm:mt-6">
-                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-[#b79b56] to-[#b79b56]" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a713c] sm:text-xs">Certificate of</span>
-                    <span className="h-px flex-1 bg-gradient-to-l from-transparent via-[#b79b56] to-[#b79b56]" />
-                  </div>
-
-                  <h2 className="mt-2 font-serif text-3xl font-bold tracking-wide text-[#1b3554] sm:text-5xl">
-                    Achievement
-                  </h2>
-                  <p className="mt-2 font-serif text-sm italic text-[#61748b] sm:text-lg">
-                    Learning · Practice · Progress
-                  </p>
-
-                  <p className="mx-auto mt-5 max-w-2xl text-[11px] leading-6 text-[#526b88] sm:mt-6 sm:text-sm sm:leading-7">
-                    This preview illustrates the VEXORA Academy certificate style for eligible learning programs. Official credentials are issued only after completion requirements and approval are verified.
-                  </p>
-
-                  <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.28em] text-[#8a713c] sm:mt-6 sm:text-xs">
-                    PROUDLY PRESENTED TO
-                  </p>
-
-                  <p className="mx-auto mt-2 max-w-2xl break-words font-serif text-2xl italic text-[#1b3554] sm:mt-3 sm:text-4xl">
-                    {learnerName.trim() || "Your Name Here"}
-                  </p>
-                  <div className="mx-auto mt-3 h-px w-2/3 max-w-md bg-gradient-to-r from-transparent via-[#b79b56] to-transparent" />
-
-                  <div className="mx-auto mt-6 grid max-w-xl grid-cols-2 gap-6 sm:mt-8 sm:gap-10">
-                    <div className="border-t border-[#b5a477] pt-2.5">
-                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Academic Director</p>
-                      <p className="mt-1 text-[8px] text-[#7188a3] sm:text-[10px]">Signature upon official issue</p>
-                    </div>
-                    <div className="border-t border-[#b5a477] pt-2.5">
-                      <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#526b88] sm:text-[10px]">Credential reference</p>
-                      <p className="mt-1 font-mono text-[8px] text-[#7188a3] sm:text-[10px]">PREVIEW · NOT ISSUED</p>
-                    </div>
-                  </div>
-
-                  <p className="mt-6 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8a713c] sm:mt-8 sm:text-[10px]">
-                    SAMPLE PREVIEW · NOT A VALID CREDENTIAL
-                  </p>
-                </div>
-              </div>
-            </div>
-
+            <Image
+              src="/academy-certificate.svg"
+              alt="VEXORA Academy certificate design preview with blank recipient name, Mohamed Ramadan signature, version 1.0, and masked reference number"
+              width={1600}
+              height={1050}
+              unoptimized
+              className="academy-print-certificate block h-auto w-full rounded-sm shadow-[0_25px_80px_rgba(0,0,0,0.35)]"
+            />
             <div className="academy-no-print mt-5 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
@@ -1973,14 +2026,6 @@ export default function AcademyPage() {
                 className="academy-button academy-focus rounded-lg border border-white/15 px-5 py-3 text-sm font-semibold text-gray-200 hover:bg-white/[0.05]"
               >
                 Close preview
-              </button>
-              <button
-                type="button"
-                onClick={printCertificate}
-                className="academy-button academy-focus inline-flex items-center gap-2 rounded-lg border border-blue-300/30 bg-blue-400/[0.08] px-5 py-3 text-sm font-semibold text-blue-100 hover:bg-blue-400/[0.14]"
-              >
-                <Icon name="print" size={18} />
-                Print / Save PDF
               </button>
             </div>
           </div>

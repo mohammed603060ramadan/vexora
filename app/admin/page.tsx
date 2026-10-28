@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { redirect } from "next/navigation";
 
 type ModuleCard = { title: string; description: string; href: string; code: string; group: string };
 const modules: ModuleCard[] = [
@@ -27,7 +29,7 @@ const modules: ModuleCard[] = [
 ];
 
 async function countRows(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   table: string,
   column?: string,
   value?: string,
@@ -44,15 +46,40 @@ function formatCount(value: number | null) {
 
 export default async function AdminPage() {
   await connection();
-  const supabase = await createClient();
-  const [projects, clients, tasks, inquiries, courses, events] = await Promise.all([
+  const sessionClient = await createClient();
+  const { data: authData, error: authError } = await sessionClient.auth.getUser();
+
+  if (authError || !authData.user) redirect("/login?next=/admin");
+
+  let authorized = authData.user.app_metadata?.role === "admin";
+  const admin = createAdminClient();
+
+  if (!authorized) {
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    authorized = !registryError && Boolean(registry);
+  }
+
+  if (!authorized) redirect("/client");
+
+  // Use elevated database access only after verifying the authenticated user
+  // against the app role or the canonical VEXORA administrator registry.
+  const supabase = admin;
+  const [projects, clients, tasks, inquiries, courses, events, invoices, payments] = await Promise.all([
     countRows(supabase, "projects"),
     countRows(supabase, "clients"),
     countRows(supabase, "tasks"),
     countRows(supabase, "inquiries", "status", "new"),
     countRows(supabase, "courses"),
     countRows(supabase, "events", "status", "published"),
+    countRows(supabase, "invoices"),
+    countRows(supabase, "payments"),
   ]);
+
+  const hasMetricErrors = [projects, clients, tasks, inquiries, courses, events, invoices, payments].some((value) => value === null);
 
   const metrics = [
     { label: "Projects", value: projects, note: "Tracked delivery work", code: "PR" },
@@ -61,6 +88,8 @@ export default async function AdminPage() {
     { label: "Tasks", value: tasks, note: "Operational workload", code: "TK" },
     { label: "Courses", value: courses, note: "Academy course records", code: "AC" },
     { label: "Published events", value: events, note: "Visible on the website", code: "EV" },
+    { label: "Invoices", value: invoices, note: "Financial records", code: "IV" },
+    { label: "Payments", value: payments, note: "Recorded transactions", code: "PY" },
   ];
 
   const groups = ["Operations", "Sales", "Content", "People", "Business", "System"];
@@ -84,6 +113,12 @@ export default async function AdminPage() {
             </div>
           </div>
         </header>
+
+        {hasMetricErrors && (
+          <div role="status" className="mt-5 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 text-sm leading-6 text-amber-100">
+            Some dashboard counts could not be loaded from Supabase. A dash (—) marks unavailable data, not zero. Check table availability, administrator read permissions, and the latest database migrations.
+          </div>
+        )}
 
         <section aria-label="Live platform metrics" className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {metrics.map((metric) => (

@@ -99,8 +99,10 @@ export default function AcademyPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [showForm, setShowForm] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [form, setForm] = useState<CourseForm>(initialForm);
   const [saving, setSaving] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -121,13 +123,26 @@ export default function AcademyPage() {
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
         queryError = fallback.error;
+
+        if (queryError && /category|column .* does not exist|schema cache/i.test(queryError.message)) {
+          const legacy = await supabase.from("courses")
+            .select("id, title, slug, description, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency")
+            .order("created_at", { ascending: false });
+          data = (legacy.data ?? []).map((row) => ({
+            ...row,
+            category: "Cybersecurity",
+            cover_image_url: null,
+            promo_video_url: null,
+          })) as typeof data;
+          queryError = legacy.error;
+        }
       }
 
       if (queryError) {
         setError(queryError.message);
         setCourses([]);
       } else {
-        setCourses((data ?? []) as Course[]);
+        setCourses(((data ?? []) as Course[]).map((course) => ({ ...course, price: 0 })));
       }
     } catch {
       setError("An unexpected error occurred while loading courses.");
@@ -148,6 +163,48 @@ export default function AcademyPage() {
     setForm((current) => ({ ...current, [field]: value }));
     setFormError("");
     setSuccessMessage("");
+  }
+
+  async function uploadMedia(file: File, kind: "image" | "video") {
+    setUploadingMedia(kind);
+    setFormError("");
+    setSuccessMessage("");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      body.set("kind", kind);
+      const response = await fetch("/api/admin/course-media", { method: "POST", body });
+      const payload = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Upload failed.");
+      updateForm(kind === "image" ? "cover_image_url" : "promo_video_url", payload.url);
+      setSuccessMessage(kind === "image" ? "Cover image uploaded. Save the course to keep the change." : "Preview video uploaded. Save the course to keep the change.");
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : "Upload failed.");
+    } finally {
+      setUploadingMedia(null);
+    }
+  }
+
+  function startEditing(course: Course) {
+    setEditingCourseId(course.id);
+    setForm({
+      category: (course.category as CourseForm["category"]) || "Cybersecurity",
+      title: course.title,
+      slug: course.slug,
+      description: course.description ?? "",
+      price: "0",
+      currency: course.currency || "USD",
+      cover_image_url: course.cover_image_url ?? "",
+      promo_video_url: course.promo_video_url ?? "",
+      difficulty: course.difficulty || "beginner",
+      course_type: course.course_type || "online",
+      estimated_hours: course.estimated_hours == null ? "" : String(course.estimated_hours),
+      status: course.status || "draft",
+    });
+    setFormError("");
+    setSuccessMessage("");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleCreateCourse(
@@ -213,12 +270,12 @@ export default function AcademyPage() {
     setSaving(true);
 
     try {
-      const { error: insertError } = await supabase.from("courses").insert({
+      const coursePayload = {
         category: form.category,
         title,
         slug,
         description: form.description.trim() || null,
-        price,
+        price: 0,
         currency,
         cover_image_url: coverImageUrl || null,
         promo_video_url: promoVideoUrl || null,
@@ -226,7 +283,11 @@ export default function AcademyPage() {
         course_type: form.course_type,
         estimated_hours: hours,
         status: form.status,
-      });
+      };
+      const saveResult = editingCourseId
+        ? await supabase.from("courses").update(coursePayload).eq("id", editingCourseId)
+        : await supabase.from("courses").insert(coursePayload);
+      const insertError = saveResult.error;
 
       if (insertError) {
         if (insertError.code === "23505") {
@@ -247,8 +308,9 @@ export default function AcademyPage() {
       }
 
       setForm(initialForm);
+      setEditingCourseId(null);
       setShowForm(false);
-      setSuccessMessage("Course created and saved successfully.");
+      setSuccessMessage(editingCourseId ? "Course changes saved successfully." : "Course created and saved successfully.");
 
       await loadCourses();
     } catch {
@@ -344,7 +406,7 @@ export default function AcademyPage() {
             <p className="text-xs font-semibold tracking-wider text-blue-400">
               NEW COURSE
             </p>
-            <h2 className="mt-2 text-xl font-bold">Create a new course</h2>
+            <h2 className="mt-2 text-xl font-bold">{editingCourseId ? "Edit course" : "Create a new course"}</h2>
             <p className="mt-2 text-sm leading-7 text-gray-400">
               Enter course details and save them to the database. Draft courses will not be visible to learners
               until they are published.
@@ -428,12 +490,18 @@ export default function AcademyPage() {
                 <input id="course-currency" maxLength={3} value={form.currency} onChange={(event) => updateForm("currency", event.target.value.toUpperCase())} placeholder="USD or EGP" className={fieldClass} />
               </div>
               <div>
-                <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL</label>
+                <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL or upload</label>
                 <input id="course-cover-image" type="url" value={form.cover_image_url} onChange={(event) => updateForm("cover_image_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+                <label className="mt-3 block text-xs text-gray-400">Upload image (JPG, PNG, WebP, AVIF, GIF · max 15 MB)</label>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" disabled={Boolean(uploadingMedia) || saving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(file, "image"); event.currentTarget.value = ""; }} className="mt-2 block w-full text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:font-semibold file:text-white" />
+                {uploadingMedia === "image" && <p className="mt-2 text-xs text-blue-300">Uploading image…</p>}
               </div>
               <div>
-                <label htmlFor="course-promo-video" className="mb-2 block text-sm font-medium text-gray-300">Preview video URL</label>
+                <label htmlFor="course-promo-video" className="mb-2 block text-sm font-medium text-gray-300">Preview video URL or upload</label>
                 <input id="course-promo-video" type="url" value={form.promo_video_url} onChange={(event) => updateForm("promo_video_url", event.target.value)} placeholder="https://…" className={fieldClass} />
+                <label className="mt-3 block text-xs text-gray-400">Upload video (MP4, WebM, MOV, OGG · max 50 MB)</label>
+                <input type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" disabled={Boolean(uploadingMedia) || saving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMedia(file, "video"); event.currentTarget.value = ""; }} className="mt-2 block w-full text-xs text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:font-semibold file:text-white" />
+                {uploadingMedia === "video" && <p className="mt-2 text-xs text-blue-300">Uploading video…</p>}
               </div>
             </div>
 
@@ -566,10 +634,10 @@ export default function AcademyPage() {
             <div className="flex flex-wrap gap-3 border-t border-white/[0.08] pt-5">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || Boolean(uploadingMedia)}
                 className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save course"}
+                {saving ? "Saving..." : editingCourseId ? "Save changes" : "Save course"}
               </button>
 
               <button
@@ -577,6 +645,7 @@ export default function AcademyPage() {
                 disabled={saving}
                 onClick={() => {
                   setForm(initialForm);
+                  setEditingCourseId(null);
                   setFormError("");
                   setShowForm(false);
                 }}
@@ -742,9 +811,13 @@ export default function AcademyPage() {
                     </div>
                   </div>
 
-                  <p className="shrink-0 text-xs text-gray-500">
-                    {new Date(course.created_at).toLocaleDateString("ar-EG")}
-                  </p>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <p className="text-xs text-gray-500">
+                      {new Date(course.created_at).toLocaleDateString("ar-EG")}
+                    </p>
+                    <button type="button" onClick={() => startEditing(course)} className="rounded-lg border border-blue-400/30 px-3 py-2 text-xs font-semibold text-blue-200 transition hover:bg-blue-400/10">Edit course</button>
+                    <Link href={`/academy/${encodeURIComponent(course.slug)}`} target="_blank" className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-300 transition hover:border-blue-400/30">Preview ↗</Link>
+                  </div>
                 </div>
               </article>
             ))}

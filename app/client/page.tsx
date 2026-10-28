@@ -351,6 +351,14 @@ function Icon({
         </svg>
       );
 
+    case "invoices":
+      return (
+        <svg {...common}>
+          <path d="M6 3.5h9l4 4V21l-2-1.5L15 21l-3-1.5L9 21l-3-1.5L4 21V5.5A2 2 0 0 1 6 3.5Z" />
+          <path d="M14.5 3.8V8H19M8 12h7M8 15.5h7" />
+        </svg>
+      );
+
     case "check":
       return (
         <svg {...common}>
@@ -688,36 +696,45 @@ export default function ClientPage() {
       setNotice("");
 
       try {
-        const [profileResult, clientResult] = await Promise.all([
+        const [profileResult, initialClientResult] = await Promise.all([
           supabase
             .from("profiles")
             .select("full_name, avatar_url")
             .eq("id", user.id)
             .maybeSingle(),
-
           supabase
             .from("clients")
-            .select(
-              "id, name, email, company, phone, created_at"
-            )
+            .select("id, name, email, phone, created_at")
             .eq("auth_user_id", user.id)
             .maybeSingle(),
         ]);
 
         if (profileResult.error) {
-          throw new Error(
-            `Unable to load profile: ${profileResult.error.message}`
-          );
+          console.error("Client profile query failed:", profileResult.error);
+          throw new Error("Unable to load your profile. Please refresh or contact VEXORA support.");
+        }
+
+        // Older VEXORA databases may link client records through user_id.
+        // Retry that legacy relationship only when auth_user_id is unavailable.
+        let clientResult = initialClientResult;
+        if (
+          clientResult.error &&
+          /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message)
+        ) {
+          clientResult = await supabase
+            .from("clients")
+            .select("id, name, email, phone, created_at")
+            .eq("user_id", user.id)
+            .maybeSingle();
         }
 
         if (clientResult.error) {
-          throw new Error(
-            `Unable to load client record: ${clientResult.error.message}`
-          );
+          console.error("Client account query failed:", clientResult.error);
+          throw new Error("Unable to load your client account. Please refresh or contact VEXORA support.");
         }
 
         setProfile(profileResult.data);
-        setClient(clientResult.data);
+        setClient(clientResult.data ? { ...clientResult.data, company: null } : null);
 
         setAcademyLoading(true);
         setAcademyError("");
@@ -777,9 +794,8 @@ export default function ClientPage() {
           .limit(50);
 
         if (projectResult.error) {
-          throw new Error(
-            `Unable to load projects: ${projectResult.error.message}`
-          );
+          console.error("Client projects query failed:", projectResult.error);
+          throw new Error("Unable to load your projects. Please refresh or contact VEXORA support.");
         }
 
         const projectRows = (projectResult.data ?? []) as Project[];
@@ -808,9 +824,8 @@ export default function ClientPage() {
           .limit(100);
 
         if (taskResult.error) {
-          throw new Error(
-            `Unable to load tasks: ${taskResult.error.message}`
-          );
+          console.error("Client tasks query failed:", taskResult.error);
+          throw new Error("Unable to load your project tasks. Please refresh or contact VEXORA support.");
         }
 
         setTasks((taskResult.data ?? []) as Task[]);
@@ -870,9 +885,10 @@ export default function ClientPage() {
   ========================================================= */
 
   const displayName =
+    client?.name?.trim() ||
     profile?.full_name?.trim() ||
     user?.user_metadata?.full_name ||
-    client?.name ||
+    user?.email?.split("@")[0] ||
     "VEXORA Client";
 
   const activeProjects = useMemo(
@@ -1323,6 +1339,20 @@ export default function ClientPage() {
               </button>
             );
           })}
+
+          <Link
+            href="/client/invoices"
+            className="sidebar-nav-item"
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <span className="sidebar-nav-icon">
+              <Icon name="invoices" size={19} />
+            </span>
+            <span className="sidebar-nav-text">
+              <strong>Invoices & Payments</strong>
+              <small>Billing and payment history</small>
+            </span>
+          </Link>
         </nav>
 
         <div className="sidebar-help">

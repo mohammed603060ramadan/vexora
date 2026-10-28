@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -17,8 +17,6 @@ type Course = {
   price: number | null;
   currency: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
@@ -40,6 +38,7 @@ type Lesson = {
   is_preview: boolean;
   sequence_number: number;
   status: string;
+  video_url?: string | null;
 };
 
 type FilteredSection = Section & {
@@ -77,6 +76,7 @@ function formatDuration(minutes: number) {
 }
 
 function CourseDetailsContent() {
+  const router = useRouter();
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
 
@@ -93,6 +93,7 @@ function CourseDetailsContent() {
   const [accessError, setAccessError] = useState("");
   const [accessResult, setAccessResult] = useState<{ code: string; status: string; message: string } | null>(null);
   const [hasCourseAccess, setHasCourseAccess] = useState(false);
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
 
   const loadCourse = useCallback(
     async (isRefresh = false) => {
@@ -117,21 +118,43 @@ function CourseDetailsContent() {
         const { data: authData } = await supabase.auth.getUser();
         const signedInUser = authData.user;
 
-        let { data: courseData, error: courseError } = await supabase
-          .from("courses")
-          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
-          .eq("slug", slug)
-          .eq("status", "published")
-          .maybeSingle();
+        const courseQueries = [
+          "id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url",
+          "id, title, slug, description, difficulty, course_type, price, currency, estimated_hours",
+          "id, title, slug, description, difficulty, course_type, estimated_hours",
+        ];
+        let courseData: Record<string, unknown> | null = null;
+        let courseError: { message: string } | null = null;
 
-        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
-          const fallback = await supabase.from("courses")
-            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
+        for (const columns of courseQueries) {
+          const result = await supabase
+            .from("courses")
+            .select(columns)
             .eq("slug", slug)
             .eq("status", "published")
             .maybeSingle();
-          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
-          courseError = fallback.error;
+
+          if (!result.error) {
+            courseData = result.data as Record<string, unknown> | null;
+            courseError = null;
+            break;
+          }
+
+          courseError = result.error;
+          if (!/column .* does not exist|schema cache|could not find .* column/i.test(result.error.message)) {
+            break;
+          }
+        }
+
+        if (courseData) {
+          courseData = {
+            ...courseData,
+            subtitle: typeof courseData.subtitle === "string" ? courseData.subtitle : null,
+            price: 0,
+            currency: typeof courseData.currency === "string" ? courseData.currency : null,
+            cover_image_url: typeof courseData.cover_image_url === "string" ? courseData.cover_image_url : null,
+            promo_video_url: typeof courseData.promo_video_url === "string" ? courseData.promo_video_url : null,
+          };
         }
         if (courseError) throw courseError;
 
@@ -144,38 +167,93 @@ function CourseDetailsContent() {
           return;
         }
 
-        const {
-          data: sectionData,
-          error: sectionError,
-        } = await supabase
+        const sectionResult = await supabase
           .from("course_sections")
           .select("id, title, description, sequence_number")
           .eq("course_id", courseData.id)
           .order("sequence_number", { ascending: true });
 
-        if (sectionError) throw sectionError;
-
-        const loadedSections = (sectionData ?? []) as Section[];
-        const sectionIds = loadedSections.map((section) => section.id);
-
+        let loadedSections: Section[] = [];
         let loadedLessons: Lesson[] = [];
+        let lessonSchemaUnavailable = false;
 
-        if (sectionIds.length > 0) {
-          const {
-            data: lessonData,
-            error: lessonError,
-          } = await supabase
-            .from("lessons")
-            .select(
-              "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
-            )
-            .in("section_id", sectionIds)
-            .eq("status", "published")
-            .order("sequence_number", { ascending: true });
+        if (!sectionResult.error) {
+          loadedSections = (sectionResult.data ?? []) as Section[];
+          const sectionIds = loadedSections.map((section) => section.id);
 
-          if (lessonError) throw lessonError;
+          if (sectionIds.length > 0) {
+            const lessonResult = await supabase
+              .from("lessons")
+              .select(
+                "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
+              )
+              .in("section_id", sectionIds)
+              .eq("status", "published")
+              .order("sequence_number", { ascending: true });
 
-          loadedLessons = (lessonData ?? []) as Lesson[];
+            if (lessonResult.error) {
+              // The newer lessons query is optional for legacy deployments and
+              // can also fail because of RLS. Try the supported legacy table;
+              // never fail the whole course page for a curriculum query.
+              console.error("Published lessons could not be loaded; trying legacy schema:", lessonResult.error);
+              lessonSchemaUnavailable = true;
+            } else {
+              loadedLessons = (lessonResult.data ?? []) as Lesson[];
+            }
+          }
+        } else {
+          // Section data is optional for displaying the published course itself.
+          // Keep the course page available and attempt the legacy lesson schema below.
+          console.error("Course sections could not be loaded:", sectionResult.error);
+        }
+
+        // Legacy VEXORA schema stores lessons directly in course_lessons,
+        // without course_sections or the newer lessons table.
+        if (loadedSections.length === 0 || lessonSchemaUnavailable) {
+          const legacyResult = await supabase
+            .from("course_lessons" as never)
+            .select("id, course_id, title, content, video_url, sort_order, is_published" as never)
+            .eq("course_id" as never, courseData.id as never)
+            .eq("is_published" as never, true as never)
+            .order("sort_order" as never, { ascending: true } as never) as unknown as {
+              data: Array<{
+                id: string;
+                course_id: string;
+                title: string;
+                content: string | null;
+                video_url: string | null;
+                sort_order: number | null;
+                is_published: boolean;
+              }> | null;
+              error: { message: string } | null;
+            };
+
+          if (legacyResult.error) {
+            // Do not turn an optional lesson-schema/RLS issue into a full course-page failure.
+            // Keep lessons unavailable unless a permitted query returns them.
+            console.error("Legacy course lessons could not be loaded:", legacyResult.error);
+          }
+
+          if (!legacyResult.error && (legacyResult.data ?? []).length > 0) {
+            loadedSections = [{
+              id: String(courseData.id),
+              title: "Course content",
+              description: null,
+              sequence_number: 1,
+            }];
+            loadedLessons = (legacyResult.data ?? []).map((lesson) => ({
+              id: lesson.id,
+              section_id: String(courseData.id),
+              title: lesson.title,
+              description: lesson.content,
+              lesson_type: lesson.video_url ? "video" : "article",
+              duration_minutes: null,
+              is_preview: false,
+              sequence_number: lesson.sort_order ?? 0,
+              status: "published",
+              video_url: lesson.video_url,
+            }));
+          }
         }
 
         if (signedInUser) {
@@ -186,8 +264,13 @@ function CourseDetailsContent() {
             .eq("student_id", signedInUser.id)
             .in("status", ["active", "completed"])
             .maybeSingle();
-          if (enrollmentError) throw enrollmentError;
-          setHasCourseAccess(Boolean(enrollment));
+          if (enrollmentError) {
+            // Fail closed: a failed enrollment check never grants access.
+            console.error("Course enrollment check failed:", enrollmentError);
+            setHasCourseAccess(false);
+          } else {
+            setHasCourseAccess(Boolean(enrollment));
+          }
         } else {
           setHasCourseAccess(false);
         }
@@ -305,12 +388,19 @@ function CourseDetailsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
       });
-      const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
+      const payload = await response.json() as { free?: boolean; enrolled?: boolean; request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
       if (response.status === 401) {
-        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
+      if (payload.free && payload.enrolled) {
+        setHasCourseAccess(true);
+        setAccessResult(null);
+        setAccessError("");
+        setLastUpdated(new Date());
+        return;
+      }
       setAccessResult({ code: payload.request.purchase_code || "CODE PENDING", status: payload.request.status || "pending", message: payload.message || "Access will be enabled after administrator approval." });
     } catch (cause) {
       setAccessError(cause instanceof Error ? cause.message : "Unable to request course access.");
@@ -543,6 +633,23 @@ function CourseDetailsContent() {
             </section>
 
             <section className="mt-14">
+              {activeLesson?.video_url && (
+                <div className="mb-7 overflow-hidden rounded-2xl border border-[#45a5ff]/25 bg-black">
+                  <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                    <p className="text-sm font-semibold">{activeLesson.title}</p>
+                    <button type="button" onClick={() => setActiveLesson(null)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 hover:text-white">Close player</button>
+                  </div>
+                  {(() => {
+                    const videoUrl = activeLesson.video_url || "";
+                    const youtubeMatch = videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i);
+                    const vimeoMatch = videoUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+                    if (youtubeMatch) return <iframe title={activeLesson.title} className="aspect-video w-full" src={`https://www.youtube-nocookie.com/embed/${youtubeMatch[1]}?rel=0`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />;
+                    if (vimeoMatch) return <iframe title={activeLesson.title} className="aspect-video w-full" src={`https://player.vimeo.com/video/${vimeoMatch[1]}`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />;
+                    if (/\.(mp4|webm|ogg)(?:[?#].*)?$/i.test(videoUrl)) return <video className="aspect-video w-full" src={videoUrl} controls playsInline />;
+                    return <a className="block p-5 text-sm text-sky-300 underline" href={videoUrl} target="_blank" rel="noreferrer">Open this video in a new tab ↗</a>;
+                  })()}
+                </div>
+              )}
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
@@ -694,6 +801,9 @@ function CourseDetailsContent() {
                                       </span>
                                     </span>
 
+                                    {lesson.video_url && (
+                                      <button type="button" onClick={() => { setActiveLesson(lesson); }} className="shrink-0 rounded-full border border-[#45a5ff]/30 bg-[#1687ff]/10 px-3 py-2 text-xs font-semibold text-[#9bd1ff] transition hover:bg-[#1687ff]/20">▶ Watch here</button>
+                                    )}
                                     <span className="shrink-0 text-right">
                                       {lesson.is_preview && (
                                         <span className="block text-xs font-medium text-[#79bdff]">
@@ -751,6 +861,15 @@ function CourseDetailsContent() {
 
             {hasCourseAccess ? (
               <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">✓ Open my courses</Link>
+            ) : course.price != null && Number(course.price) === 0 ? (
+              <button
+                type="button"
+                onClick={() => void requestAccess()}
+                disabled={accessLoading}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
+              >
+                {accessLoading ? "Enrolling…" : "Enroll for free"}
+              </button>
             ) : (
               <button
                 type="button"
@@ -762,7 +881,7 @@ function CourseDetailsContent() {
               </button>
             )}
             {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
-            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>
+            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>}
 
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
               <div className="flex items-start gap-3">

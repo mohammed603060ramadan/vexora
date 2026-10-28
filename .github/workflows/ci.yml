@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]
+    branches: [master, fix/integrated-admin-client-db-audit-2026-10-27]
 
 permissions:
   contents: read
@@ -25,10 +25,10 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm

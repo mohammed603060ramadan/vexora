@@ -325,6 +325,13 @@ export default function NetworksInfrastructurePage() {
             >
               Let&apos;s Talk <span aria-hidden="true">↗</span>
             </Link>
+
+            <Link
+              href="/contact"
+              className="shrink-0 rounded-full border border-[#1687ff]/40 bg-[#1687ff]/10 px-4 py-2 text-xs font-semibold text-[#8dccff] transition duration-300 hover:border-[#45a5ff] hover:bg-[#1687ff]/20 sm:text-sm"
+            >
+              Start a Project
+            </Link>
           </div>
         </header>
 

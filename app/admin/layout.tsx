@@ -1,10 +1,11 @@
-﻿
+
 import Link from "next/link";
 import AdminNavigation from "@/app/admin/admin-navigation";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function AdminLoading() {
   return (
@@ -29,9 +30,23 @@ async function AdminWorkspace({
     redirect("/login?next=/admin");
   }
 
-  if (data.user.app_metadata?.role !== "admin") {
-    redirect("/client");
+  let authorized = data.user.app_metadata?.role === "admin";
+
+  if (!authorized) {
+    try {
+      const admin = createAdminClient();
+      const { data: registry, error: registryError } = await admin
+        .from("vexora_admins")
+        .select("user_id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      authorized = !registryError && Boolean(registry);
+    } catch (registryError) {
+      console.error("Administrator registry check failed:", registryError);
+    }
   }
+
+  if (!authorized) redirect("/client");
 
   const fullName =
     data.user.user_metadata?.full_name || "Administrator";

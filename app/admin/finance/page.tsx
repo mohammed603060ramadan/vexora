@@ -1,7 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "Finance | VEXORA Admin",
@@ -11,6 +12,8 @@ export const metadata = {
 
 type Invoice = {
   id: string;
+  client_id: string;
+  project_id: string | null;
   invoice_number: number;
   total_amount: number | string;
   currency: string;
@@ -21,6 +24,8 @@ type Invoice = {
 
 type Payment = {
   id: string;
+  client_id: string;
+  invoice_id: string | null;
   payment_number: number;
   amount: number | string;
   currency: string;
@@ -51,6 +56,19 @@ function formatMoney(amount: number | string, currency: string) {
   } catch {
     return `${value.toFixed(2)} ${currency}`;
   }
+}
+
+function formatCurrencyTotals(
+  rows: Array<{ amount: number | string; currency: string }>,
+) {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const currency = (row.currency || "USD").trim();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(row.amount || 0));
+  }
+  return [...totals.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(" · ") || formatMoney(0, "USD");
 }
 
 function formatDate(value: string | null) {
@@ -103,28 +121,39 @@ export default async function AdminFinancePage() {
     redirect("/login?next=/admin/finance");
   }
 
-  const role = authData.user.app_metadata?.role;
+  let authorized = authData.user.app_metadata?.role === "admin";
+  const admin = createAdminClient();
 
-  if (role !== "admin") {
-    redirect("/client");
+  if (!authorized) {
+    const { data: registry, error: registryError } = await admin
+      .from("vexora_admins")
+      .select("user_id")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    authorized = !registryError && Boolean(registry);
   }
+
+  if (!authorized) redirect("/client");
+
+  // Financial tables are read only here and only after administrator authorization.
+  const financeDb = admin;
 
   const [
     invoicesResult,
     paymentsResult,
     expensesResult,
   ] = await Promise.all([
-    supabase
+    financeDb
       .from("invoices" as never)
-      .select("id, invoice_number, total_amount, currency, status, issue_date, due_date")
+      .select("id, invoice_number, client_id, project_id, total_amount, currency, status, issue_date, due_date")
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase
+    financeDb
       .from("payments" as never)
-      .select("id, payment_number, amount, currency, status, paid_at")
+      .select("id, payment_number, client_id, invoice_id, amount, currency, status, paid_at")
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase
+    financeDb
       .from("expenses" as never)
       .select("id, title, amount, currency, status, expense_date")
       .order("created_at", { ascending: false })
@@ -135,11 +164,83 @@ export default async function AdminFinancePage() {
   const payments = (paymentsResult.data ?? []) as Payment[];
   const expenses = (expensesResult.data ?? []) as Expense[];
 
+  // Fetch every completed payment linked to the ten invoices shown here.
+  // The latest-payment list is intentionally separate and must not drive
+  // outstanding balances, because an older payment can still reduce a balance.
+  const invoiceIds = invoices.map((invoice) => invoice.id);
+  const balancePaymentsResult = await (async (): Promise<{
+    data: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> | null;
+    error: { message: string } | null;
+  }> => {
+    const allPayments: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> = [];
+    if (!invoiceIds.length) return { data: allPayments, error: null };
+
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const page = await financeDb
+        .from("payments" as never)
+        .select("invoice_id, amount, currency, status")
+        .in("invoice_id", invoiceIds)
+        .eq("status", "completed")
+        .order("created_at", { ascending: true })
+        .range(offset, offset + pageSize - 1) as unknown as {
+          data: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> | null;
+          error: { message: string } | null;
+        };
+
+      if (page.error) return { data: null, error: page.error };
+      const rows = page.data ?? [];
+      allPayments.push(...rows);
+      if (rows.length < pageSize) break;
+    }
+
+    return { data: allPayments, error: null };
+  })();
+  const balancePayments = balancePaymentsResult.data ?? [];
+
+  // Resolve linked client/project names from their canonical records instead
+  // of displaying orphaned IDs or relying on guessed relationship aliases.
+  const clientIds = Array.from(new Set([
+    ...invoices.map((invoice) => invoice.client_id),
+    ...payments.map((payment) => payment.client_id),
+  ].filter(Boolean)));
+  const projectIds = Array.from(new Set(invoices.map((invoice) => invoice.project_id).filter((id): id is string => Boolean(id))));
+  const [clientsResult, projectsResult] = await Promise.all([
+    clientIds.length
+      ? financeDb.from("clients").select("id, name, company_name").in("id", clientIds)
+      : Promise.resolve({ data: [], error: null }),
+    projectIds.length
+      ? financeDb.from("projects").select("id, name").in("id", projectIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const clientRows = (clientsResult.data ?? []) as Array<{
+    id: string;
+    name: string | null;
+    company_name: string | null;
+  }>;
+  const projectRows = (projectsResult.data ?? []) as Array<{
+    id: string;
+    name: string | null;
+  }>;
+  const clientNames = new Map(clientRows.map((client) => [
+    client.id,
+    client.company_name || client.name || "Unnamed client",
+  ]));
+  const projectNames = new Map(projectRows.map((project) => [project.id, project.name || "Unnamed project"]));
+
   const queryErrors = [
-    invoicesResult.error,
-    paymentsResult.error,
-    expensesResult.error,
-  ].filter(Boolean);
+    { source: "Invoices", error: invoicesResult.error },
+    { source: "Payments", error: paymentsResult.error },
+    { source: "Invoice balance payments", error: balancePaymentsResult.error },
+    { source: "Expenses", error: expensesResult.error },
+    { source: "Client records", error: clientsResult.error },
+    { source: "Project records", error: projectsResult.error },
+  ].filter((item): item is { source: string; error: NonNullable<typeof item.error> } => Boolean(item.error));
+
+  for (const item of queryErrors) {
+    console.error(`Admin finance query failed (${item.source}):`, item.error);
+  }
 
   const outstandingInvoices = invoices.filter((invoice) =>
     ["issued", "partially_paid", "overdue"].includes(invoice.status),
@@ -153,20 +254,36 @@ export default async function AdminFinancePage() {
     (expense) => expense.status === "recorded",
   );
 
-  const totalOutstanding = outstandingInvoices.reduce(
-    (sum, invoice) => sum + Number(invoice.total_amount || 0),
-    0,
-  );
+  const paidByInvoiceCurrency = new Map<string, number>();
+  for (const payment of balancePayments) {
+    if (payment.invoice_id) {
+      const currency = (payment.currency || "USD").trim().toUpperCase();
+      const key = `${payment.invoice_id}:${currency}`;
+      paidByInvoiceCurrency.set(
+        key,
+        (paidByInvoiceCurrency.get(key) ?? 0) + Number(payment.amount || 0),
+      );
+    }
+  }
 
-  const totalPayments = completedPayments.reduce(
-    (sum, payment) => sum + Number(payment.amount || 0),
-    0,
-  );
+  const outstandingByCurrency = new Map<string, number>();
+  for (const invoice of outstandingInvoices) {
+    const currency = (invoice.currency || "USD").trim();
+    const balance = Math.max(
+      0,
+      Number(invoice.total_amount || 0) - (paidByInvoiceCurrency.get(`${invoice.id}:${(invoice.currency || "USD").trim().toUpperCase()}`) ?? 0),
+    );
+    outstandingByCurrency.set(
+      currency,
+      (outstandingByCurrency.get(currency) ?? 0) + balance,
+    );
+  }
 
-  const totalExpenses = recordedExpenses.reduce(
-    (sum, expense) => sum + Number(expense.amount || 0),
-    0,
-  );
+  const totalOutstanding = [...outstandingByCurrency.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(" · ") || formatMoney(0, "USD");
+  const totalPayments = formatCurrencyTotals(completedPayments);
+  const totalExpenses = formatCurrencyTotals(recordedExpenses);
 
   const cards = [
     {
@@ -176,18 +293,18 @@ export default async function AdminFinancePage() {
     },
     {
       label: "Outstanding value",
-      value: formatMoney(totalOutstanding, outstandingInvoices[0]?.currency ?? "USD"),
-      detail: "Latest invoices only; currencies are not consolidated",
+      value: totalOutstanding,
+      detail: "Latest 10 invoices, net of recorded completed payments; totals separated by currency",
     },
     {
       label: "Completed payments",
       value: String(completedPayments.length),
-      detail: `Latest 10 payments; recorded value ${formatMoney(totalPayments, completedPayments[0]?.currency ?? "USD")}`,
+      detail: `Latest 10 payments; recorded value ${totalPayments}`,
     },
     {
       label: "Recorded expenses",
       value: String(recordedExpenses.length),
-      detail: `Latest 10 expenses; recorded value ${formatMoney(totalExpenses, recordedExpenses[0]?.currency ?? "USD")}`,
+      detail: `Latest 10 expenses; recorded value ${totalExpenses}`,
     },
   ];
 
@@ -220,9 +337,12 @@ export default async function AdminFinancePage() {
             role="alert"
             className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-200"
           >
-            Some finance data could not be loaded. Check the Supabase table
-            permissions and database schema. No financial data has been
-            modified.
+            <p>Some finance data could not be loaded. Check the Supabase table schema and migrations. No financial data has been modified.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/80">
+              {queryErrors.map((item) => (
+                <li key={item.source}>{item.source}: records unavailable. Check the server logs for diagnostic details.</li>
+              ))}
+            </ul>
           </section>
         )}
 
@@ -254,10 +374,11 @@ export default async function AdminFinancePage() {
               </p>
             ) : (
               <div className="mt-5 overflow-x-auto">
-                <table className="w-full min-w-[540px] text-left text-sm">
+                <table className="w-full min-w-[680px] text-left text-sm">
                   <thead className="text-xs uppercase text-slate-500">
                     <tr>
                       <th className="pb-3 pr-4 font-medium">Invoice</th>
+                      <th className="pb-3 pr-4 font-medium">Client / Project</th>
                       <th className="pb-3 pr-4 font-medium">Issued</th>
                       <th className="pb-3 pr-4 font-medium">Amount</th>
                       <th className="pb-3 font-medium">Status</th>
@@ -271,6 +392,10 @@ export default async function AdminFinancePage() {
                       >
                         <td className="py-3 pr-4 font-medium">
                           #{invoice.invoice_number}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium text-slate-200">{clientNames.get(invoice.client_id) ?? "Client unavailable"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{invoice.project_id ? projectNames.get(invoice.project_id) ?? "Project unavailable" : "No project linked"}</p>
                         </td>
                         <td className="py-3 pr-4 text-slate-400">
                           {formatDate(invoice.issue_date)}
@@ -301,10 +426,11 @@ export default async function AdminFinancePage() {
               </p>
             ) : (
               <div className="mt-5 overflow-x-auto">
-                <table className="w-full min-w-[480px] text-left text-sm">
+                <table className="w-full min-w-[600px] text-left text-sm">
                   <thead className="text-xs uppercase text-slate-500">
                     <tr>
                       <th className="pb-3 pr-4 font-medium">Payment</th>
+                      <th className="pb-3 pr-4 font-medium">Client / Invoice</th>
                       <th className="pb-3 pr-4 font-medium">Date</th>
                       <th className="pb-3 pr-4 font-medium">Amount</th>
                       <th className="pb-3 font-medium">Status</th>
@@ -318,6 +444,10 @@ export default async function AdminFinancePage() {
                       >
                         <td className="py-3 pr-4 font-medium">
                           #{payment.payment_number}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium text-slate-200">{clientNames.get(payment.client_id) ?? "Client unavailable"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{payment.invoice_id ? `Invoice #${invoices.find((invoice) => invoice.id === payment.invoice_id)?.invoice_number ?? "unavailable"}` : "Unallocated payment"}</p>
                         </td>
                         <td className="py-3 pr-4 text-slate-400">
                           {formatDate(payment.paid_at)}
