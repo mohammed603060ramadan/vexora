@@ -702,9 +702,8 @@ export default function ClientPage() {
         ]);
 
         if (profileResult.error) {
-          throw new Error(
-            `Unable to load profile: ${profileResult.error.message}`
-          );
+          console.error("Client profile query failed:", profileResult.error);
+          throw new Error("Unable to load your profile. Please refresh or contact VEXORA support.");
         }
 
         // Older VEXORA databases may link client records through user_id.
@@ -722,9 +721,8 @@ export default function ClientPage() {
         }
 
         if (clientResult.error) {
-          throw new Error(
-            `Unable to load client record: ${clientResult.error.message}`
-          );
+          console.error("Client account query failed:", clientResult.error);
+          throw new Error("Unable to load your client account. Please refresh or contact VEXORA support.");
         }
 
         setProfile(profileResult.data);
@@ -788,9 +786,8 @@ export default function ClientPage() {
           .limit(50);
 
         if (projectResult.error) {
-          throw new Error(
-            `Unable to load projects: ${projectResult.error.message}`
-          );
+          console.error("Client projects query failed:", projectResult.error);
+          throw new Error("Unable to load your projects. Please refresh or contact VEXORA support.");
         }
 
         const projectRows = (projectResult.data ?? []) as Project[];
@@ -819,9 +816,8 @@ export default function ClientPage() {
           .limit(100);
 
         if (taskResult.error) {
-          throw new Error(
-            `Unable to load tasks: ${taskResult.error.message}`
-          );
+          console.error("Client tasks query failed:", taskResult.error);
+          throw new Error("Unable to load your project tasks. Please refresh or contact VEXORA support.");
         }
 
         setTasks((taskResult.data ?? []) as Task[]);
