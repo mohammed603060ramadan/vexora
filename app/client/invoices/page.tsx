@@ -117,10 +117,14 @@ export default async function ClientInvoicesPage() {
     .eq("auth_user_id", authData.user.id)
     .maybeSingle();
 
-  if (
-    (!clientResult.data && !clientResult.error) ||
-    (clientResult.error && /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message))
-  ) {
+  // Only use the legacy link when the modern column is absent. If the
+  // modern column exists but has no matching row, do not silently resolve a
+  // different client through a stale legacy user_id link.
+  const modernClientLinkUnavailable =
+    clientResult.error &&
+    /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message);
+
+  if (modernClientLinkUnavailable) {
     clientResult = await supabase
       .from("clients")
       .select("id, name, company:company_name")
