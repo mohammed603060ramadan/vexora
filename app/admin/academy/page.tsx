@@ -99,6 +99,7 @@ export default function AcademyPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [showForm, setShowForm] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [form, setForm] = useState<CourseForm>(initialForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -161,6 +162,28 @@ export default function AcademyPage() {
     setForm((current) => ({ ...current, [field]: value }));
     setFormError("");
     setSuccessMessage("");
+  }
+
+  function startEditing(course: Course) {
+    setEditingCourseId(course.id);
+    setForm({
+      category: (course.category as CourseForm["category"]) || "Cybersecurity",
+      title: course.title,
+      slug: course.slug,
+      description: course.description ?? "",
+      price: "0",
+      currency: course.currency || "USD",
+      cover_image_url: course.cover_image_url ?? "",
+      promo_video_url: course.promo_video_url ?? "",
+      difficulty: course.difficulty || "beginner",
+      course_type: course.course_type || "online",
+      estimated_hours: course.estimated_hours == null ? "" : String(course.estimated_hours),
+      status: course.status || "draft",
+    });
+    setFormError("");
+    setSuccessMessage("");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleCreateCourse(
@@ -226,12 +249,12 @@ export default function AcademyPage() {
     setSaving(true);
 
     try {
-      const { error: insertError } = await supabase.from("courses").insert({
+      const coursePayload = {
         category: form.category,
         title,
         slug,
         description: form.description.trim() || null,
-        price,
+        price: 0,
         currency,
         cover_image_url: coverImageUrl || null,
         promo_video_url: promoVideoUrl || null,
@@ -239,7 +262,11 @@ export default function AcademyPage() {
         course_type: form.course_type,
         estimated_hours: hours,
         status: form.status,
-      });
+      };
+      const saveResult = editingCourseId
+        ? await supabase.from("courses").update(coursePayload).eq("id", editingCourseId)
+        : await supabase.from("courses").insert(coursePayload);
+      const insertError = saveResult.error;
 
       if (insertError) {
         if (insertError.code === "23505") {
@@ -260,8 +287,9 @@ export default function AcademyPage() {
       }
 
       setForm(initialForm);
+      setEditingCourseId(null);
       setShowForm(false);
-      setSuccessMessage("Course created and saved successfully.");
+      setSuccessMessage(editingCourseId ? "Course changes saved successfully." : "Course created and saved successfully.");
 
       await loadCourses();
     } catch {
@@ -357,7 +385,7 @@ export default function AcademyPage() {
             <p className="text-xs font-semibold tracking-wider text-blue-400">
               NEW COURSE
             </p>
-            <h2 className="mt-2 text-xl font-bold">Create a new course</h2>
+            <h2 className="mt-2 text-xl font-bold">{editingCourseId ? "Edit course" : "Create a new course"}</h2>
             <p className="mt-2 text-sm leading-7 text-gray-400">
               Enter course details and save them to the database. Draft courses will not be visible to learners
               until they are published.
@@ -582,7 +610,7 @@ export default function AcademyPage() {
                 disabled={saving}
                 className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save course"}
+                {saving ? "Saving..." : editingCourseId ? "Save changes" : "Save course"}
               </button>
 
               <button
@@ -590,6 +618,7 @@ export default function AcademyPage() {
                 disabled={saving}
                 onClick={() => {
                   setForm(initialForm);
+                  setEditingCourseId(null);
                   setFormError("");
                   setShowForm(false);
                 }}
@@ -755,9 +784,13 @@ export default function AcademyPage() {
                     </div>
                   </div>
 
-                  <p className="shrink-0 text-xs text-gray-500">
-                    {new Date(course.created_at).toLocaleDateString("ar-EG")}
-                  </p>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <p className="text-xs text-gray-500">
+                      {new Date(course.created_at).toLocaleDateString("ar-EG")}
+                    </p>
+                    <button type="button" onClick={() => startEditing(course)} className="rounded-lg border border-blue-400/30 px-3 py-2 text-xs font-semibold text-blue-200 transition hover:bg-blue-400/10">Edit course</button>
+                    <Link href={`/academy/${encodeURIComponent(course.slug)}`} target="_blank" className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-300 transition hover:border-blue-400/30">Preview ↗</Link>
+                  </div>
                 </div>
               </article>
             ))}
