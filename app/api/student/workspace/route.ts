@@ -69,32 +69,27 @@ async function findClientForUser(admin: AdminDb, userId: string) {
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  if (!byAuthUser.error && byAuthUser.data) {
+  if (!byAuthUser.error) {
+    // If the modern column exists, its null result is authoritative. Do not
+    // silently resolve a different/stale legacy account link for this user.
     return byAuthUser.data;
   }
 
   const authColumnMissing =
-    byAuthUser.error &&
-    /auth_user_id|column .* does not exist|schema cache/i.test(byAuthUser.error.message);
+    /auth_user_id|column .* does not exist|schema cache/i.test(
+      byAuthUser.error.message,
+    );
 
-  if (byAuthUser.error && !authColumnMissing) {
-    throw byAuthUser.error;
-  }
+  if (!authColumnMissing) throw byAuthUser.error;
 
+  // Compatibility only when this database does not have auth_user_id.
   const byLegacyUser = await admin
     .from("clients")
     .select("id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (byLegacyUser.error) {
-    if (byAuthUser.error && !authColumnMissing) {
-      throw byAuthUser.error;
-    }
-
-    throw byLegacyUser.error;
-  }
-
+  if (byLegacyUser.error) throw byLegacyUser.error;
   return byLegacyUser.data;
 }
 
