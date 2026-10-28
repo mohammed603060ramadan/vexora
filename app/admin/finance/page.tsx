@@ -58,6 +58,19 @@ function formatMoney(amount: number | string, currency: string) {
   }
 }
 
+function formatCurrencyTotals(
+  rows: Array<{ amount: number | string; currency: string }>,
+) {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const currency = (row.currency || "USD").trim();
+    totals.set(currency, (totals.get(currency) ?? 0) + Number(row.amount || 0));
+  }
+  return [...totals.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(" · ") || formatMoney(0, "USD");
+}
+
 function formatDate(value: string | null) {
   if (!value) return "—";
 
@@ -151,6 +164,26 @@ export default async function AdminFinancePage() {
   const payments = (paymentsResult.data ?? []) as Payment[];
   const expenses = (expensesResult.data ?? []) as Expense[];
 
+  // Fetch every completed payment linked to the ten invoices shown here.
+  // The latest-payment list is intentionally separate and must not drive
+  // outstanding balances, because an older payment can still reduce a balance.
+  const invoiceIds = invoices.map((invoice) => invoice.id);
+  const balancePaymentsResult = invoiceIds.length
+    ? await financeDb
+        .from("payments" as never)
+        .select("invoice_id, amount, currency, status")
+        .in("invoice_id", invoiceIds)
+        .eq("status", "completed")
+        .limit(5000) as unknown as {
+          data: Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }> | null;
+          error: { message: string } | null;
+        }
+    : {
+        data: [] as Array<{ invoice_id: string | null; amount: number | string; currency: string; status: string }>,
+        error: null,
+      };
+  const balancePayments = balancePaymentsResult.data ?? [];
+
   // Resolve linked client/project names from their canonical records instead
   // of displaying orphaned IDs or relying on guessed relationship aliases.
   const clientIds = Array.from(new Set([
@@ -185,6 +218,7 @@ export default async function AdminFinancePage() {
   const queryErrors = [
     { source: "Invoices", error: invoicesResult.error },
     { source: "Payments", error: paymentsResult.error },
+    { source: "Invoice balance payments", error: balancePaymentsResult.error },
     { source: "Expenses", error: expensesResult.error },
     { source: "Client records", error: clientsResult.error },
     { source: "Project records", error: projectsResult.error },
@@ -206,20 +240,34 @@ export default async function AdminFinancePage() {
     (expense) => expense.status === "recorded",
   );
 
-  const totalOutstanding = outstandingInvoices.reduce(
-    (sum, invoice) => sum + Number(invoice.total_amount || 0),
-    0,
-  );
+  const paidByInvoice = new Map<string, number>();
+  for (const payment of balancePayments) {
+    if (payment.invoice_id) {
+      paidByInvoice.set(
+        payment.invoice_id,
+        (paidByInvoice.get(payment.invoice_id) ?? 0) + Number(payment.amount || 0),
+      );
+    }
+  }
 
-  const totalPayments = completedPayments.reduce(
-    (sum, payment) => sum + Number(payment.amount || 0),
-    0,
-  );
+  const outstandingByCurrency = new Map<string, number>();
+  for (const invoice of outstandingInvoices) {
+    const currency = (invoice.currency || "USD").trim();
+    const balance = Math.max(
+      0,
+      Number(invoice.total_amount || 0) - (paidByInvoice.get(invoice.id) ?? 0),
+    );
+    outstandingByCurrency.set(
+      currency,
+      (outstandingByCurrency.get(currency) ?? 0) + balance,
+    );
+  }
 
-  const totalExpenses = recordedExpenses.reduce(
-    (sum, expense) => sum + Number(expense.amount || 0),
-    0,
-  );
+  const totalOutstanding = [...outstandingByCurrency.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(" · ") || formatMoney(0, "USD");
+  const totalPayments = formatCurrencyTotals(completedPayments);
+  const totalExpenses = formatCurrencyTotals(recordedExpenses);
 
   const cards = [
     {
@@ -229,18 +277,18 @@ export default async function AdminFinancePage() {
     },
     {
       label: "Outstanding value",
-      value: formatMoney(totalOutstanding, outstandingInvoices[0]?.currency ?? "USD"),
-      detail: "Latest invoices only; currencies are not consolidated",
+      value: totalOutstanding,
+      detail: "Latest 10 invoices, net of recorded completed payments; totals separated by currency",
     },
     {
       label: "Completed payments",
       value: String(completedPayments.length),
-      detail: `Latest 10 payments; recorded value ${formatMoney(totalPayments, completedPayments[0]?.currency ?? "USD")}`,
+      detail: `Latest 10 payments; recorded value ${totalPayments}`,
     },
     {
       label: "Recorded expenses",
       value: String(recordedExpenses.length),
-      detail: `Latest 10 expenses; recorded value ${formatMoney(totalExpenses, recordedExpenses[0]?.currency ?? "USD")}`,
+      detail: `Latest 10 expenses; recorded value ${totalExpenses}`,
     },
   ];
 
