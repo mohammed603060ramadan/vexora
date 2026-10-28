@@ -551,7 +551,10 @@ export default function AcademyPage() {
         error?: string;
       };
       if (response.status === 401) {
-        router.push("/login?next=" + encodeURIComponent(window.location.pathname));
+        const nextPath = selectedCourse?.slug
+          ? `/academy/${encodeURIComponent(selectedCourse.slug)}`
+          : window.location.pathname;
+        router.push("/login?next=" + encodeURIComponent(nextPath));
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");
