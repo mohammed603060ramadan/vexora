@@ -4,6 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+type JsonResponseInit = { status?: number };
+const NO_STORE_HEADERS = { "Cache-Control": "private, no-store" };
+
+function jsonResponse(body: unknown, init: JsonResponseInit = {}) {
+  return NextResponse.json(body, { ...init, headers: NO_STORE_HEADERS });
+}
+
 
 async function getAdmin() {
   const supabase = await createClient();
@@ -13,7 +20,7 @@ async function getAdmin() {
     return {
       user: null,
       admin: null,
-      response: NextResponse.json({ error: "Authentication required." }, { status: 401 }),
+      response: jsonResponse({ error: "Authentication required." }, { status: 401 }),
     };
   }
 
@@ -42,7 +49,7 @@ async function getAdmin() {
   return {
     user: null,
     admin: null,
-    response: NextResponse.json({ error: "Administrator access required." }, { status: 403 }),
+    response: jsonResponse({ error: "Administrator access required." }, { status: 403 }),
   };
 }
 
@@ -59,13 +66,13 @@ export async function GET() {
 
   if (error) {
     console.error("Settings read failed:", error.message);
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Could not load settings. Check the database migration." },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({
+  return jsonResponse({
     settings: data?.settings ?? {},
     updatedAt: data?.updated_at ?? null,
   });
@@ -77,7 +84,7 @@ export async function PUT(request: Request) {
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > 100_000) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Settings payload is too large." },
       { status: 413 }
     );
@@ -87,7 +94,7 @@ export async function PUT(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Invalid JSON body." },
       { status: 400 }
     );
@@ -99,7 +106,7 @@ export async function PUT(request: Request) {
     Array.isArray(body) ||
     !("settings" in body)
   ) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Expected a settings object." },
       { status: 400 }
     );
@@ -112,14 +119,14 @@ export async function PUT(request: Request) {
     typeof settingsValue !== "object" ||
     Array.isArray(settingsValue)
   ) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Settings must be a JSON object." },
       { status: 400 }
     );
   }
 
   if (JSON.stringify(settingsValue).length > 90_000) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Settings payload is too large." },
       { status: 413 }
     );
@@ -144,13 +151,13 @@ export async function PUT(request: Request) {
 
   if (error) {
     console.error("Settings save failed:", error.message);
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Could not save settings. Check the database migration and permissions." },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({
+  return jsonResponse({
     success: true,
     settings: data.settings,
     updatedAt: data.updated_at,
