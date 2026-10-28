@@ -58,40 +58,67 @@ create unique index if not exists project_requests_one_open_per_client_project
 
 alter table public.project_requests enable row level security;
 
-drop policy if exists "Clients can read their own project requests" on public.project_requests;
-create policy "Clients can read their own project requests"
-  on public.project_requests for select to authenticated
-  using (
-    user_id = (select auth.uid())
-    and exists (
-      select 1 from public.clients c
-      where c.id = project_requests.client_id
-        and c.user_id = (select auth.uid())
-    )
+DO $$
+DECLARE
+  client_auth_column text;
+BEGIN
+  -- Deployed VEXORA databases use either clients.auth_user_id or the legacy
+  -- clients.user_id column. Build policies only against the column that exists.
+  SELECT column_name
+    INTO client_auth_column
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'clients'
+    AND column_name IN ('auth_user_id', 'user_id')
+  ORDER BY CASE column_name WHEN 'auth_user_id' THEN 0 ELSE 1 END
+  LIMIT 1;
+
+  IF client_auth_column IS NULL THEN
+    RAISE EXCEPTION 'Cannot secure project_requests: public.clients has neither auth_user_id nor user_id';
+  END IF;
+
+  EXECUTE 'drop policy if exists "Clients can read their own project requests" on public.project_requests';
+  EXECUTE format(
+    'create policy "Clients can read their own project requests"
+      on public.project_requests for select to authenticated
+      using (
+        user_id = (select auth.uid())
+        and exists (
+          select 1 from public.clients c
+          where c.id = project_requests.client_id
+            and c.%I = (select auth.uid())
+        )
+      )',
+    client_auth_column
   );
 
--- Authenticated clients may only cancel their own pending request.
-drop policy if exists "Clients can cancel their own pending project requests" on public.project_requests;
-create policy "Clients can cancel their own pending project requests"
-  on public.project_requests for update to authenticated
-  using (
-    user_id = (select auth.uid())
-    and status = 'pending'
-    and exists (
-      select 1 from public.clients c
-      where c.id = project_requests.client_id
-        and c.user_id = (select auth.uid())
-    )
-  )
-  with check (
-    user_id = (select auth.uid())
-    and status = 'cancelled'
-    and exists (
-      select 1 from public.clients c
-      where c.id = project_requests.client_id
-        and c.user_id = (select auth.uid())
-    )
+  -- Authenticated clients may only cancel their own pending request.
+  EXECUTE 'drop policy if exists "Clients can cancel their own pending project requests" on public.project_requests';
+  EXECUTE format(
+    'create policy "Clients can cancel their own pending project requests"
+      on public.project_requests for update to authenticated
+      using (
+        user_id = (select auth.uid())
+        and status = ''pending''
+        and exists (
+          select 1 from public.clients c
+          where c.id = project_requests.client_id
+            and c.%I = (select auth.uid())
+        )
+      )
+      with check (
+        user_id = (select auth.uid())
+        and status = ''cancelled''
+        and exists (
+          select 1 from public.clients c
+          where c.id = project_requests.client_id
+            and c.%I = (select auth.uid())
+        )
+      )',
+    client_auth_column,
+    client_auth_column
   );
+END $$;
 
 grant select, update on public.project_requests to authenticated;
 grant all on public.project_requests to service_role;
