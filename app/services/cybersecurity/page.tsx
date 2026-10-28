@@ -441,6 +441,13 @@ export default function CybersecurityPage() {
               Contact
             </Link>
           </nav>
+
+          <Link
+            href="/contact"
+            className="shrink-0 rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] px-4 py-2 text-xs font-semibold text-cyan-100 transition duration-300 hover:border-cyan-200/60 hover:bg-cyan-300/[0.14] sm:text-sm"
+          >
+            Start a Project <span aria-hidden="true">↗</span>
+          </Link>
         </div>
       </header>
 
