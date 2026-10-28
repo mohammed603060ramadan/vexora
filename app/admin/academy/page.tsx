@@ -142,7 +142,7 @@ export default function AcademyPage() {
         setError(queryError.message);
         setCourses([]);
       } else {
-        setCourses((data ?? []) as Course[]);
+        setCourses(((data ?? []) as Course[]).map((course) => ({ ...course, price: 0 })));
       }
     } catch {
       setError("An unexpected error occurred while loading courses.");
