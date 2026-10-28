@@ -39,7 +39,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in before requesting course access.", 401);
-  const userId = userId;
+  const userId = user.id;
   const email = user.email?.trim().toLowerCase();
   if (!email) return fail("Your account needs a verified email address.", 400);
 
