@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import AnalyticsDashboard, { type AnalyticsRow } from "./analytics-dashboard";
 
-type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests";
+type AnalyticsTable = "clients" | "projects" | "tasks" | "service_requests" | "invoices" | "payments" | "expenses";
 
 function normalizeRows(
   table: AnalyticsTable,
@@ -29,6 +29,12 @@ async function loadTable(
       return normalizeRows(table, await supabase.from("tasks").select("*").limit(2000));
     case "service_requests":
       return normalizeRows(table, await supabase.from("service_requests").select("*").limit(2000));
+    case "invoices":
+      return normalizeRows(table, await supabase.from("invoices" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
+    case "payments":
+      return normalizeRows(table, await supabase.from("payments" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
+    case "expenses":
+      return normalizeRows(table, await supabase.from("expenses" as never).select("*").limit(2000) as unknown as { data: unknown[] | null; error: { message: string } | null });
   }
 }
 
@@ -58,14 +64,17 @@ export default async function AnalyticsPage() {
   // after explicit identity and administrator-registry authorization.
   const supabase = admin;
 
-  const [clients, projects, tasks, requests] = await Promise.all([
+  const [clients, projects, tasks, requests, invoices, payments, expenses] = await Promise.all([
     loadTable(supabase, "clients"),
     loadTable(supabase, "projects"),
     loadTable(supabase, "tasks"),
     loadTable(supabase, "service_requests"),
+    loadTable(supabase, "invoices"),
+    loadTable(supabase, "payments"),
+    loadTable(supabase, "expenses"),
   ]);
 
-  const errors = [clients, projects, tasks, requests]
+  const errors = [clients, projects, tasks, requests, invoices, payments, expenses]
     .map((result) => result.error)
     .filter((error): error is string => Boolean(error));
 
@@ -75,6 +84,9 @@ export default async function AnalyticsPage() {
       projects={projects.rows}
       tasks={tasks.rows}
       requests={requests.rows}
+      invoices={invoices.rows}
+      payments={payments.rows}
+      expenses={expenses.rows}
       errors={errors}
     />
   );
