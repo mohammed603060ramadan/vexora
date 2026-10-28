@@ -726,7 +726,7 @@ export default function ClientPage() {
         }
 
         const resolvedClient = dashboardPayload.client ?? null;
-        setClient(resolvedClient ? { ...resolvedClient, company: null } : null);
+        setClient(resolvedClient ? { ...resolvedClient, company: resolvedClient.company ?? null } : null);
         setProjects(Array.isArray(dashboardPayload.projects) ? dashboardPayload.projects : []);
         setTasks(Array.isArray(dashboardPayload.tasks) ? dashboardPayload.tasks : []);
         setLastSyncedAt(new Date().toISOString());
@@ -898,6 +898,8 @@ export default function ClientPage() {
       ),
     [projects]
   );
+
+  const recordedBudgetProjects = projects.filter((project) => project.budget != null);
 
   const completionRate =
     tasks.length > 0
@@ -1667,9 +1669,7 @@ export default function ClientPage() {
                     value={
                       loading
                         ? "..."
-                        : formatMoney(
-                            totalBudget
-                          )
+                        : (recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded")
                     }
                     description="Sum of budget values recorded for your loaded projects."
                     icon="database"
@@ -2194,7 +2194,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Recorded budget"
-                  value={formatMoney(totalBudget)}
+                  value={recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded"}
                   description="Total budget recorded across loaded projects."
                   icon="database"
                   accent="amber"
