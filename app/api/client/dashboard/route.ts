@@ -13,13 +13,14 @@ type ClientRow = {
   name: string;
   email: string | null;
   phone: string | null;
+  company: string | null;
   created_at: string;
 };
 
 async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId: string, email: string | null) {
   const modern = await admin
     .from("clients")
-    .select("id, name, email, phone, created_at")
+    .select("id, name, email, phone, company, created_at")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
@@ -33,7 +34,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   if (modernColumnMissing) {
     const legacy = await admin
       .from("clients")
-      .select("id, name, email, phone, created_at")
+      .select("id, name, email, phone, company, created_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (legacy.error) throw legacy.error;
@@ -46,7 +47,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   // exact-email match whose account link is empty; never take over another user.
   const modernCandidates = await admin
     .from("clients")
-    .select("id, name, email, phone, created_at, auth_user_id")
+    .select("id, name, email, phone, company, created_at, auth_user_id")
     .eq("email", email)
     .limit(2);
 
@@ -78,7 +79,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
 
   const legacyCandidates = await admin
     .from("clients")
-    .select("id, name, email, phone, created_at, user_id")
+    .select("id, name, email, phone, company, created_at, user_id")
     .eq("email", email)
     .limit(2);
   if (legacyCandidates.error) throw legacyCandidates.error;
