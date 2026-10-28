@@ -340,7 +340,6 @@ export default function AcademyPage() {
   const router = useRouter();
   const [userReady, setUserReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [usingSampleCourses, setUsingSampleCourses] = useState(false);
   const [typedNotice, setTypedNotice] = useState("");
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [category, setCategory] = useState("All");
@@ -434,7 +433,6 @@ export default function AcademyPage() {
       if (queryError) {
         console.error("Academy catalogue load failed:", queryError.message);
         setCourses(initialCourses);
-        setUsingSampleCourses(true);
         setUserReady(true);
         return;
       }
@@ -463,7 +461,6 @@ export default function AcademyPage() {
       // Keep the ten fixed, classroom-based tracks separate from the
       // administrator-managed catalogue so neither replaces the other.
       setCourses([...initialCourses, ...mappedCourses]);
-      setUsingSampleCourses(mappedCourses.length === 0);
       setUserReady(true);
     }
     void loadPublishedCourses();
