@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -525,7 +526,7 @@ export default function StudentDashboard() {
     <main className="student-app">
       <aside className="student-sidebar">
         <Link href="/" className="brand">
-          <span className="brand-mark">V</span>
+          <span className="brand-mark"><Image src="/vexora-logo.png" alt="VEXORA" width={132} height={48} priority sizes="132px" /></span>
           <span>
             VEXORA
             <small>STUDENT SPACE</small>
@@ -1136,7 +1137,7 @@ export default function StudentDashboard() {
         .student-app { min-height: 100vh; display: flex; background: #080d17; color: #edf4ff; font-family: Arial, Helvetica, sans-serif; }
         .student-sidebar { width: 250px; flex-shrink: 0; min-height: 100vh; padding: 28px 16px 20px; display: flex; flex-direction: column; border-right: 1px solid #1b2638; background: #0b1220; }
         .brand { display: flex; align-items: center; gap: 12px; color: #f4f8ff; text-decoration: none; font-size: 18px; font-weight: 800; letter-spacing: 2px; padding: 0 8px; }
-        .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #318fe6; border-radius: 12px; background: linear-gradient(145deg,#173b64,#0c1a2d); color: #69bdff; font-size: 25px; }
+        .brand-mark { width: 148px; height: 48px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; } .brand-mark :global(img) { width: 100%; height: 100%; object-fit: contain; }
         .brand small { display: block; margin-top: 5px; color: #71839d; font-size: 9px; letter-spacing: 2px; }
         .nav-heading { margin: 48px 10px 12px; color: #62738d; font-size: 10px; font-weight: 700; letter-spacing: 1.8px; }
         .student-nav { display: grid; gap: 7px; }
