@@ -120,7 +120,6 @@ export async function GET() {
       return NextResponse.json({ client: null, projects: [], tasks: [], linked: false }, { headers });
     }
 
-    const db = admin as any;
     const projectBase = db.from("projects")
       .select("id, title, description, status, deadline, created_at")
       .eq("client_id", resolved.client.id)
