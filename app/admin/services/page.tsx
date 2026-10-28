@@ -116,6 +116,9 @@ export default function AdminServicesPage() {
   }, []);
 
   useEffect(() => {
+    // This starts an asynchronous Supabase request; state updates occur after its await.
+    // The rule cannot see through the callback and flags the loader invocation itself.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadServices();
   }, [loadServices]);
 
