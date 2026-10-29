@@ -136,7 +136,7 @@ export async function GET() {
     }
 
     const projectBase = db.from("projects")
-      .select("id, name, description, status, due_date, created_at, budget")
+      .select("id, name, description, status, due_date, created_at")
       .eq("client_id", resolved.client.id)
       .order("created_at", { ascending: false })
       .limit(100);
