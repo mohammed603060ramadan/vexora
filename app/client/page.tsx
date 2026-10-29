@@ -626,10 +626,15 @@ export default function ClientPage() {
   const [requestsError, setRequestsError] = useState("");
 
   const [activeView, setActiveView] = useState<View>("overview");
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("all");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
 
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const [error, setError] = useState("");
@@ -696,46 +701,39 @@ export default function ClientPage() {
       setNotice("");
 
       try {
-        const [profileResult, initialClientResult] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("full_name, avatar_url")
-            .eq("id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("clients")
-            .select("id, name, email, phone, created_at")
-            .eq("auth_user_id", user.id)
-            .maybeSingle(),
-        ]);
+        const profileResult = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle();
 
         if (profileResult.error) {
           console.error("Client profile query failed:", profileResult.error);
           throw new Error("Unable to load your profile. Please refresh or contact VEXORA support.");
         }
-
-        // Older VEXORA databases may link client records through user_id.
-        // Retry that legacy relationship only when auth_user_id is unavailable.
-        let clientResult = initialClientResult;
-        if (
-          clientResult.error &&
-          /auth_user_id|column .* does not exist|schema cache/i.test(clientResult.error.message)
-        ) {
-          clientResult = await supabase
-            .from("clients")
-            .select("id, name, email, phone, created_at")
-            .eq("user_id", user.id)
-            .maybeSingle();
-        }
-
-        if (clientResult.error) {
-          console.error("Client account query failed:", clientResult.error);
-          throw new Error("Unable to load your client account. Please refresh or contact VEXORA support.");
-        }
-
         setProfile(profileResult.data);
-        setClient(clientResult.data ? { ...clientResult.data, company: null } : null);
 
+        const dashboardResponse = await fetch("/api/client/dashboard", { cache: "no-store" });
+        const dashboardPayload = await dashboardResponse.json() as {
+          client?: ClientRecord | null;
+          projects?: Project[];
+          tasks?: Task[];
+          linked?: boolean;
+          error?: string;
+        };
+        if (!dashboardResponse.ok) {
+          throw new Error(dashboardPayload.error || "Unable to load your workspace data.");
+        }
+
+        const resolvedClient = dashboardPayload.client ?? null;
+        setClient(resolvedClient ? { ...resolvedClient, company: resolvedClient.company ?? null } : null);
+        setProjects(Array.isArray(dashboardPayload.projects) ? dashboardPayload.projects : []);
+        setTasks(Array.isArray(dashboardPayload.tasks) ? dashboardPayload.tasks : []);
+        setLastSyncedAt(new Date().toISOString());
+
+        if (!dashboardPayload.linked || !resolvedClient) {
+          setNotice("Your account is signed in, but no safely linked client record was found. Ask VEXORA support to verify the account email and client link.");
+        }
         setAcademyLoading(true);
         setAcademyError("");
         try {
@@ -770,65 +768,7 @@ export default function ClientPage() {
           setRequestsLoading(false);
         }
 
-        if (!clientResult.data) {
-          setProjects([]);
-          setTasks([]);
-          setProjectRequests([]);
 
-          setNotice(
-            "Your account is active, but no client record is linked yet. Please contact VEXORA support."
-          );
-
-          return;
-        }
-
-        const projectResult = await supabase
-          .from("projects")
-          .select(
-            "id, title, description, status, deadline, budget, created_at"
-          )
-          .eq("client_id", clientResult.data.id)
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(50);
-
-        if (projectResult.error) {
-          console.error("Client projects query failed:", projectResult.error);
-          throw new Error("Unable to load your projects. Please refresh or contact VEXORA support.");
-        }
-
-        const projectRows = (projectResult.data ?? []) as Project[];
-
-        setProjects(projectRows);
-
-        if (projectRows.length === 0) {
-          setTasks([]);
-          return;
-        }
-
-        const projectIds = projectRows.map(
-          (project) => project.id
-        );
-
-        const taskResult = await supabase
-          .from("tasks")
-          .select(
-            "id, project_id, title, description, status, priority, due_date"
-          )
-          .in("project_id", projectIds)
-          .order("due_date", {
-            ascending: true,
-            nullsFirst: false,
-          })
-          .limit(100);
-
-        if (taskResult.error) {
-          console.error("Client tasks query failed:", taskResult.error);
-          throw new Error("Unable to load your project tasks. Please refresh or contact VEXORA support.");
-        }
-
-        setTasks((taskResult.data ?? []) as Task[]);
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -853,6 +793,16 @@ export default function ClientPage() {
     return () => {
       window.clearTimeout(timer);
     };
+  }, [user, loadDashboard]);
+
+  // Keep the dashboard fresh while the client portal remains open.
+  // The endpoint always re-authenticates the session and scopes data to the linked client.
+  useEffect(() => {
+    if (!user) return;
+    const refreshInterval = window.setInterval(() => {
+      void loadDashboard();
+    }, 60_000);
+    return () => window.clearInterval(refreshInterval);
   }, [user, loadDashboard]);
 
   /* =========================================================
@@ -949,6 +899,8 @@ export default function ClientPage() {
     [projects]
   );
 
+  const recordedBudgetProjects = projects.filter((project) => project.budget != null);
+
   const completionRate =
     tasks.length > 0
       ? Math.round(
@@ -980,6 +932,32 @@ export default function ClientPage() {
     ),
     1
   );
+
+  const filteredProjects = useMemo(() => {
+    const query = projectSearch.trim().toLowerCase();
+    return projects.filter((project) => {
+      const matchesQuery = !query || [project.title, project.description ?? "", project.status]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesStatus = projectStatusFilter === "all"
+        || (projectStatusFilter === "active" && isActiveProject(project.status))
+        || (projectStatusFilter === "completed" && isCompleted(project.status))
+        || (projectStatusFilter === "cancelled" && isCancelled(project.status));
+      return matchesQuery && matchesStatus;
+    });
+  }, [projects, projectSearch, projectStatusFilter]);
+
+  const filteredTasks = useMemo(() => {
+    const query = taskSearch.trim().toLowerCase();
+    return tasks.filter((task) => {
+      const matchesQuery = !query || [task.title, task.description ?? "", task.priority, task.status]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesStatus = taskStatusFilter === "all"
+        || (taskStatusFilter === "completed" && isCompleted(task.status))
+        || (taskStatusFilter === "overdue" && isOverdue(task.due_date, task.status))
+        || (taskStatusFilter === "open" && !isCompleted(task.status) && !isCancelled(task.status));
+      return matchesQuery && matchesStatus;
+    });
+  }, [tasks, taskSearch, taskStatusFilter]);
 
   /* =========================================================
      NAVIGATION
@@ -1587,21 +1565,21 @@ export default function ClientPage() {
                   <div className="hero-data-tag tag-a">
                     PROJECTS
                     <strong>
-                      {projects.length}
+                      {loading ? "…" : projects.length}
                     </strong>
                   </div>
 
                   <div className="hero-data-tag tag-b">
                     TASKS
                     <strong>
-                      {tasks.length}
+                      {loading ? "…" : tasks.length}
                     </strong>
                   </div>
 
                   <div className="hero-data-tag tag-c">
                     COMPLETION
                     <strong>
-                      {completionRate}%
+                      {loading ? "…" : `${completionRate}%`}
                     </strong>
                   </div>
                 </div>
@@ -1621,7 +1599,7 @@ export default function ClientPage() {
                   </div>
 
                   <span className="data-source">
-                    SOURCE: SUPABASE
+                    {lastSyncedAt ? `SYNCED: ${new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(new Date(lastSyncedAt))}` : loading ? "CONNECTING TO SUPABASE" : "SOURCE: SUPABASE"}
                   </span>
                 </div>
 
@@ -1691,9 +1669,7 @@ export default function ClientPage() {
                     value={
                       loading
                         ? "..."
-                        : formatMoney(
-                            totalBudget
-                          )
+                        : (recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded")
                     }
                     description="Sum of budget values recorded for your loaded projects."
                     icon="database"
@@ -2086,8 +2062,8 @@ export default function ClientPage() {
                       <span>
                         Database
                       </span>
-                      <strong className="signal-ok">
-                        Live
+                      <strong className={lastSyncedAt ? "signal-ok" : error ? "signal-warning" : "signal-muted"}>
+                        {lastSyncedAt ? "Connected" : error ? "Unavailable" : loading ? "Connecting…" : "Not synced"}
                       </strong>
                     </div>
 
@@ -2194,7 +2170,7 @@ export default function ClientPage() {
               <div className="analytics-grid">
                 <AnalyticsCard
                   label="All projects"
-                  value={projects.length}
+                  value={loading ? "…" : projects.length}
                   description="Projects linked to your account."
                   icon="projects"
                   accent="blue"
@@ -2202,7 +2178,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Active"
-                  value={activeProjects.length}
+                  value={loading ? "…" : activeProjects.length}
                   description="Projects currently in progress."
                   icon="network"
                   accent="cyan"
@@ -2210,7 +2186,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Completed"
-                  value={completedProjects.length}
+                  value={loading ? "…" : completedProjects.length}
                   description="Projects marked as completed."
                   icon="check"
                   accent="green"
@@ -2218,15 +2194,27 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Recorded budget"
-                  value={formatMoney(totalBudget)}
+                  value={loading ? "…" : recordedBudgetProjects.length ? formatMoney(totalBudget) : "Not recorded"}
                   description="Total budget recorded across loaded projects."
                   icon="database"
                   accent="amber"
                 />
               </div>
 
+              <div className="mb-5 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:grid-cols-[minmax(0,1fr)_190px]">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Search projects</span>
+                  <input value={projectSearch} onChange={(event) => setProjectSearch(event.target.value)} placeholder="Search title, details, or status…" className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/10" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Project status</span>
+                  <select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)} className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-3 text-sm text-white outline-none focus:border-blue-400/50">
+                    <option value="all">All projects</option><option value="active">Active</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option>
+                  </select>
+                </label>
+              </div>
               <div className="project-cards-grid">
-                {projects.map((project, index) => (
+                {filteredProjects.map((project, index) => (
                   <article
                     key={project.id}
                     className="premium-project-card"
@@ -2301,7 +2289,7 @@ export default function ClientPage() {
                   </article>
                 ))}
 
-                {projects.length === 0 && (
+                {filteredProjects.length === 0 && (
                   <div className="empty-state full-span">
                     <div>
                       <Icon
@@ -2311,13 +2299,11 @@ export default function ClientPage() {
                     </div>
 
                     <h3>
-                      No projects available
+                      No matching projects
                     </h3>
 
                     <p>
-                      There are currently no
-                      projects connected to this
-                      client account.
+                      Try changing your search or status filter. If you expected projects here, confirm that the client record is linked.
                     </p>
                   </div>
                 )}
@@ -2340,7 +2326,7 @@ export default function ClientPage() {
               <div className="analytics-grid">
                 <AnalyticsCard
                   label="Total tasks"
-                  value={tasks.length}
+                  value={loading ? "…" : tasks.length}
                   description="Tasks loaded from your project records."
                   icon="tasks"
                   accent="blue"
@@ -2348,7 +2334,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Completed"
-                  value={completedTasks.length}
+                  value={loading ? "…" : completedTasks.length}
                   description="Tasks marked complete."
                   icon="check"
                   accent="green"
@@ -2356,7 +2342,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Pending"
-                  value={pendingTasks.length}
+                  value={loading ? "…" : pendingTasks.length}
                   description="Tasks that still require work."
                   icon="clock"
                   accent="cyan"
@@ -2364,7 +2350,7 @@ export default function ClientPage() {
 
                 <AnalyticsCard
                   label="Overdue"
-                  value={overdueTasks.length}
+                  value={loading ? "…" : overdueTasks.length}
                   description="Unfinished tasks beyond their due date."
                   icon="alert"
                   accent="red"
@@ -2384,14 +2370,26 @@ export default function ClientPage() {
 
                   <div className="task-completion-mini">
                     <strong>
-                      {completionRate}%
+                      {loading ? "…" : `${completionRate}%`}
                     </strong>
                     complete
                   </div>
                 </div>
 
+                <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Find a task</span>
+                    <input value={taskSearch} onChange={(event) => setTaskSearch(event.target.value)} placeholder="Search task, priority, or status…" className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/10" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Show tasks</span>
+                    <select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value)} className="min-h-11 w-full rounded-xl border border-white/10 bg-[#070d17] px-3 text-sm text-white outline-none focus:border-blue-400/50">
+                      <option value="all">All tasks</option><option value="open">Open</option><option value="completed">Completed</option><option value="overdue">Overdue</option>
+                    </select>
+                  </label>
+                </div>
                 <div className="tasks-list">
-                  {tasks.map((task) => {
+                  {filteredTasks.map((task) => {
                     const overdue = isOverdue(
                       task.due_date,
                       task.status
@@ -2479,10 +2477,9 @@ export default function ClientPage() {
                     );
                   })}
 
-                  {tasks.length === 0 && (
+                  {filteredTasks.length === 0 && (
                     <div className="small-empty">
-                      No tasks are currently
-                      attached to your projects.
+                      No tasks match these filters. Try a different search or status.
                     </div>
                   )}
                 </div>
