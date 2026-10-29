@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { supabase } from "@/lib/supabase/client";
+type ApiResult = { success?: boolean; id?: string; services?: Service[]; error?: string };
 
 type Service = {
   id: string;
@@ -96,18 +96,11 @@ export default function AdminServicesPage() {
 
   const loadServices = useCallback(async () => {
     try {
-      const { data, error: queryError } = await supabase
-        .from("services")
-        .select(
-          "id, department_id, slug, name, description, starting_price, currency, estimated_days, status, display_order, created_at, updated_at",
-        )
-        .order("display_order", { ascending: true })
-        .order("created_at", { ascending: false });
-
-      if (queryError) throw queryError;
-
+      const response = await fetch("/api/admin/services", { cache: "no-store" });
+      const result = await response.json() as ApiResult;
+      if (!response.ok) throw new Error(result.error || "Could not load services.");
       setError("");
-      setServices((data ?? []) as Service[]);
+      setServices(Array.isArray(result.services) ? result.services : []);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -267,20 +260,23 @@ export default function AdminServicesPage() {
       };
 
       if (editingId) {
-        const { error: updateError } = await supabase
-          .from("services")
-          .update(payload)
-          .eq("id", editingId);
-
-        if (updateError) throw updateError;
+        const response = await fetch("/api/admin/services", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, id: editingId }),
+        });
+        const result = await response.json() as ApiResult;
+        if (!response.ok) throw new Error(result.error || "Could not update service.");
 
         setMessage("Service updated successfully.");
       } else {
-        const { error: insertError } = await supabase
-          .from("services")
-          .insert(payload);
-
-        if (insertError) throw insertError;
+        const response = await fetch("/api/admin/services", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json() as ApiResult;
+        if (!response.ok) throw new Error(result.error || "Could not create service.");
 
         setMessage("Service created successfully.");
       }
@@ -316,12 +312,13 @@ export default function AdminServicesPage() {
     setMessage("");
 
     try {
-      const { error: updateError } = await supabase
-        .from("services")
-        .update({ status: nextStatus })
-        .eq("id", service.id);
-
-      if (updateError) throw updateError;
+      const response = await fetch("/api/admin/services", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: service.id, status: nextStatus }),
+      });
+      const result = await response.json() as ApiResult;
+      if (!response.ok) throw new Error(result.error || "Could not update service status.");
 
       setServices((current) =>
         current.map((item) =>
@@ -353,12 +350,13 @@ export default function AdminServicesPage() {
     setMessage("");
 
     try {
-      const { error: deleteError } = await supabase
-        .from("services")
-        .delete()
-        .eq("id", service.id);
-
-      if (deleteError) throw deleteError;
+      const response = await fetch("/api/admin/services", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: service.id }),
+      });
+      const result = await response.json() as ApiResult;
+      if (!response.ok) throw new Error(result.error || "Could not delete service.");
 
       setServices((current) =>
         current.filter((item) => item.id !== service.id),
