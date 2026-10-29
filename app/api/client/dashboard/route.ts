@@ -19,11 +19,12 @@ type ClientRow = {
 
 type ProjectRow = {
   id: string;
-  title: string;
+  name: string;
   description: string | null;
   status: string;
-  deadline: string | null;
+  due_date: string | null;
   created_at: string;
+  budget: number | null;
 };
 type ProjectBudgetRow = { id: string; budget: number | null };
 
@@ -34,12 +35,12 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   const db = admin as any;
   const modern = await db
     .from("clients")
-    .select("id, name, email, phone, company, created_at")
+    .select("id, name, email, phone, company_name, created_at")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
   if (!modern.error && modern.data) {
-    return { client: modern.data as ClientRow, linkColumn: "auth_user_id" as const };
+    return { client: { ...modern.data, company: modern.data.company_name ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
   }
 
   const modernColumnMissing = Boolean(modern.error && /auth_user_id|column .* does not exist|schema cache/i.test(modern.error.message));
@@ -48,11 +49,11 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   if (modernColumnMissing) {
     const legacy = await db
       .from("clients")
-      .select("id, name, email, phone, company, created_at")
+      .select("id, name, email, phone, company_name, created_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (legacy.error) throw legacy.error;
-    if (legacy.data) return { client: legacy.data as ClientRow, linkColumn: "user_id" as const };
+    if (legacy.data) return { client: { ...legacy.data, company: legacy.data.company_name ?? null } as ClientRow, linkColumn: "user_id" as const };
   }
 
   if (!email) return { client: null, linkColumn: modernColumnMissing ? "user_id" as const : "auth_user_id" as const };
@@ -61,7 +62,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   // exact-email match whose account link is empty; never take over another user.
   const modernCandidates = await db
     .from("clients")
-    .select("id, name, email, phone, company, created_at, auth_user_id")
+    .select("id, name, email, phone, company_name, created_at, auth_user_id")
     .eq("email", email)
     .limit(2);
 
@@ -85,7 +86,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
     }
     const client = { ...candidate };
     delete (client as { auth_user_id?: string | null }).auth_user_id;
-    return { client: client as ClientRow, linkColumn: "auth_user_id" as const };
+    return { client: { ...client, company: client.company_name ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
   }
 
   if (!/auth_user_id|column .* does not exist|schema cache/i.test(modernCandidates.error.message)) {
@@ -94,7 +95,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
 
   const legacyCandidates = await db
     .from("clients")
-    .select("id, name, email, phone, company, created_at, user_id")
+    .select("id, name, email, phone, company_name, created_at, user_id")
     .eq("email", email)
     .limit(2);
   if (legacyCandidates.error) throw legacyCandidates.error;
@@ -117,7 +118,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   }
   const client = { ...candidate };
   delete (client as { user_id?: string | null }).user_id;
-  return { client: client as ClientRow, linkColumn: "user_id" as const };
+  return { client: { ...client, company: client.company_name ?? null } as ClientRow, linkColumn: "user_id" as const };
 }
 
 export async function GET() {
@@ -135,7 +136,7 @@ export async function GET() {
     }
 
     const projectBase = db.from("projects")
-      .select("id, title, description, status, deadline, created_at")
+      .select("id, name, description, status, due_date, created_at, budget")
       .eq("client_id", resolved.client.id)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -144,7 +145,15 @@ export async function GET() {
 
     const projectRows = (projectResult.data ?? []) as ProjectRow[];
     const projectIds = projectRows.map((project: ProjectRow) => project.id);
-    let projects = projectRows.map((project: ProjectRow) => ({ ...project, budget: null as number | null }));
+    let projects = projectRows.map((project: ProjectRow) => ({
+      id: project.id,
+      title: project.name,
+      description: project.description,
+      status: project.status,
+      deadline: project.due_date,
+      created_at: project.created_at,
+      budget: project.budget ?? null,
+    }));
 
     if (projectIds.length) {
       const budgetResult = await db.from("projects")
@@ -153,7 +162,7 @@ export async function GET() {
       if (!budgetResult.error) {
         const budgetRows = (budgetResult.data ?? []) as ProjectBudgetRow[];
         const budgetById = new Map(budgetRows.map((project: ProjectBudgetRow) => [project.id, project.budget]));
-        projects = projects.map((project: ProjectRow & { budget: number | null }) => ({ ...project, budget: budgetById.get(project.id) ?? null }));
+        projects = projects.map((project: ProjectRow & { title: string; deadline: string | null }) => ({ ...project, budget: budgetById.get(project.id) ?? project.budget ?? null }));
       } else if (!/budget|column .* does not exist|schema cache/i.test(budgetResult.error.message)) {
         throw budgetResult.error;
       }
