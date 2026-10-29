@@ -162,7 +162,7 @@ export async function GET() {
       if (!budgetResult.error) {
         const budgetRows = (budgetResult.data ?? []) as ProjectBudgetRow[];
         const budgetById = new Map(budgetRows.map((project: ProjectBudgetRow) => [project.id, project.budget]));
-        projects = projects.map((project: ProjectRow & { title: string; deadline: string | null }) => ({ ...project, budget: budgetById.get(project.id) ?? project.budget ?? null }));
+        projects = projects.map((project) => ({ ...project, budget: budgetById.get(project.id) ?? project.budget ?? null }));
       } else if (!/budget|column .* does not exist|schema cache/i.test(budgetResult.error.message)) {
         throw budgetResult.error;
       }
