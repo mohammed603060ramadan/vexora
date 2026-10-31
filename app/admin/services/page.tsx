@@ -168,8 +168,23 @@ export default function AdminServicesPage() {
   }, []);
 
   useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
+    let cancelled = false;
+
+    requestApi<{ services: Service[] }>("/api/admin/services")
+      .then((result) => {
+        if (!cancelled) setServices(result.services ?? []);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(getErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredServices = services.filter((service) => {
     const searchText = search.trim().toLowerCase();
