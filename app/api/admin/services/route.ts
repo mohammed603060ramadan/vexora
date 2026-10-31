@@ -141,9 +141,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  const service = body as Record<string, unknown>;
+  const payload = {
+    name: (service.name as string).trim(),
+    slug: service.slug,
+    description:
+      typeof service.description === "string"
+        ? service.description.trim() || null
+        : null,
+    starting_price: service.starting_price ?? null,
+    currency: service.currency,
+    estimated_days: service.estimated_days ?? null,
+    status: service.status,
+    display_order: service.display_order,
+  };
+
   const { data, error } = await createAdminClient()
     .from("services")
-    .insert(body as Record<string, unknown>)
+    .insert(payload)
     .select(serviceColumns)
     .single();
 
