@@ -8,11 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 type AdminDb = any;
 
 type TaskStatus =
+  | "backlog"
   | "todo"
   | "in_progress"
   | "review"
   | "completed"
-  | "blocked";
+  | "blocked"
+  | "cancelled";
 
 type ProjectRow = {
   id: string;
@@ -51,11 +53,13 @@ const headers = {
 };
 
 const allowedStatuses: readonly TaskStatus[] = [
+  "backlog",
   "todo",
   "in_progress",
   "review",
   "completed",
   "blocked",
+  "cancelled",
 ];
 
 function errorResponse(message: string, status: number) {
