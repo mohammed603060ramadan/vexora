@@ -59,12 +59,31 @@ function slugify(value: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const message = String(error.message);
+  if (typeof error === "object" && error !== null) {
+    const dbError = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
 
-    if (/permission|row-level security|\brls\b/i.test(message)) {
-      return "The database rejected this operation. Review the access policies and your account permissions.";
-    }
+    const message =
+      typeof dbError.message === "string"
+        ? dbError.message
+        : "An unexpected database error occurred.";
+    const code =
+      typeof dbError.code === "string" ? dbError.code : "";
+    const details =
+      typeof dbError.details === "string" ? dbError.details : "";
+    const hint =
+      typeof dbError.hint === "string" ? dbError.hint : "";
+
+    console.error("[Admin Services] Supabase operation failed", {
+      code: code || undefined,
+      message,
+      details: details || undefined,
+      hint: hint || undefined,
+    });
 
     if (/duplicate key|unique constraint/i.test(message)) {
       return "This slug is already in use. Choose another slug.";
@@ -74,7 +93,14 @@ function getErrorMessage(error: unknown) {
       return "This service cannot be changed because related records exist.";
     }
 
-    return message;
+    return [
+      code ? `Database error (${code})` : "Database error",
+      message,
+      details ? `Details: ${details}` : "",
+      hint ? `Hint: ${hint}` : "",
+    ]
+      .filter(Boolean)
+      .join(" — ");
   }
 
   return "An unexpected error occurred. Please try again.";
