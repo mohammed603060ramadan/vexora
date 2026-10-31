@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+// CMS pages require request-time database reads and must not be prerendered.
+export const instant = false;
+
 type RouteProps = { params: Promise<{ slug: string[] }> };
 
 async function getPublishedPage(slug: string) {
