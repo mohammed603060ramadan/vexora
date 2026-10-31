@@ -9,11 +9,20 @@ function json(body: unknown, status = 200) {
 }
 
 function validOrigin(request: Request) {
+  const requestUrl = new URL(request.url);
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+
+  // Safe read requests may omit Origin. Cookie-authenticated mutations may not:
+  // require an explicit same-origin Origin or Referer to prevent cross-site CSRF.
+  if (!origin && ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
+    return true;
+  }
+
+  const source = origin ?? request.headers.get("referer");
+  if (!source) return false;
 
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    return new URL(source).origin === requestUrl.origin;
   } catch {
     return false;
   }
