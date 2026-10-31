@@ -34,9 +34,21 @@ export async function GET() {
     .maybeSingle();
 
   if (error) {
-    console.error("Settings read failed:", error.message);
+    console.error("Settings read failed:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return NextResponse.json(
-      { error: "Could not load settings. Check the database migration." },
+      {
+        error: "Could not load settings.",
+        diagnostic: {
+          code: error.code ?? null,
+          message: error.message,
+          hint: error.hint ?? null,
+        },
+      },
       { status: 500 }
     );
   }
