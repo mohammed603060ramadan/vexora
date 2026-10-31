@@ -229,11 +229,14 @@ export default function ClientsPage() {
       }
     }
 
-    void initialLoad();
-    void loadCourseRegistrations();
+    const frame = window.requestAnimationFrame(() => {
+      void initialLoad();
+      void loadCourseRegistrations();
+    });
 
     return () => {
       active = false;
+      window.cancelAnimationFrame(frame);
     };
   }, [loadCourseRegistrations]);
 
