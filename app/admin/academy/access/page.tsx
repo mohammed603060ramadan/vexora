@@ -56,7 +56,12 @@ export default function CourseAccessAdminPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      void load();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
