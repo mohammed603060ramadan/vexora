@@ -53,7 +53,10 @@ export default function AdminProjectRequestsPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function updateStatus(row: RequestRow, status: RequestStatus) {
     if (row.status === status) return;
