@@ -56,7 +56,28 @@ export default function PagesManagementPage() {
     }
   }, []);
 
-  useEffect(() => { void loadPages(); }, [loadPages]);
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/admin/pages", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Could not load pages.");
+        if (!cancelled) setPages(payload.pages ?? []);
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : "Could not load pages.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredPages = useMemo(() => {
     const term = search.trim().toLowerCase();
