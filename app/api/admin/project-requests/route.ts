@@ -150,7 +150,7 @@ export async function PATCH(request: Request) {
   ) return jsonError("A valid request ID and status are required.", 400);
 
   try {
-    const admin = createAdminClient();
+    const admin = createAdminClient() as unknown as AdminDatabase;
     const { data, error } = await admin
       .from("project_requests")
       .update({ status: body.status, updated_at: new Date().toISOString() })
