@@ -14,10 +14,10 @@ type Task = {
   id: string;
   title: string;
   description: string | null;
-  project_id: string | null;
+  project_id: string;
   assigned_to: string | null;
-  priority: "low" | "medium" | "high" | "urgent";
-  status: "todo" | "in_progress" | "completed" | "blocked";
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "backlog" | "todo" | "in_progress" | "review" | "completed" | "blocked" | "cancelled";
   due_date: string | null;
   created_at: string;
   projects?: { title: string } | null;
@@ -38,7 +38,7 @@ const emptyForm: TaskForm = {
   description: "",
   project_id: "",
   assigned_to: "",
-  priority: "medium",
+  priority: "normal",
   status: "todo",
   due_date: "",
 };
@@ -63,15 +63,18 @@ const buttonStyle = {
 } as const;
 
 const statusLabels: Record<Task["status"], string> = {
+  backlog: "Backlog",
   todo: "To Do",
   in_progress: "In Progress",
+  review: "In Review",
   completed: "Completed",
   blocked: "Blocked",
+  cancelled: "Cancelled",
 };
 
 const priorityLabels: Record<Task["priority"], string> = {
   low: "Low",
-  medium: "Medium",
+  normal: "Medium",
   high: "High",
   urgent: "Urgent",
 };
@@ -257,8 +260,14 @@ export default function TasksPage() {
       return;
     }
 
-    if (form.assigned_to.trim().length > 150) {
-      setError("Assigned To cannot exceed 150 characters.");
+    if (!form.project_id) {
+      setError("Select a project. Every task must belong to a project.");
+      return;
+    }
+
+    const assignedUserId = form.assigned_to.trim();
+    if (assignedUserId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(assignedUserId)) {
+      setError("Assigned To must be a valid Supabase Auth user UUID, not a name or email address.");
       return;
     }
 
@@ -266,7 +275,7 @@ export default function TasksPage() {
       title,
       description: form.description.trim() || null,
       project_id: form.project_id || null,
-      assigned_to: form.assigned_to.trim() || null,
+      assigned_to: assignedUserId || null,
       priority: form.priority,
       status: form.status,
       due_date: form.due_date || null,
@@ -553,7 +562,7 @@ export default function TasksPage() {
                     }
                     style={inputStyle}
                   >
-                    <option value="">No project assigned</option>
+                    <option value="">Select a project (required)</option>
                     {projects.map((project) => (
                       <option key={project.id} value={project.id}>
                         {project.title}
@@ -563,14 +572,14 @@ export default function TasksPage() {
                 </label>
 
                 <label style={{ display: "grid", gap: "8px" }}>
-                  Assigned To
+                  Assigned User ID (optional)
                   <input
                     maxLength={150}
                     value={form.assigned_to}
                     onChange={(event) =>
                       updateField("assigned_to", event.target.value)
                     }
-                    placeholder="Team member name"
+                    placeholder="Paste the Supabase Auth user UUID"
                     style={inputStyle}
                   />
                 </label>
