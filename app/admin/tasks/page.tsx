@@ -860,7 +860,7 @@ export default function TasksPage() {
                               ? "#fb7185"
                               : task.priority === "high"
                                 ? "#fb923c"
-                                : task.priority === "medium"
+                                : task.priority === "normal"
                                   ? "#facc15"
                                   : "#93c5fd",
                           )}
