@@ -288,7 +288,7 @@ export default function AdminServicesPage() {
       return;
     }
 
-    if (!["active", "inactive"].includes(form.status)) {
+    if (!["active", "inactive", "archived"].includes(form.status)) {
       setError("Invalid service status.");
       return;
     }
@@ -513,6 +513,7 @@ export default function AdminServicesPage() {
               <option value="all">All statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="archived">Archived</option>
             </select>
 
             <button
@@ -883,6 +884,7 @@ export default function AdminServicesPage() {
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
+                      <option value="archived">Archived</option>
                     </select>
                   </div>
 
