@@ -10,6 +10,15 @@ type Project = {
   title: string;
 };
 
+type AssignableEmployee = {
+  user_id: string;
+  name: string;
+  email: string | null;
+  job_title: string | null;
+  employee_code: string | null;
+  department: string | null;
+};
+
 type Task = {
   id: string;
   title: string;
@@ -94,6 +103,8 @@ function getErrorMessage(error: unknown): string {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [employees, setEmployees] = useState<AssignableEmployee[]>([]);
+  const [employeesError, setEmployeesError] = useState("");
   const [form, setForm] = useState<TaskForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -191,6 +202,43 @@ export default function TasksPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAssignableEmployees() {
+      try {
+        const response = await fetch("/api/admin/assignable-employees", {
+          cache: "no-store",
+        });
+        const payload = await response.json() as {
+          employees?: AssignableEmployee[];
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Could not load active employees.");
+        }
+
+        if (!cancelled) {
+          setEmployees(Array.isArray(payload.employees) ? payload.employees : []);
+          setEmployeesError("");
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setEmployees([]);
+          setEmployeesError(getErrorMessage(loadError));
+        }
+      }
+    }
+
+    void loadAssignableEmployees();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const employeesById = new Map(employees.map((employee) => [employee.user_id, employee]));
 
   function updateField<K extends keyof TaskForm>(
     field: K,
@@ -572,16 +620,27 @@ export default function TasksPage() {
                 </label>
 
                 <label style={{ display: "grid", gap: "8px" }}>
-                  Assigned User ID (optional)
-                  <input
-                    maxLength={150}
+                  Assign to Employee (optional)
+                  <select
                     value={form.assigned_to}
-                    onChange={(event) =>
-                      updateField("assigned_to", event.target.value)
-                    }
-                    placeholder="Paste the Supabase Auth user UUID"
+                    onChange={(event) => updateField("assigned_to", event.target.value)}
                     style={inputStyle}
-                  />
+                  >
+                    <option value="">Unassigned</option>
+                    {form.assigned_to && !employeesById.has(form.assigned_to) && (
+                      <option value={form.assigned_to}>Existing assignee ({form.assigned_to})</option>
+                    )}
+                    {employees.map((employee) => (
+                      <option key={employee.user_id} value={employee.user_id}>
+                        {employee.name}{employee.department ? ` — ${employee.department}` : ""}{employee.job_title ? ` · ${employee.job_title}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {employeesError && (
+                    <span style={{ color: "#fbbf24", fontSize: "12px" }}>
+                      Employee list unavailable: {employeesError}. Existing assignment is preserved when editing.
+                    </span>
+                  )}
                 </label>
 
                 <label style={{ display: "grid", gap: "8px" }}>
@@ -845,7 +904,7 @@ export default function TasksPage() {
                           borderBottom: "1px solid #202b3b",
                         }}
                       >
-                        {task.assigned_to || "—"}
+                        {task.assigned_to ? employeesById.get(task.assigned_to)?.name ?? task.assigned_to : "—"}
                       </td>
 
                       <td
