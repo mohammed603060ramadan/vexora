@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TabId =
   | "overview"
@@ -248,6 +248,39 @@ export default function AdminSettingsPage() {
   const [showModuleForm, setShowModuleForm] = useState(false);
   const [moduleFilter, setModuleFilter] = useState("All");
   const [saving, setSaving] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [settingsLoadError, setSettingsLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function loadSettings() {
+      try {
+        const response = await fetch("/api/admin/settings", { method: "GET", cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not load shared settings.");
+        if (!active) return;
+        const saved = result.settings && typeof result.settings === "object" ? result.settings as Record<string, unknown> : {};
+        if (saved.company && typeof saved.company === "object") setCompany((current) => ({ ...current, ...(saved.company as Partial<typeof current>) }));
+        if (saved.website && typeof saved.website === "object") setWebsite((current) => ({ ...current, ...(saved.website as Partial<typeof current>) }));
+        if (saved.branding && typeof saved.branding === "object") setBranding((current) => ({ ...current, ...(saved.branding as Partial<typeof current>) }));
+        if (Array.isArray(saved.modules)) setModules(saved.modules as ModuleItem[]);
+        if (Array.isArray(saved.preferences)) setPreferences(saved.preferences as ToggleItem[]);
+        if (saved.security && typeof saved.security === "object") setSecurity((current) => ({ ...current, ...(saved.security as Partial<typeof current>) }));
+        if (saved.integrations && typeof saved.integrations === "object") setIntegrations((current) => ({ ...current, ...(saved.integrations as Partial<typeof current>) }));
+        if (saved.advanced && typeof saved.advanced === "object") setAdvanced((current) => ({ ...current, ...(saved.advanced as Partial<typeof current>) }));
+        setSettingsLoadError("");
+      } catch (error) {
+        if (!active) return;
+        const message = error instanceof Error ? error.message : "Could not load shared settings.";
+        setSettingsLoadError(message);
+        setNotice(message);
+      } finally {
+        if (active) setLoadingSettings(false);
+      }
+    }
+    void loadSettings();
+    return () => { active = false; };
+  }, []);
 
   const enabledModules = useMemo(() => modules.filter((module) => module.enabled).length, [modules]);
   const filteredModules = useMemo(() => {
@@ -277,7 +310,6 @@ export default function AdminSettingsPage() {
   function updateSecurity<K extends keyof typeof security>(key: K, value: (typeof security)[K]) {
     setSecurity((current) => ({ ...current, [key]: value }));
   }
-
   function updateAdvanced<K extends keyof typeof advanced>(key: K, value: (typeof advanced)[K]) {
     setAdvanced((current) => ({ ...current, [key]: value }));
   }
@@ -295,7 +327,7 @@ export default function AdminSettingsPage() {
     const name = newModuleName.trim();
     if (!name) return;
     if (modules.some((module) => module.name.toLowerCase() === name.toLowerCase())) {
-      setNotice("A module with this name already exists in the current settings preview.");
+      setNotice("A module with this name already exists.");
       return;
     }
     setModules((current) => [...current, {
@@ -307,13 +339,13 @@ export default function AdminSettingsPage() {
     }]);
     setNewModuleName("");
     setShowModuleForm(false);
-    setNotice("Custom module added to this page preview.");
+    setNotice("Custom module added. Save settings to share this change.");
   }
 
   function deleteModule(module: ModuleItem) {
-    if (!window.confirm(`Remove "${module.name}" from this settings preview?`)) return;
+    if (!window.confirm(`Remove "${module.name}" from the configured modules?`)) return;
     setModules((current) => current.filter((item) => item.id !== module.id));
-    setNotice("Module removed from this page preview only.");
+    setNotice("Module removed. Save settings to share this change.");
   }
 
   function exportSettings() {
@@ -332,16 +364,30 @@ export default function AdminSettingsPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "vexora-settings-preview.json";
+    anchor.download = "vexora-settings.json";
     anchor.click();
     URL.revokeObjectURL(url);
-    setNotice("Settings preview exported as a JSON file.");
+    setNotice("Settings configuration exported as a JSON file.");
   }
 
-  function savePreview() {
+  async function saveSettings() {
     setSaving(true);
-    setNotice("Your current changes are active in this page preview. Shared database settings are not connected yet.");
-    setSaving(false);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: { company, website, branding, modules, preferences, security, integrations, advanced } }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Could not save shared settings.");
+      setSettingsLoadError("");
+      setNotice("Settings saved successfully to the shared VEXORA configuration.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not save shared settings.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetPreview() {
@@ -380,7 +426,7 @@ export default function AdminSettingsPage() {
     });
     setSearch("");
     setModuleFilter("All");
-    setNotice("Settings preview has been reset to its initial values.");
+    setNotice("Form values reset to defaults. Save settings to persist the reset.");
   }
 
   const currentTab = tabs.find((tab) => tab.id === activeTab);
@@ -396,7 +442,7 @@ export default function AdminSettingsPage() {
               <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-300">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 VEXORA / Command Center
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 tracking-normal text-slate-400">Settings v1.0</span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 tracking-normal text-slate-400">Settings v1.1</span>
               </div>
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
                 Control Center<span className="text-blue-400">.</span>
@@ -407,13 +453,13 @@ export default function AdminSettingsPage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-2 text-xs text-emerald-300">● Interface ready</span>
                 <span className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">{modules.length} modules configured</span>
-                <span className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">{enabledModules} enabled in preview</span>
+                <span className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">{enabledModules} enabled</span>
               </div>
             </div>
             <div className="relative flex flex-wrap gap-3 xl:max-w-[360px] xl:justify-end">
               <Link href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</Link>
               <button type="button" onClick={exportSettings} className="rounded-xl border border-blue-300/20 bg-blue-400/[0.08] px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-400/[0.15]">Export configuration ↓</button>
-              <button type="button" onClick={savePreview} disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Apply preview changes ✓"}</button>
+              <button type="button" onClick={saveSettings} disabled={saving || loadingSettings} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{loadingSettings ? "Loading..." : saving ? "Saving..." : "Save shared settings ✓"}</button>
             </div>
           </div>
         </header>
@@ -479,8 +525,8 @@ export default function AdminSettingsPage() {
               </div>
             ))}
             <div className="mt-3 rounded-xl border border-amber-300/10 bg-amber-300/[0.035] p-3">
-              <p className="text-xs font-medium text-amber-200">Preview mode</p>
-              <p className="mt-1 text-[11px] leading-5 text-slate-500">Settings on this page are not yet connected to shared production configuration.</p>
+              <p className="text-xs font-medium text-emerald-200">Shared configuration</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-400">{loadingSettings ? "Loading saved settings..." : settingsLoadError ? "Unable to load saved settings. Check the message above." : "Connected to the shared settings database."}</p>
             </div>
           </aside>
 
@@ -491,7 +537,7 @@ export default function AdminSettingsPage() {
                 <h2 className="mt-2 text-2xl font-semibold">{currentTab?.label}</h2>
                 <p className="mt-1 text-sm text-slate-500">Configure the selected area using the controls below.</p>
               </div>
-              <span className="w-fit rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-500">Changes update this preview instantly</span>
+              <span className="w-fit rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-500">Changes update this form instantly; save to share them</span>
             </div>
 
             {activeTab === "overview" && (
@@ -523,7 +569,7 @@ export default function AdminSettingsPage() {
                       { label: "Company profile", value: company.name, color: "bg-blue-400" },
                       { label: "Website domain", value: website.domain || "Not configured", color: "bg-cyan-400" },
                       { label: "Primary locale", value: `${company.language.toUpperCase()} · ${company.timezone}`, color: "bg-violet-400" },
-                      { label: "Maintenance preference", value: website.maintenance ? "Enabled in preview" : "Disabled in preview", color: website.maintenance ? "bg-amber-400" : "bg-emerald-400" },
+                      { label: "Maintenance preference", value: website.maintenance ? "Enabled" : "Disabled", color: website.maintenance ? "bg-amber-400" : "bg-emerald-400" },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center gap-3 border-b border-white/[0.05] pb-4 last:border-0 last:pb-0">
                         <span className={`h-2 w-2 rounded-full ${row.color}`} />
@@ -557,8 +603,7 @@ export default function AdminSettingsPage() {
                   <div className="grid gap-5 sm:grid-cols-2">
                     <label className="block text-sm text-slate-300">Default currency
                       <select value={company.currency} onChange={(event) => updateCompany("currency", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
-                        <option value="USD">USD — US Dollar</option><option value="EGP">EGP — Egyptian Pound</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — British Pound</option><option value="SAR">SAR — Saudi Riyal</option><option value="AED">AED — UAE Dirham</option>
-                      </select>
+                        <option value="USD">USD — US Dollar</option><option value="EGP">EGP — Egyptian Pound</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — British Pound</option><option value="SAR">SAR — Saudi Riyal</option><option value="AED">AED — UAE Dirham</option>                      </select>
                     </label>
                     <label className="block text-sm text-slate-300">Default language
                       <select value={company.language} onChange={(event) => updateCompany("language", event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
@@ -663,7 +708,7 @@ export default function AdminSettingsPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-medium text-slate-200">{module.name}</h3><span className="rounded-md border border-white/10 px-2 py-0.5 text-[10px] text-slate-500">{module.category}</span></div>
                           <p className="mt-1 text-xs leading-5 text-slate-500">{module.description}</p>
-                          <p className="mt-1 text-[10px] text-slate-600">{module.enabled ? "Enabled in preview" : "Disabled in preview"} · {module.id}</p>
+                          <p className="mt-1 text-[10px] text-slate-600">{module.enabled ? "Enabled" : "Disabled"} · {module.id}</p>
                         </div>
                         <div className="flex items-center justify-between gap-3 sm:justify-end">
                           <Toggle checked={module.enabled} onChange={(value) => toggleModule(module.id, value)} label={`Enable ${module.name}`} />
@@ -777,10 +822,10 @@ export default function AdminSettingsPage() {
             )}
 
             <div className="flex flex-col justify-between gap-3 rounded-2xl border border-white/[0.08] bg-[#0c111b] p-4 sm:flex-row sm:items-center sm:p-5">
-              <div><p className="text-sm font-medium text-slate-200">Configuration preview</p><p className="mt-1 text-xs leading-5 text-slate-500">Changes are interactive but are not yet saved to a shared database.</p></div>
+              <div><p className="text-sm font-medium text-slate-200">Shared configuration</p><p className="mt-1 text-xs leading-5 text-slate-500">{loadingSettings ? "Loading saved settings..." : "Save your changes to make them available across the admin workspace."}</p></div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={exportSettings} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 hover:bg-white/[0.04]">Export</button>
-                <button type="button" onClick={savePreview} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400">Apply preview</button>
+                <button type="button" onClick={saveSettings} disabled={saving || loadingSettings} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400">{saving ? "Saving..." : "Save settings"}</button>
               </div>
             </div>
           </div>
@@ -788,7 +833,7 @@ export default function AdminSettingsPage() {
 
         <footer className="flex flex-col gap-2 border-t border-white/[0.06] pt-5 text-xs leading-5 text-slate-600 sm:flex-row sm:justify-between">
           <p>VEXORA Command Center · Administration</p>
-          <p>Preview interface · Database persistence and operational actions are not connected</p>
+          <p>Shared settings · Operational controls remain subject to their server-side implementation</p>
         </footer>
       </div>
     </main>
