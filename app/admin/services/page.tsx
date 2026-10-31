@@ -3,7 +3,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { supabase } from "@/lib/supabase/client";
 
 type Service = {
   id: string;
@@ -106,6 +105,40 @@ function getErrorMessage(error: unknown) {
   return "An unexpected error occurred. Please try again.";
 }
 
+async function requestApi<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+
+  const result = (await response.json().catch(() => null)) as
+    | { error?: string; code?: string | null; details?: string | null; hint?: string | null }
+    | T
+    | null;
+
+  if (!response.ok) {
+    const failure = result as {
+      error?: string;
+      code?: string | null;
+      details?: string | null;
+      hint?: string | null;
+    } | null;
+    const message = [
+      failure?.code ? `Database error (${failure.code})` : "",
+      failure?.error ?? `Request failed with status ${response.status}.`,
+      failure?.details ? `Details: ${failure.details}` : "",
+      failure?.hint ? `Hint: ${failure.hint}` : "",
+    ].filter(Boolean).join(" — ");
+    throw new Error(message);
+  }
+
+  return result as T;
+}
+
 export default function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,59 +158,18 @@ export default function AdminServicesPage() {
     setError("");
 
     try {
-      const { data, error: queryError } = await supabase
-        .from("services")
-        .select(
-          "id, department_id, slug, name, description, starting_price, currency, estimated_days, status, display_order, created_at, updated_at",
-        )
-        .order("display_order", { ascending: true })
-        .order("created_at", { ascending: false });
-
-      if (queryError) throw queryError;
-
-      setServices((data ?? []) as Service[]);
+      const result = await requestApi<{ services: Service[] }>("/api/admin/services");
+      setServices(result.services ?? []);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []);;
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function initializeServices() {
-      try {
-        const { data, error: queryError } = await supabase
-          .from("services")
-          .select(
-            "id, department_id, slug, name, description, starting_price, currency, estimated_days, status, display_order, created_at, updated_at",
-          )
-          .order("display_order", { ascending: true })
-          .order("created_at", { ascending: false });
-
-        if (queryError) throw queryError;
-
-        if (!cancelled) {
-          setServices((data ?? []) as Service[]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void initializeServices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadServices();
+  }, [loadServices]);;
 
   const filteredServices = services.filter((service) => {
     const searchText = search.trim().toLowerCase();
@@ -316,20 +308,17 @@ export default function AdminServicesPage() {
       };
 
       if (editingId) {
-        const { error: updateError } = await supabase
-          .from("services")
-          .update(payload as never)
-          .eq("id", editingId);
-
-        if (updateError) throw updateError;
+        await requestApi(`/api/admin/services/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
 
         setMessage("Service updated successfully.");
       } else {
-        const { error: insertError } = await supabase
-          .from("services")
-          .insert(payload as never);
-
-        if (insertError) throw insertError;
+        await requestApi("/api/admin/services", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
 
         setMessage("Service created successfully.");
       }
@@ -365,12 +354,10 @@ export default function AdminServicesPage() {
     setMessage("");
 
     try {
-      const { error: updateError } = await supabase
-        .from("services")
-        .update({ status: nextStatus })
-        .eq("id", service.id);
-
-      if (updateError) throw updateError;
+      await requestApi(`/api/admin/services/${service.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      });
 
       setServices((current) =>
         current.map((item) =>
@@ -402,12 +389,9 @@ export default function AdminServicesPage() {
     setMessage("");
 
     try {
-      const { error: deleteError } = await supabase
-        .from("services")
-        .delete()
-        .eq("id", service.id);
-
-      if (deleteError) throw deleteError;
+      await requestApi(`/api/admin/services/${service.id}`, {
+        method: "DELETE",
+      });
 
       setServices((current) =>
         current.filter((item) => item.id !== service.id),
