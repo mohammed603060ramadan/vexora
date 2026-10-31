@@ -36,9 +36,28 @@ async function countRows(
   value?: string,
 ) {
   let query = supabase.from(table as never).select("id", { count: "exact", head: true });
-  if (column && value) query = query.eq(column as never, value as never);
+
+  if (column && value) {
+    query = query.eq(column as never, value as never);
+  }
+
   const { count, error } = await query;
-  return error ? null : count ?? 0;
+
+  if (error) {
+    // Keep database diagnostics in server logs only; never expose schema details
+    // or privileged database errors in the administrator-facing page.
+    console.error(`[ADMIN DASHBOARD] Failed to count "${table}"`, {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      filter: column && value ? { column, value } : null,
+    });
+
+    return null;
+  }
+
+  return count ?? 0;
 }
 
 function formatCount(value: number | null) {
