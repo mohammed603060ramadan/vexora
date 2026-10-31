@@ -165,11 +165,11 @@ export default function AdminServicesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);;
+  }, []);
 
   useEffect(() => {
     void loadServices();
-  }, [loadServices]);;
+  }, [loadServices]);
 
   const filteredServices = services.filter((service) => {
     const searchText = search.trim().toLowerCase();
