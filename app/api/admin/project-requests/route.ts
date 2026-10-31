@@ -19,6 +19,40 @@ const statuses: readonly RequestStatus[] = [
   "completed",
 ];
 
+type AdminRow = {
+  id: string;
+  client_id: string;
+  project_id: string;
+  user_id: string;
+  status: RequestStatus;
+  message: string | null;
+  created_at: string;
+  updated_at: string;
+  name?: string;
+  email?: string | null;
+  company_name?: string | null;
+  title?: string;
+};
+
+type AdminQueryResult<T> = PromiseLike<{
+  data: T | null;
+  error: { message: string } | null;
+}>;
+
+type AdminQuery<T> = {
+  select: (columns: string) => AdminQuery<T>;
+  order: (column: string, options?: { ascending?: boolean }) => AdminQuery<T>;
+  limit: (count: number) => AdminQueryResult<T[]>;
+  in: (column: string, values: readonly string[]) => AdminQueryResult<T[]>;
+  update: (values: Record<string, unknown>) => AdminQuery<T>;
+  eq: (column: string, value: string) => AdminQuery<T>;
+  maybeSingle: () => AdminQueryResult<T>;
+};
+
+type AdminDatabase = {
+  from: (table: string) => AdminQuery<AdminRow>;
+};
+
 const headers = { "Cache-Control": "private, no-store" };
 
 function jsonError(message: string, status: number) {
@@ -60,7 +94,7 @@ export async function GET() {
   if (auth.response) return auth.response;
 
   try {
-    const admin = createAdminClient() as ReturnType<typeof createAdminClient> & { from: (table: string) => any };
+    const admin = createAdminClient() as unknown as AdminDatabase;
     const { data: rows, error } = await admin
       .from("project_requests")
       .select("id,client_id,project_id,user_id,status,message,created_at,updated_at")
