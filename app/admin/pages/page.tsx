@@ -1,389 +1,250 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+type PageStatus = "published" | "draft" | "archived";
 type SitePage = {
-  id: string;
-  title: string;
-  slug: string;
-  category: string;
-  status: "Published" | "Draft" | "Archived";
-  updatedAt: string;
+  id: string; title: string; slug: string; category: string; excerpt: string | null;
+  content: string; status: PageStatus; seo_title: string | null; seo_description: string | null;
+  published_at: string | null; created_at: string; updated_at: string;
 };
 
-const initialPages: SitePage[] = [
-  { id: "home", title: "Home", slug: "/", category: "Main website", status: "Published", updatedAt: "—" },
-  { id: "about", title: "About", slug: "/about", category: "Company", status: "Draft", updatedAt: "—" },
-  { id: "services", title: "Services", slug: "/services", category: "Main website", status: "Published", updatedAt: "—" },
-  { id: "contact", title: "Contact", slug: "/contact", category: "Company", status: "Draft", updatedAt: "—" },
-];
-
-const statusStyle: Record<SitePage["status"], string> = {
-  Published: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-  Draft: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-  Archived: "border-slate-400/20 bg-slate-400/10 text-slate-300",
+const emptyForm = {
+  title: "", slug: "", category: "General", excerpt: "", content: "",
+  status: "draft" as PageStatus, seo_title: "", seo_description: "",
 };
+const statusStyle: Record<PageStatus, string> = {
+  published: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+  draft: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+  archived: "border-slate-400/20 bg-slate-400/10 text-slate-300",
+};
+const reservedSlugs = new Set([
+  "about", "academy", "account", "admin", "admin-login", "api", "client", "contact",
+  "events", "login", "portfolio", "privacy", "projects", "register", "services", "student",
+]);
+
+function slugify(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+function dateLabel(value: string) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
+}
 
 export default function PagesManagementPage() {
-  const [pages, setPages] = useState<SitePage[]>(initialPages);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [pages, setPages] = useState<SitePage[]>([]);
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState("Main website");
-  const [status, setStatus] = useState<SitePage["status"]>("Draft");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  const loadPages = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/pages", { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not load pages.");
+      setPages(payload.pages ?? []);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load pages.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadPages(); }, [loadPages]);
 
   const filteredPages = useMemo(() => {
     const term = search.trim().toLowerCase();
-
     return pages.filter((page) => {
-      const matchesSearch =
-        !term ||
-        page.title.toLowerCase().includes(term) ||
-        page.slug.toLowerCase().includes(term) ||
-        page.category.toLowerCase().includes(term);
-
-      return matchesSearch && (filter === "All" || page.status === filter);
+      const matches = !term || [page.title, page.slug, page.category].some((item) => item.toLowerCase().includes(term));
+      return matches && (filter === "all" || page.status === filter);
     });
   }, [pages, search, filter]);
 
-  const published = pages.filter((page) => page.status === "Published").length;
-  const drafts = pages.filter((page) => page.status === "Draft").length;
-  const archived = pages.filter((page) => page.status === "Archived").length;
-
-  function openNewPage() {
+  function openCreate() {
     setEditingId(null);
-    setTitle("");
-    setSlug("/");
-    setCategory("Main website");
-    setStatus("Draft");
+    setForm(emptyForm);
     setNotice("");
+    setError("");
     setEditorOpen(true);
   }
 
-  function openEditPage(page: SitePage) {
+  function openEdit(page: SitePage) {
     setEditingId(page.id);
-    setTitle(page.title);
-    setSlug(page.slug);
-    setCategory(page.category);
-    setStatus(page.status);
+    setForm({
+      title: page.title, slug: page.slug, category: page.category,
+      excerpt: page.excerpt ?? "", content: page.content, status: page.status,
+      seo_title: page.seo_title ?? "", seo_description: page.seo_description ?? "",
+    });
     setNotice("");
+    setError("");
     setEditorOpen(true);
   }
 
-  function savePage(event: React.FormEvent<HTMLFormElement>) {
+  function update<K extends keyof typeof emptyForm>(key: K, value: (typeof emptyForm)[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function savePage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const normalizedSlug = slug.startsWith("/") ? slug : `/${slug}`;
-    const duplicate = pages.some(
-      (page) =>
-        page.slug.toLowerCase() === normalizedSlug.toLowerCase() &&
-        page.id !== editingId
-    );
-
-    if (duplicate) {
-      setNotice("This URL already exists. Choose a unique URL.");
-      return;
-    }
-
-    const nextPage: SitePage = {
-      id: editingId || `page-${Date.now()}`,
-      title: title.trim(),
-      slug: normalizedSlug,
-      category,
-      status,
-      updatedAt: new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }).format(new Date()),
-    };
-
-    setPages((current) =>
-      editingId
-        ? current.map((page) => (page.id === editingId ? nextPage : page))
-        : [nextPage, ...current]
-    );
-
-    setEditorOpen(false);
+    setSaving(true);
+    setError("");
     setNotice("");
-  }
-
-  function deletePage(page: SitePage) {
-    if (!window.confirm(`Delete "${page.title}" from this temporary list?`)) {
+    const cleanSlug = form.slug.toLowerCase().replace(/^\/+|\/+$/g, "");
+    if (!cleanSlug || cleanSlug.split("/").some((part) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(part))) {
+      setError("Use a valid URL slug, for example company/partners.");
+      setSaving(false);
       return;
     }
-
-    setPages((current) => current.filter((item) => item.id !== page.id));
+    if (!editingId && (cleanSlug.includes("/") ? reservedSlugs.has(cleanSlug.split("/")[0]) : reservedSlugs.has(cleanSlug))) {
+      setError("This URL is already reserved by an existing VEXORA website route.");
+      setSaving(false);
+      return;
+    }
+    const payload = {
+      ...form, slug: cleanSlug, title: form.title.trim(), category: form.category.trim(),
+      excerpt: form.excerpt.trim() || null, seo_title: form.seo_title.trim() || null,
+      seo_description: form.seo_description.trim() || null,
+    };
+    try {
+      const response = await fetch(editingId ? `/api/admin/pages/${editingId}` : "/api/admin/pages", {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save page.");
+      setNotice("Page saved successfully.");
+      setEditorOpen(false);
+      await loadPages();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save page.");
+    } finally {
+      setSaving(false);
+    }
   }
+
+  async function deletePage(page: SitePage) {
+    if (!window.confirm(`Permanently delete "${page.title}"? This cannot be undone.`)) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/pages/${page.id}`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not delete page.");
+      setPages((current) => current.filter((item) => item.id !== page.id));
+      setNotice("Page deleted.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not delete page.");
+    }
+  }
+
+  async function changeStatus(page: SitePage, status: PageStatus) {
+    try {
+      const response = await fetch(`/api/admin/pages/${page.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: page.title, slug: page.slug, category: page.category,
+          excerpt: page.excerpt, content: page.content, status,
+          seo_title: page.seo_title, seo_description: page.seo_description }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not update page status.");
+      setPages((current) => current.map((item) => item.id === page.id ? result.page : item));
+      setNotice(`Page moved to ${status}.`);
+      setError("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update status.");
+    }
+  }
+
+  const published = pages.filter((page) => page.status === "published").length;
+  const drafts = pages.filter((page) => page.status === "draft").length;
+  const archived = pages.filter((page) => page.status === "archived").length;
 
   return (
-    <main className="min-h-screen bg-[#080b10] px-4 py-6 text-white sm:px-7 sm:py-8">
-      <div className="mx-auto max-w-7xl">
-        <Link href="/admin" className="text-sm text-blue-400 hover:text-blue-300">
-          ← Back to dashboard
-        </Link>
-
-        <header className="mt-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">
-              Content management
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Pages Management
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Organize website pages, manage publishing status, and maintain clean URLs.
-            </p>
-          </div>
-
-          <button
-            onClick={openNewPage}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold transition hover:bg-blue-400"
-          >
-            <span className="text-lg">+</span> Create page
-          </button>
-        </header>
-
-        <div className="mt-6 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4 text-sm leading-6 text-amber-100/90">
-          Preview mode: changes are held in page state only and are not saved to Supabase. The listed starter pages are examples, not a database inventory.
+    <div className="mx-auto max-w-7xl space-y-6 text-white">
+      <Link href="/admin" className="text-sm text-blue-400 hover:text-blue-300">← Back to dashboard</Link>
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">Content management system</p>
+          <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">Pages Management</h1>
+          <p className="mt-2 text-sm text-slate-400">Create, edit, preview, and publish content-managed website pages.</p>
         </div>
+        <button onClick={openCreate} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold hover:bg-blue-400">+ Create page</button>
+      </header>
 
-        <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: "Total pages", value: pages.length, icon: "▤" },
-            { label: "Published", value: published, icon: "↗" },
-            { label: "Drafts", value: drafts, icon: "✎" },
-            { label: "Archived", value: archived, icon: "◷" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d121b] p-5"
-            >
-              <div className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-blue-500/[0.08] blur-2xl" />
-              <div className="relative flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-400">{item.label}</p>
-                  <p className="mt-3 text-3xl font-semibold tabular-nums">{item.value}</p>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg text-blue-300">
-                  {item.icon}
-                </span>
-              </div>
-            </div>
-          ))}
-        </section>
+      {notice && <p role="status" className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3 text-sm text-emerald-300">{notice}</p>}
+      {error && <p role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-3 text-sm text-red-300">{error}</p>}
 
-        <section className="mt-6 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d121b]">
-          <div className="flex flex-col gap-4 border-b border-white/[0.07] p-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="font-semibold">All website pages</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Search, filter, and edit the current preview list.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search title, URL, category..."
-                aria-label="Search pages"
-                className="min-w-0 rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-blue-400/50 sm:w-72"
-              />
-              <select
-                value={filter}
-                onChange={(event) => setFilter(event.target.value)}
-                aria-label="Filter pages by status"
-                className="rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50"
-              >
-                <option>All</option>
-                <option>Published</option>
-                <option>Draft</option>
-                <option>Archived</option>
-              </select>
-            </div>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ["Total pages", pages.length], ["Published", published], ["Drafts", drafts], ["Archived", archived],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-white/[0.08] bg-[#0d121b] p-5">
+            <p className="text-sm text-slate-400">{label}</p>
+            <p className="mt-3 text-3xl font-semibold tabular-nums">{loading ? "—" : value}</p>
           </div>
+        ))}
+      </section>
 
-          {filteredPages.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="font-medium">No pages match your search</p>
-              <p className="mt-2 text-sm text-slate-400">
-                Try another search term or status filter.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="bg-white/[0.025] text-xs uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-5 py-4">Page</th>
-                    <th className="px-5 py-4">Category</th>
-                    <th className="px-5 py-4">Status</th>
-                    <th className="px-5 py-4">Last updated</th>
-                    <th className="px-5 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.06]">
-                  {filteredPages.map((page) => (
-                    <tr key={page.id} className="transition hover:bg-white/[0.02]">
-                      <td className="px-5 py-4">
-                        <p className="font-medium">{page.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">{page.slug}</p>
-                      </td>
-                      <td className="px-5 py-4 text-slate-400">{page.category}</td>
-                      <td className="px-5 py-4">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs ${statusStyle[page.status]}`}>
-                          {page.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-slate-400">{page.updatedAt}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openEditPage(page)}
-                            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-blue-400/40 hover:text-white"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deletePage(page)}
-                            className="rounded-lg border border-red-400/15 px-3 py-2 text-xs text-red-300 transition hover:bg-red-400/10"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="border-t border-white/[0.07] px-5 py-3 text-xs text-slate-500">
-            Showing {filteredPages.length} of {pages.length} preview pages
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d121b]">
+        <div className="flex flex-col gap-3 border-b border-white/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div><h2 className="font-semibold">CMS page inventory</h2><p className="mt-1 text-xs text-slate-500">This list contains database-managed pages, not hard-coded application routes.</p></div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search pages..." aria-label="Search pages" className="rounded-xl border border-white/10 bg-[#080b10] px-4 py-2.5 text-sm outline-none focus:border-blue-400/50" />
+            <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter by status" className="rounded-xl border border-white/10 bg-[#080b10] px-4 py-2.5 text-sm">
+              <option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option>
+            </select>
           </div>
-        </section>
-      </div>
-
-      {editorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm">
-          <form
-            onSubmit={savePage}
-            className="my-auto w-full max-w-xl rounded-2xl border border-white/10 bg-[#0d121b] p-5 shadow-2xl sm:p-7"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
-                  Page editor
-                </p>
-                <h2 className="mt-2 text-xl font-semibold">
-                  {editingId ? "Edit page" : "Create page"}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditorOpen(false)}
-                aria-label="Close editor"
-                className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="page-title" className="mb-2 block text-sm text-slate-300">Page title</label>
-                <input
-                  id="page-title"
-                  required
-                  maxLength={100}
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="e.g. About VEXORA"
-                  className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="page-slug" className="mb-2 block text-sm text-slate-300">Page URL</label>
-                <input
-                  id="page-slug"
-                  required
-                  maxLength={150}
-                  value={slug}
-                  onChange={(event) => setSlug(event.target.value)}
-                  placeholder="/about"
-                  className="w-full rounded-xl border border-white/10 bg-[#080b10] px-4 py-3 text-sm outline-none focus:border-blue-400/50"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="page-category" className="mb-2 block text-sm text-slate-300">Category</label>
-                  <select
-                    id="page-category"
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50"
-                  >
-                    <option>Main website</option>
-                    <option>Company</option>
-                    <option>Services</option>
-                    <option>Landing page</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="page-status" className="mb-2 block text-sm text-slate-300">Status</label>
-                  <select
-                    id="page-status"
-                    value={status}
-                    onChange={(event) => setStatus(event.target.value as SitePage["status"])}
-                    className="w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-sm outline-none focus:border-blue-400/50"
-                  >
-                    <option>Draft</option>
-                    <option>Published</option>
-                    <option>Archived</option>
-                  </select>
-                </div>
-              </div>
-
-              {notice && (
-                <p role="alert" className="rounded-lg border border-red-400/20 bg-red-400/[0.06] p-3 text-sm text-red-300">
-                  {notice}
-                </p>
-              )}
-
-              <p className="text-xs leading-5 text-slate-500">
-                Preview only: saving updates this browser page state, not your website content or database.
-              </p>
-            </div>
-
-            <div className="mt-7 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setEditorOpen(false)}
-                className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold transition hover:bg-blue-400"
-              >
-                Save page
-              </button>
-            </div>
-          </form>
         </div>
-      )}
-    </main>
+        {loading ? <div className="p-12 text-center text-sm text-slate-400">Loading pages from Supabase…</div> :
+          filteredPages.length === 0 ? <div className="p-12 text-center"><p className="font-medium">No CMS pages found</p><p className="mt-2 text-sm text-slate-500">Create your first page to get started.</p></div> :
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[850px] text-left text-sm">
+              <thead className="bg-white/[0.025] text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4">Page</th><th className="px-5 py-4">Category</th><th className="px-5 py-4">Status</th><th className="px-5 py-4">Updated</th><th className="px-5 py-4 text-right">Actions</th></tr></thead>
+              <tbody className="divide-y divide-white/[0.06]">
+                {filteredPages.map((page) => <tr key={page.id} className="hover:bg-white/[0.02]">
+                  <td className="px-5 py-4"><p className="font-medium">{page.title}</p><p className="mt-1 text-xs text-slate-500">/{page.slug}</p></td>
+                  <td className="px-5 py-4 text-slate-400">{page.category}</td>
+                  <td className="px-5 py-4"><span className={`rounded-full border px-2.5 py-1 text-xs ${statusStyle[page.status]}`}>{page.status}</span></td>
+                  <td className="px-5 py-4 text-slate-400">{dateLabel(page.updated_at)}</td>
+                  <td className="px-5 py-4"><div className="flex justify-end gap-2">
+                    {page.status === "published" && <Link href={`/${page.slug}`} target="_blank" className="rounded-lg border border-white/10 px-3 py-2 text-xs text-blue-300 hover:bg-white/[0.04]">View</Link>}
+                    <button onClick={() => openEdit(page)} className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:border-blue-400/40">Edit</button>
+                    <select aria-label={`Change status for ${page.title}`} value={page.status} onChange={(event) => void changeStatus(page, event.target.value as PageStatus)} className="max-w-28 rounded-lg border border-white/10 bg-[#080b10] px-2 py-2 text-xs">
+                      <option value="draft">Draft</option><option value="published">Publish</option><option value="archived">Archive</option>
+                    </select>
+                    <button onClick={() => void deletePage(page)} className="rounded-lg border border-red-400/20 px-3 py-2 text-xs text-red-300 hover:bg-red-400/10">Delete</button>
+                  </div></td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>}
+        <div className="border-t border-white/[0.07] px-5 py-3 text-xs text-slate-500">Showing {filteredPages.length} of {pages.length} CMS pages</div>
+      </section>
+
+      {editorOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/80 p-3 backdrop-blur-sm">
+        <form onSubmit={savePage} className="my-auto max-h-[94vh] w-full max-w-3xl space-y-4 overflow-y-auto rounded-2xl border border-white/10 bg-[#0d121b] p-5 shadow-2xl sm:p-7">
+          <div className="flex items-start justify-between"><div><p className="text-xs uppercase tracking-[0.2em] text-blue-400">VEXORA CMS editor</p><h2 className="mt-2 text-2xl font-semibold">{editingId ? "Edit page" : "Create page"}</h2></div><button type="button" onClick={() => setEditorOpen(false)} className="rounded-lg border border-white/10 px-3 py-2 text-slate-400">✕</button></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm text-slate-300">Page title<input required maxLength={160} value={form.title} onChange={(e) => update("title", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /></label>
+            <label className="text-sm text-slate-300">URL slug<input required maxLength={180} value={form.slug} onChange={(e) => update("slug", e.target.value)} placeholder="about-our-company" className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /><span className="mt-1 block text-xs text-slate-500">Public URL: /{form.slug || "your-page"}</span></label>
+            <label className="text-sm text-slate-300">Category<input required maxLength={80} value={form.category} onChange={(e) => update("category", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /></label>
+            <label className="text-sm text-slate-300">Publishing status<select value={form.status} onChange={(e) => update("status", e.target.value as PageStatus)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+          </div>
+          <label className="block text-sm text-slate-300">Short excerpt<textarea rows={2} maxLength={320} value={form.excerpt} onChange={(e) => update("excerpt", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /></label>
+          <label className="block text-sm text-slate-300">Page content<textarea required rows={12} maxLength={100000} value={form.content} onChange={(e) => update("content", e.target.value)} placeholder="Write your page content here. Separate paragraphs with blank lines." className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 font-mono text-sm leading-6 text-white" /><span className="mt-1 block text-xs text-slate-500">Plain text content with paragraph formatting. HTML is not executed.</span></label>
+          <details className="rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-medium text-slate-200">Search engine settings (SEO)</summary><div className="mt-4 space-y-4"><label className="block text-sm text-slate-300">SEO title<input maxLength={160} value={form.seo_title} onChange={(e) => update("seo_title", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /></label><label className="block text-sm text-slate-300">SEO description<textarea rows={2} maxLength={320} value={form.seo_description} onChange={(e) => update("seo_description", e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080b10] px-3 py-3 text-white" /></label></div></details>
+          {error && <p role="alert" className="rounded-lg bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
+          <div className="flex justify-end gap-3 border-t border-white/[0.07] pt-4"><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300">Cancel</button><button disabled={saving} type="submit" className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold disabled:opacity-50">{saving ? "Saving…" : "Save page"}</button></div>
+        </form>
+      </div>}
+    </div>
   );
 }
