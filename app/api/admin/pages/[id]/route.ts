@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = { params: Promise<{ id: string }> };
+const reservedFirstSegments = new Set([
+  "about", "academy", "account", "admin", "admin-login", "api", "client", "contact",
+  "events", "login", "portfolio", "privacy", "projects", "register", "services", "student",
+]);
+
 const columns =
   "id,title,slug,category,excerpt,content,status,seo_title,seo_description,published_at,created_at,updated_at";
 
@@ -36,6 +41,7 @@ function validatePage(value: unknown) {
   if (!isRecord(value)) return "A valid page payload is required.";
   if (typeof value.title !== "string" || !value.title.trim() || value.title.trim().length > 160) return "Title is required and must be 160 characters or fewer.";
   if (typeof value.slug !== "string" || value.slug.length > 180 || !/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/.test(value.slug)) return "Use a clean URL slug such as about-us or company/partners.";
+  if (reservedFirstSegments.has((value.slug as string).split("/")[0])) return "This URL is reserved by an existing VEXORA application route.";
   if (typeof value.category !== "string" || !value.category.trim() || value.category.length > 80) return "Category is required and must be 80 characters or fewer.";
   if (value.excerpt !== null && value.excerpt !== undefined && (typeof value.excerpt !== "string" || value.excerpt.length > 320)) return "Excerpt must be 320 characters or fewer.";
   if (typeof value.content !== "string" || value.content.length > 100_000) return "Page content is required and must be 100,000 characters or fewer.";
