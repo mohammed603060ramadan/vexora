@@ -274,7 +274,7 @@ export default function TasksPage() {
     const payload = {
       title,
       description: form.description.trim() || null,
-      project_id: form.project_id || null,
+      project_id: form.project_id,
       assigned_to: assignedUserId || null,
       priority: form.priority,
       status: form.status,
