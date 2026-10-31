@@ -8,11 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 type AdminDb = any;
 
 type TaskStatus =
+  | "backlog"
   | "todo"
   | "in_progress"
   | "review"
   | "completed"
-  | "blocked";
+  | "blocked"
+  | "cancelled";
 
 type ProjectRow = {
   id: string;
@@ -50,7 +52,9 @@ const headers = {
   "Cache-Control": "private, no-store",
 };
 
+// Students may move work out of backlog, but cancellation remains admin-only.
 const allowedStatuses: readonly TaskStatus[] = [
+  "backlog",
   "todo",
   "in_progress",
   "review",

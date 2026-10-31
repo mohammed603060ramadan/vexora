@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 type ModuleCard = { title: string; description: string; href: string; code: string; group: string };
 const modules: ModuleCard[] = [
   { title: "Projects", description: "Project records, delivery status, media and timelines.", href: "/admin/projects", code: "PR", group: "Operations" },
+  { title: "Project Requests", description: "Review client requests and update their workflow status.", href: "/admin/project-requests", code: "RQ", group: "Operations" },
   { title: "Clients", description: "Client profiles, company details and relationships.", href: "/admin/clients", code: "CL", group: "Operations" },
   { title: "Client Inquiries", description: "Review incoming leads and convert qualified inquiries into clients.", href: "/admin/inquiries", code: "IN", group: "Sales" },
   { title: "Service Requests", description: "Track new service requests and fulfillment.", href: "/admin/service-requests", code: "SR", group: "Sales" },

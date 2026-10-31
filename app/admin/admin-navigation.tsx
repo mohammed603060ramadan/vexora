@@ -7,6 +7,7 @@ const navigation = [
   { label: "Overview", href: "/admin", icon: "◫" },
   { label: "Analytics", href: "/admin/analytics", icon: "▥" },
   { label: "Projects", href: "/admin/projects", icon: "▦" },
+  { label: "Project Requests", href: "/admin/project-requests", icon: "⌁" },
   { label: "Portfolio Studio", href: "/admin/portfolio", icon: "▧" },
   { label: "Clients", href: "/admin/clients", icon: "♙" },
   { label: "Client Inquiries", href: "/admin/inquiries", icon: "✉" },

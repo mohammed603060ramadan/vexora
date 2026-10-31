@@ -401,6 +401,40 @@ export default function StudentDashboard() {
     };
   }, [loadStudent, loadTechnologyNews, router]);
 
+  const refreshStudentWorkspace = useCallback(async () => {
+    try {
+      const response = await fetch("/api/student/workspace", { cache: "no-store" });
+      const payload = await response.json() as {
+        projects?: StudentProject[];
+        requests?: StudentProjectRequest[];
+        tasks?: StudentTask[];
+        error?: string;
+      };
+      if (!response.ok) throw new Error(payload.error || "Unable to refresh your workspace.");
+      setStudentProjects(Array.isArray(payload.projects) ? payload.projects : []);
+      setProjectRequests(Array.isArray(payload.requests) ? payload.requests : []);
+      setStudentTasks(Array.isArray(payload.tasks) ? payload.tasks : []);
+      setWorkspaceError("");
+    } catch (caught) {
+      setWorkspaceError(caught instanceof Error ? caught.message : "Unable to refresh your workspace.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!email) return;
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") void refreshStudentWorkspace();
+    };
+
+    const interval = window.setInterval(refreshIfVisible, 60_000);
+    window.addEventListener("focus", refreshIfVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshIfVisible);
+    };
+  }, [email, refreshStudentWorkspace]);
+
   async function updateStudentTask(task: StudentTask, status: string) {
     setTaskBusyId(task.id);
     setWorkspaceError("");
@@ -715,7 +749,7 @@ export default function StudentDashboard() {
           <div className="section-heading"><div><p className="eyebrow">ASSIGNED BY VEXORA</p><h2>My Tasks</h2><p className="section-description">Tasks assigned to your account by the administration team. Update your progress as you work.</p></div><span className="resource-count">{studentTasks.length} tasks</span></div>
           {studentTasks.length === 0 ? <div className="empty-state"><span aria-hidden="true">◈</span><strong>No assigned tasks</strong><p>Tasks assigned to your signed-in account will show up here automatically.</p></div> : (
             <div className="resource-grid">
-              {studentTasks.map((task) => <article key={task.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">◈</span><span className={`status-pill ${task.status === "completed" ? "status-active" : task.status === "blocked" ? "status-cancelled" : "status-pending"}`}>{task.status.replaceAll("_", " ")}</span></div><h3>{task.title}</h3><p>{task.description || task.project_title}</p><div className="course-meta"><span>{task.project_title}</span><span>{task.priority} priority</span>{task.due_date && <span>Due {formatDate(task.due_date)}</span>}</div><label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Update task status<select value={task.status} disabled={taskBusyId === task.id} onChange={(event) => void updateStudentTask(task, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080d16] px-3 py-2.5 text-sm normal-case text-white outline-none focus:border-cyan-300/50 disabled:opacity-50"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="review">Ready for review</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></label></article>)}
+              {studentTasks.map((task) => <article key={task.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">◈</span><span className={`status-pill ${task.status === "completed" ? "status-active" : task.status === "blocked" ? "status-cancelled" : "status-pending"}`}>{task.status.replaceAll("_", " ")}</span></div><h3>{task.title}</h3><p>{task.description || task.project_title}</p><div className="course-meta"><span>{task.project_title}</span><span>{task.priority} priority</span>{task.due_date && <span>Due {formatDate(task.due_date)}</span>}</div><label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Update task status<select value={task.status} disabled={taskBusyId === task.id || task.status === "cancelled"} onChange={(event) => void updateStudentTask(task, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080d16] px-3 py-2.5 text-sm normal-case text-white outline-none focus:border-cyan-300/50 disabled:opacity-50"><option value="backlog">Backlog</option><option value="todo">To do</option><option value="in_progress">In progress</option><option value="review">Ready for review</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></label></article>)}
             </div>
           )}
         </section>

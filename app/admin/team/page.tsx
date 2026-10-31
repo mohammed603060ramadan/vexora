@@ -299,10 +299,44 @@ export default function TeamPage() {
         throw new Error(result.error.message);
       }
 
+      let accountLinkNotice = "";
+
+      if (payload.email) {
+        try {
+          const linkResponse = await fetch("/api/admin/team-members/link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: payload.email,
+              full_name: payload.full_name,
+              status: payload.status,
+              department: payload.department,
+              job_title: payload.job_title,
+            }),
+          });
+          const linkPayload = await linkResponse.json() as {
+            linked?: boolean;
+            message?: string;
+            error?: string;
+          };
+
+          if (!linkResponse.ok) {
+            accountLinkNotice = linkPayload.error || "The login account could not be linked.";
+          } else if (linkPayload.linked) {
+            accountLinkNotice = linkPayload.message || "Login account linked.";
+          } else {
+            accountLinkNotice = linkPayload.message || "No existing login account was found for this email.";
+          }
+        } catch {
+          accountLinkNotice = "Team member saved, but login account linking could not be completed. Retry by saving the member again.";
+        }
+      }
+
       setMessage(
-        editingId
+        (editingId
           ? "Team member updated successfully."
-          : "Team member added successfully."
+          : "Team member added successfully.") +
+        (accountLinkNotice ? ` ${accountLinkNotice}` : "")
       );
 
       setShowForm(false);
