@@ -35,7 +35,12 @@ export async function GET() {
       .limit(50);
 
     if (error) {
-      console.error("Student registrations lookup failed:", error.message);
+      console.error("Student registrations lookup failed:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       return NextResponse.json({ error: "Could not load course registrations." }, { status: 500 });
     }
 
