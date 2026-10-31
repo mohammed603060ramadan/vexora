@@ -24,8 +24,7 @@ const reservedSlugs = new Set([
   "events", "login", "portfolio", "privacy", "projects", "register", "services", "student",
 ]);
 
-function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+|-$/g, "");
 }
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
@@ -44,6 +43,7 @@ export default function PagesManagementPage() {
   const [error, setError] = useState("");
 
   const loadPages = useCallback(async () => {
+    await Promise.resolve();
     setLoading(true);
     setError("");
     try {
