@@ -19,13 +19,21 @@ type ClientRow = {
 
 type ProjectRow = {
   id: string;
-  name: string;
+  name?: string | null;
+  title?: string | null;
   description: string | null;
   status: string;
-  due_date: string | null;
+  due_date?: string | null;
+  deadline?: string | null;
   created_at: string;
-  budget: number | null;
+  budget?: number | null;
 };
+
+function isMissingProjectColumn(error: { code?: string; message?: string }) {
+  return error.code === "42703"
+    || error.code === "PGRST204"
+    || /column .* does not exist|could not find .* column|schema cache/i.test(error.message ?? "");
+}
 type ProjectBudgetRow = { id: string; budget: number | null };
 
 async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId: string, email: string | null) {
@@ -135,22 +143,31 @@ export async function GET() {
       return NextResponse.json({ client: null, projects: [], tasks: [], linked: false }, { headers });
     }
 
-    const projectBase = db.from("projects")
-      .select("id, name, description, status, due_date, created_at")
+    // Current VEXORA migrations use title/deadline; older deployments may
+    // still expose name/due_date. Retry only for missing-column errors.
+    let projectResult = await db.from("projects")
+      .select("id, title, description, status, deadline, created_at")
       .eq("client_id", resolved.client.id)
       .order("created_at", { ascending: false })
       .limit(100);
-    const projectResult = await projectBase;
+
+    if (projectResult.error && isMissingProjectColumn(projectResult.error)) {
+      projectResult = await db.from("projects")
+        .select("id, name, description, status, due_date, created_at")
+        .eq("client_id", resolved.client.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+    }
     if (projectResult.error) throw projectResult.error;
 
     const projectRows = (projectResult.data ?? []) as ProjectRow[];
     const projectIds = projectRows.map((project: ProjectRow) => project.id);
     let projects = projectRows.map((project: ProjectRow) => ({
       id: project.id,
-      title: project.name,
+      title: project.title ?? project.name ?? "Untitled project",
       description: project.description,
       status: project.status,
-      deadline: project.due_date,
+      deadline: project.deadline ?? project.due_date ?? null,
       created_at: project.created_at,
       budget: project.budget ?? null,
     }));
