@@ -60,7 +60,7 @@ export async function GET() {
   if (auth.response) return auth.response;
 
   try {
-    const admin = createAdminClient();
+    const admin = createAdminClient() as ReturnType<typeof createAdminClient> & { from: (table: string) => any };
     const { data: rows, error } = await admin
       .from("project_requests")
       .select("id,client_id,project_id,user_id,status,message,created_at,updated_at")
