@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type MessageStatus = "Unread" | "Read" | "Archived";
@@ -230,12 +231,12 @@ export default function AdminMessagesPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <a
+            <Link
               href="/admin"
               className="inline-flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04]"
             >
               ← Admin dashboard
-            </a>
+            </Link>
             <button
               type="button"
               onClick={() => {

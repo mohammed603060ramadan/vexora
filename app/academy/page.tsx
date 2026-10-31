@@ -1,9 +1,8 @@
-/* eslint-disable @next/next/no-location-assign-relative-destination */
-
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 import type { FormEvent } from "react";
@@ -337,6 +336,7 @@ function Icon({
 }
 
 export default function AcademyPage() {
+  const router = useRouter();
   const [userReady, setUserReady] = useState(false);
   const [usingSampleCourses, setUsingSampleCourses] = useState(false);
   const [courses, setCourses] = useState<Course[]>(initialCourses);
@@ -508,7 +508,7 @@ export default function AcademyPage() {
         error?: string;
       };
       if (response.status === 401) {
-        window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
+        router.push("/login?next=" + encodeURIComponent(window.location.pathname));
         return;
       }
       if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");

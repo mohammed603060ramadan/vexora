@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -36,6 +36,13 @@ type Expense = {
   status: string;
   expense_date: string;
 };
+
+function getErrorDetail(error: unknown, key: "code" | "message"): string {
+  if (typeof error === "string") return key === "message" ? error : "";
+  if (!error || typeof error !== "object") return "";
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
 
 function formatMoney(amount: number | string, currency: string) {
   const value = Number(amount);
@@ -220,9 +227,30 @@ export default async function AdminFinancePage() {
             role="alert"
             className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-200"
           >
-            Some finance data could not be loaded. Check the Supabase table
-            permissions and database schema. No financial data has been
-            modified.
+            <p className="font-semibold">Some finance data could not be loaded.</p>
+            <p className="mt-1 text-amber-100/80">
+              Review the table-specific Supabase errors below. No financial data
+              has been modified.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {[
+                ["invoices", invoicesResult.error],
+                ["payments", paymentsResult.error],
+                ["expenses", expensesResult.error],
+              ]
+                .filter((item): item is [string, NonNullable<typeof item[1]>] =>
+                  Boolean(item[1]),
+                )
+                .map(([table, error]) => (
+                  <li key={table} className="break-words rounded-lg border border-amber-300/15 bg-black/20 p-3">
+                    <span className="font-semibold">{table}</span>
+                    <span className="ml-2 text-xs text-amber-100/60">
+                      {getErrorDetail(error, "code") ? `[${getErrorDetail(error, "code")}]` : ""}
+                    </span>
+                    <p className="mt-1 text-amber-100/80">{getErrorDetail(error, "message") || "Unknown Supabase error"}</p>
+                  </li>
+                ))}
+            </ul>
           </section>
         )}
 

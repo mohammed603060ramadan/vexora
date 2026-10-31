@@ -15,18 +15,6 @@ async function getSignedInUser() {
   return data.user;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function isAdministrator(user: NonNullable<Awaited<ReturnType<typeof getSignedInUser>>>) {
-  if (user.app_metadata?.role === "admin") return true;
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("vexora_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  return !error && Boolean(data);
-}
-
 export async function GET() {
   const user = await getSignedInUser();
   if (!user) return fail("Sign in to view course access requests.", 401);
