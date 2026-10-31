@@ -29,13 +29,18 @@ export async function GET() {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("student_registrations")
-      .select("id, full_name, email, track, status, created_at, education_level, experience")
+      .select("id, full_name, email, track, status, created_at")
       .eq("email", email)
       .order("created_at", { ascending: false })
       .limit(50);
 
     if (error) {
-      console.error("Student registrations lookup failed:", error.message);
+      console.error("Student registrations lookup failed:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       return NextResponse.json({ error: "Could not load course registrations." }, { status: 500 });
     }
 

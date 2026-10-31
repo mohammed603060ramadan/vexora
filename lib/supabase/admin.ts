@@ -2,7 +2,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-let adminClient: ReturnType<typeof createClient> | null = null;
+// The admin client accesses tables added by migrations that are not yet represented
+// in a generated Database type. Keep this server-only client schema-agnostic until
+// the project maintains a complete generated Supabase schema.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let adminClient: ReturnType<typeof createClient<any>> | null = null;
 
 export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,7 +19,8 @@ export function createAdminClient() {
   }
 
   if (!adminClient) {
-    adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adminClient = createClient<any>(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,

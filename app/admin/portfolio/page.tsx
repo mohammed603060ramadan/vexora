@@ -29,9 +29,34 @@ export default function AdminPortfolioPage() {
           <Link href="/admin/projects" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">Open project manager ↗</Link>
         </article>)}
       </section>
-      <div className="mt-7 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-5 text-sm leading-6 text-amber-100/80">
-        To publish work, open the project manager, choose its portfolio department, upload images or videos, set the project status to In progress or Completed, and enable Public projects page. Items that are not explicitly approved remain hidden from the public portfolio.
-      </div>
+
+      <aside
+        aria-labelledby="portfolio-publishing-title"
+        className="relative isolate mt-7 overflow-hidden rounded-2xl border border-blue-400/30 bg-[linear-gradient(115deg,rgba(15,35,62,.92),rgba(8,15,27,.98)_58%,rgba(12,25,45,.94))] p-5 shadow-[0_0_28px_rgba(37,99,235,0.12),inset_0_1px_0_rgba(147,197,253,0.08)] sm:p-6"
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 -z-10 h-64 w-64 rounded-full bg-blue-500/15 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 left-1/4 -z-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-300/30 bg-blue-400/10 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.18)]" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+              <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-blue-300">Publishing guidelines</p>
+            <h2 id="portfolio-publishing-title" className="mt-1 text-lg font-bold tracking-tight text-white sm:text-xl">Bring your work into the spotlight.</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">
+              Select a department, add your project media, set its status to <span className="font-semibold text-white">In progress</span> or <span className="font-semibold text-white">Completed</span>, then enable <span className="font-semibold text-blue-200">Public projects page</span> to publish it. Only explicitly approved projects are displayed in the public portfolio.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-blue-200/10 pt-4 text-xs font-medium text-slate-400">
+          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]" /> Department selected</span>
+          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]" /> Media uploaded</span>
+          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]" /> Public visibility approved</span>
+        </div>
+      </aside>
     </main>
   );
 }
