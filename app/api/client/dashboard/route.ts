@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -43,12 +43,12 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   const db = admin as any;
   const modern = await db
     .from("clients")
-    .select("id, name, email, phone, company_name, created_at")
+    .select("id, name, email, phone, company, created_at")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
   if (!modern.error && modern.data) {
-    return { client: { ...modern.data, company: modern.data.company_name ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
+    return { client: { ...modern.data, company: modern.data.company ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
   }
 
   const modernColumnMissing = Boolean(modern.error && /auth_user_id|column .* does not exist|schema cache/i.test(modern.error.message));
@@ -57,11 +57,11 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   if (modernColumnMissing) {
     const legacy = await db
       .from("clients")
-      .select("id, name, email, phone, company_name, created_at")
+      .select("id, name, email, phone, company, created_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (legacy.error) throw legacy.error;
-    if (legacy.data) return { client: { ...legacy.data, company: legacy.data.company_name ?? null } as ClientRow, linkColumn: "user_id" as const };
+    if (legacy.data) return { client: { ...legacy.data, company: legacy.data.company ?? null } as ClientRow, linkColumn: "user_id" as const };
   }
 
   if (!email) return { client: null, linkColumn: modernColumnMissing ? "user_id" as const : "auth_user_id" as const };
@@ -70,7 +70,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   // exact-email match whose account link is empty; never take over another user.
   const modernCandidates = await db
     .from("clients")
-    .select("id, name, email, phone, company_name, created_at, auth_user_id")
+    .select("id, name, email, phone, company, created_at, auth_user_id")
     .eq("email", email)
     .limit(2);
 
@@ -94,7 +94,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
     }
     const client = { ...candidate };
     delete (client as { auth_user_id?: string | null }).auth_user_id;
-    return { client: { ...client, company: client.company_name ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
+    return { client: { ...client, company: client.company ?? null } as ClientRow, linkColumn: "auth_user_id" as const };
   }
 
   if (!/auth_user_id|column .* does not exist|schema cache/i.test(modernCandidates.error.message)) {
@@ -103,7 +103,7 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
 
   const legacyCandidates = await db
     .from("clients")
-    .select("id, name, email, phone, company_name, created_at, user_id")
+    .select("id, name, email, phone, company, created_at, user_id")
     .eq("email", email)
     .limit(2);
   if (legacyCandidates.error) throw legacyCandidates.error;
@@ -126,11 +126,15 @@ async function resolveClient(admin: ReturnType<typeof createAdminClient>, userId
   }
   const client = { ...candidate };
   delete (client as { user_id?: string | null }).user_id;
-  return { client: { ...client, company: client.company_name ?? null } as ClientRow, linkColumn: "user_id" as const };
+  return { client: { ...client, company: client.company ?? null } as ClientRow, linkColumn: "user_id" as const };
 }
 
 export async function GET() {
   try {
+    // This endpoint is request-specific: read cookies only after the request
+    // connection is available, preventing static prerender from invoking auth.
+    await connection();
+
     const sessionClient = await createClient();
     const { data, error } = await sessionClient.auth.getUser();
     if (error || !data.user) return jsonError("Sign in to view your client workspace.", 401);
