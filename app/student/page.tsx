@@ -1,6 +1,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ type StudentProfile = {
 type CourseDetails = {
   id: string;
   title: string;
-  subtitle: string | null;
+  description: string | null;
   difficulty: string;
   course_type: string;
   estimated_hours: number | null;
@@ -318,7 +319,7 @@ export default function StudentDashboard() {
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
         .select(
-          "id, title, subtitle, difficulty, course_type, estimated_hours"
+          "id, title, description, difficulty, course_type, estimated_hours"
         )
         .in("id", courseIds);
 
@@ -525,7 +526,7 @@ export default function StudentDashboard() {
     <main className="student-app">
       <aside className="student-sidebar">
         <Link href="/" className="brand">
-          <span className="brand-mark">V</span>
+          <Image src="/vexora-logo.png" alt="VEXORA" width={132} height={48} priority className="brand-logo" />
           <span>
             VEXORA
             <small>STUDENT SPACE</small>
@@ -708,7 +709,7 @@ export default function StudentDashboard() {
 
         <section className="section-block">
           <div className="section-heading"><div><p className="eyebrow">PROJECT COMMUNICATION</p><h2>My Project Requests</h2><p className="section-description">Track requests submitted for projects and the latest administrator response.</p></div><span className="resource-count">{projectRequests.length} requests</span></div>
-          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects/achievements" className="primary-button">Explore projects ↗</Link></div> : (
+          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects" className="primary-button">Explore projects ↗</Link></div> : (
             <div className="resource-grid">
               {projectRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">⌁</span><span className={`status-pill ${request.status === "approved" || request.status === "completed" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status.replaceAll("_", " ")}</span></div><h3>{request.project_title}</h3><p>{request.message || "Project request submitted to VEXORA."}</p><div className="course-meta"><span>Submitted {formatDate(request.created_at)}</span><span>Updated {formatDate(request.updated_at)}</span></div></article>)}
             </div>
@@ -783,7 +784,7 @@ export default function StudentDashboard() {
                         "Course details unavailable"}
                     </h3>
                     <p>
-                      {enrollment.course?.subtitle ||
+                      {enrollment.course?.description ||
                         "Continue your learning journey with VEXORA Academy."}
                     </p>
 
@@ -1167,7 +1168,7 @@ export default function StudentDashboard() {
         .welcome-panel p { max-width: 430px; color: #a6b6cc; font-size: 14px; line-height: 1.8; }
         .primary-button { display: inline-flex; align-items: center; gap: 16px; margin-top: 14px; padding: 13px 17px; border: 1px solid #60b5ff; border-radius: 9px; background: #2184d7; color: white; text-decoration: none; font-size: 13px; font-weight: 700; transition: 160ms ease; }
         .primary-button:hover { background: #3199ed; transform: translateY(-1px); }
-        .welcome-graphic { position: relative; width: 235px; height: 235px; flex-shrink: 0; margin-right: 20px; }
+        .welcome-graphic { position: relative; width: 235px; height: 235px; flex-shrink: 0; margin-right: 20px; animation: student-graphic-float 7s ease-in-out infinite; } @keyframes student-graphic-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(1deg); } } .brand-logo { display: block; width: 132px; height: 48px; object-fit: contain; filter: drop-shadow(0 0 12px #218de533); } .brand { display: flex; align-items: center; gap: 12px; } .graphic-core { animation: student-core-glow 3s ease-in-out infinite alternate; } @keyframes student-core-glow { from { box-shadow: 0 0 28px #218de522; } to { box-shadow: 0 0 52px #218de577, inset 0 0 20px #218de522; } } .graphic-orbit { animation: student-orbit-pulse 5s ease-in-out infinite alternate; } .orbit-two { animation-delay: -2.5s; } @keyframes student-orbit-pulse { from { opacity: .45; } to { opacity: 1; } } .stat-icon { transition: transform 220ms ease, box-shadow 220ms ease; } .stat-card:hover .stat-icon { transform: translateY(-3px) rotate(-5deg); box-shadow: 0 0 22px currentColor; } .resource-icon { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; } .resource-card:hover .resource-icon { transform: translateY(-2px) rotate(4deg); box-shadow: 0 0 20px #218de533; border-color: #55baff; } .shortcut-icon { transition: transform 220ms ease, box-shadow 220ms ease; } .shortcut-card:hover .shortcut-icon { transform: translateY(-3px) scale(1.05); box-shadow: 0 0 20px #218de533; }
         .graphic-orbit { position: absolute; inset: 8px; border: 1px solid #3a8dd45c; border-radius: 50%; }
         .orbit-two { inset: 37px -15px; transform: rotate(-32deg); border-color: #53b7ff66; }
         .graphic-core { position: absolute; top: 50%; left: 50%; width: 96px; height: 96px; display: grid; place-items: center; transform: translate(-50%,-50%); border: 1px solid #4eafff; border-radius: 26px; background: linear-gradient(145deg,#173b60,#0c1b2e); box-shadow: 0 0 55px #218de544; color: #8bd0ff; font-size: 38px; font-weight: 800; }
@@ -1208,7 +1209,7 @@ export default function StudentDashboard() {
         .student-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 48px; padding: 20px 0; border-top: 1px solid #1b293b; color: #72849c; font-size: 11px; } .student-footer a { color: #8ecbff; text-decoration: none; } .student-footer a:hover { text-decoration: underline; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         @media(max-width:1050px) { .student-sidebar { width: 210px; } .welcome-graphic { width: 180px; height: 180px; margin-right: 0; } .graphic-core { width: 76px; height: 76px; } .shortcut-grid,.resource-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-        @media(max-width:720px) { .student-app { display: block; } .student-sidebar { width: 100%; min-height: auto; padding: 14px; border-right: 0; border-bottom: 1px solid #1b2638; } .brand { padding: 0 3px 12px; } .nav-heading,.sidebar-bottom { display: none; } .student-nav { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; } .nav-link { flex-shrink: 0; min-height: 39px; gap: 7px; padding: 0 10px; font-size: 11px; } .nav-icon { width: auto; font-size: 15px; } .nav-arrow { display: none; } .student-main { padding: 23px 15px 12px; } .topbar { align-items: flex-start; } .refresh-button { padding: 10px; } .refresh-button>span:last-child { display: none; } .welcome-panel { min-height: auto; padding: 26px 22px; } .welcome-graphic { display: none; } .profile-strip { padding: 13px; } .session-status { display: none; } .shortcut-grid,.resource-grid { grid-template-columns: 1fr; } .resource-controls { flex-direction: column; } .category-select-label select { width: 100%; max-width: none; } .section-heading { align-items: flex-start; } .resource-count { font-size: 10px; } .student-footer { align-items: flex-start; flex-direction: column; } .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+        @media(prefers-reduced-motion: reduce) { .welcome-graphic, .graphic-core, .graphic-orbit, .stat-icon, .resource-icon, .shortcut-icon { animation: none !important; transition: none !important; } } @media(max-width:720px) { .student-app { display: block; } .student-sidebar { width: 100%; min-height: auto; padding: 14px; border-right: 0; border-bottom: 1px solid #1b2638; } .brand { padding: 0 3px 12px; } .nav-heading,.sidebar-bottom { display: none; } .student-nav { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; } .nav-link { flex-shrink: 0; min-height: 39px; gap: 7px; padding: 0 10px; font-size: 11px; } .nav-icon { width: auto; font-size: 15px; } .nav-arrow { display: none; } .student-main { padding: 23px 15px 12px; } .topbar { align-items: flex-start; } .refresh-button { padding: 10px; } .refresh-button>span:last-child { display: none; } .welcome-panel { min-height: auto; padding: 26px 22px; } .welcome-graphic { display: none; } .profile-strip { padding: 13px; } .session-status { display: none; } .shortcut-grid,.resource-grid { grid-template-columns: 1fr; } .resource-controls { flex-direction: column; } .category-select-label select { width: 100%; max-width: none; } .section-heading { align-items: flex-start; } .resource-count { font-size: 10px; } .student-footer { align-items: flex-start; flex-direction: column; } .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
       `}</style>
     </main>
   );

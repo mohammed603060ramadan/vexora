@@ -1,8 +1,7 @@
-﻿
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
@@ -75,7 +74,6 @@ function formatDuration(minutes: number) {
 }
 
 function CourseDetailsContent() {
-  const router = useRouter();
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
 
@@ -90,7 +88,11 @@ function CourseDetailsContent() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState("");
-  const [accessResult, setAccessResult] = useState<{ code: string; status: string; message: string } | null>(null);
+  const [accessResult, setAccessResult] = useState<{
+    code: string;
+    status: string;
+    message: string;
+  } | null>(null);
   const [hasCourseAccess, setHasCourseAccess] = useState(false);
 
   const loadCourse = useCallback(
@@ -113,25 +115,23 @@ function CourseDetailsContent() {
       setError("");
 
       try {
-        const { data: authData } = await supabase.auth.getUser();
+        const { data: authData, error: authError } =
+          await supabase.auth.getUser();
+
+        if (authError) throw authError;
+
         const signedInUser = authData.user;
 
-        let { data: courseData, error: courseError } = await supabase
+        // Use columns confirmed in the current Academy schema.
+        const { data: courseData, error: courseError } = await supabase
           .from("courses")
-          .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours, cover_image_url, promo_video_url")
+          .select(
+            "id, title, slug, description, difficulty, course_type, estimated_hours"
+          )
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
 
-        if (courseError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(courseError.message)) {
-          const fallback = await supabase.from("courses")
-            .select("id, title, slug, subtitle, description, difficulty, course_type, price, currency, estimated_hours")
-            .eq("slug", slug)
-            .eq("status", "published")
-            .maybeSingle();
-          courseData = fallback.data ? { ...fallback.data, cover_image_url: null, promo_video_url: null } : null;
-          courseError = fallback.error;
-        }
         if (courseError) throw courseError;
 
         if (!courseData) {
@@ -143,10 +143,52 @@ function CourseDetailsContent() {
           return;
         }
 
-        const {
-          data: sectionData,
-          error: sectionError,
-        } = await supabase
+        let canAccess = false;
+
+        if (signedInUser) {
+          const { data: enrollment, error: enrollmentError } =
+            await supabase
+              .from("enrollments")
+              .select("id, status")
+              .eq("course_id", courseData.id)
+              .eq("student_id", signedInUser.id)
+              .in("status", ["active", "completed"])
+              .maybeSingle();
+
+          if (enrollmentError) throw enrollmentError;
+
+          canAccess = Boolean(enrollment);
+        }
+
+        setHasCourseAccess(canAccess);
+
+        // These optional fields are not assumed to exist in the current schema.
+        const normalizedCourse: Course = {
+          id: courseData.id,
+          title: courseData.title,
+          slug: courseData.slug,
+          subtitle: null,
+          description: courseData.description,
+          difficulty: courseData.difficulty,
+          course_type: courseData.course_type,
+          price: null,
+          currency: null,
+          estimated_hours: courseData.estimated_hours,
+          cover_image_url: null,
+          promo_video_url: null,
+        };
+
+        setCourse(normalizedCourse);
+
+        // Do not request curriculum data for users without active enrollment.
+        if (!canAccess) {
+          setSections([]);
+          setLessons([]);
+          setLastUpdated(new Date());
+          return;
+        }
+
+        const { data: sectionData, error: sectionError } = await supabase
           .from("course_sections")
           .select("id, title, description, sequence_number")
           .eq("course_id", courseData.id)
@@ -160,10 +202,7 @@ function CourseDetailsContent() {
         let loadedLessons: Lesson[] = [];
 
         if (sectionIds.length > 0) {
-          const {
-            data: lessonData,
-            error: lessonError,
-          } = await supabase
+          const { data: lessonData, error: lessonError } = await supabase
             .from("lessons")
             .select(
               "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
@@ -177,35 +216,18 @@ function CourseDetailsContent() {
           loadedLessons = (lessonData ?? []) as Lesson[];
         }
 
-        if (signedInUser) {
-          const { data: enrollment, error: enrollmentError } = await supabase
-            .from("enrollments")
-            .select("id,status")
-            .eq("course_id", courseData.id)
-            .eq("student_id", signedInUser.id)
-            .in("status", ["active", "completed"])
-            .maybeSingle();
-          if (enrollmentError) throw enrollmentError;
-          setHasCourseAccess(Boolean(enrollment));
-        } else {
-          setHasCourseAccess(false);
-        }
-
-        setCourse(courseData as Course);
         setSections(loadedSections);
         setLessons(loadedLessons);
         setLastUpdated(new Date());
 
         setExpandedSections((current) => {
-          if (current.length > 0) {
-            return current.filter((id) =>
-              loadedSections.some((section) => section.id === id)
-            );
-          }
+          const validCurrent = current.filter((id) =>
+            loadedSections.some((section) => section.id === id)
+          );
 
-          return loadedSections.length > 0
-            ? [loadedSections[0].id]
-            : [];
+          if (validCurrent.length > 0) return validCurrent;
+
+          return loadedSections.length > 0 ? [loadedSections[0].id] : [];
         });
       } catch (cause) {
         console.error("Course details loading failed:", cause);
@@ -222,8 +244,6 @@ function CourseDetailsContent() {
   );
 
   useEffect(() => {
-    // Initial loading state is already true.
-    // This suppresses the lint rule for this asynchronous data-loading effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCourse();
   }, [loadCourse]);
@@ -239,17 +259,17 @@ function CourseDetailsContent() {
           (lesson) => lesson.section_id === section.id
         );
 
-        const matchingLessons = sectionLessons.filter(
-          (lesson) =>
-            `${lesson.title} ${lesson.description ?? ""}`
-              .toLowerCase()
-              .includes(term)
+        const matchingLessons = sectionLessons.filter((lesson) =>
+          `${lesson.title} ${lesson.description ?? ""}`
+            .toLowerCase()
+            .includes(term)
         );
 
-        const sectionMatches =
-          `${section.title} ${section.description ?? ""}`
-            .toLowerCase()
-            .includes(term);
+        const sectionMatches = `${section.title} ${
+          section.description ?? ""
+        }`
+          .toLowerCase()
+          .includes(term);
 
         return {
           ...section,
@@ -277,9 +297,8 @@ function CourseDetailsContent() {
   );
 
   const formatPrice = () => {
-    if (course?.price == null || Number(course.price) === 0) {
-      return "Free";
-    }
+    if (course?.price == null) return "Pricing on request";
+    if (Number(course.price) === 0) return "Free";
 
     try {
       return new Intl.NumberFormat("en", {
@@ -295,24 +314,58 @@ function CourseDetailsContent() {
   };
 
   async function requestAccess() {
-    if (!course) return;
+    if (!course || accessLoading) return;
+
     setAccessLoading(true);
     setAccessError("");
+    setAccessResult(null);
+
     try {
       const response = await fetch("/api/course-access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
       });
-      const payload = await response.json() as { request?: { purchase_code?: string; status?: string }; message?: string; error?: string };
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            request?: {
+              purchase_code?: string;
+              status?: string;
+            };
+            message?: string;
+            error?: string;
+          }
+        | null;
+
       if (response.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        const next = `${window.location.pathname}${window.location.search}`;
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
-      if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to request course access.");
-      setAccessResult({ code: payload.request.purchase_code || "CODE PENDING", status: payload.request.status || "pending", message: payload.message || "Access will be enabled after administrator approval." });
+
+      if (!response.ok || !payload?.request) {
+        throw new Error(
+          payload?.error ||
+            payload?.message ||
+            "Unable to request course access."
+        );
+      }
+
+      setAccessResult({
+        code: payload.request.purchase_code || "CODE PENDING",
+        status: payload.request.status || "pending",
+        message:
+          payload.message ||
+          "Access will be enabled after administrator approval.",
+      });
     } catch (cause) {
-      setAccessError(cause instanceof Error ? cause.message : "Unable to request course access.");
+      setAccessError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to request course access."
+      );
     } finally {
       setAccessLoading(false);
     }
@@ -367,8 +420,6 @@ function CourseDetailsContent() {
       </header>
 
       <section className="relative overflow-hidden border-b border-white/10">
-        {course?.cover_image_url && <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url("${course.cover_image_url}")` }} />}
-        {course?.promo_video_url && <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-15"><video className="h-full w-full object-cover" src={course.promo_video_url} autoPlay muted loop playsInline /></div>}
         <div className="pointer-events-none absolute -right-20 -top-36 h-96 w-96 rounded-full bg-[#087bff]/15 blur-[110px]" />
         <div className="pointer-events-none absolute -bottom-48 left-0 h-80 w-80 rounded-full bg-[#087bff]/10 blur-[100px]" />
 
@@ -381,10 +432,7 @@ function CourseDetailsContent() {
           </Link>
 
           {loading ? (
-            <div
-              className="mt-10 max-w-3xl animate-pulse"
-              aria-live="polite"
-            >
+            <div className="mt-10 max-w-3xl animate-pulse" aria-live="polite">
               <div className="h-4 w-40 rounded bg-white/10" />
               <div className="mt-6 h-12 max-w-2xl rounded bg-white/10" />
               <div className="mt-4 h-5 max-w-xl rounded bg-white/10" />
@@ -401,15 +449,10 @@ function CourseDetailsContent() {
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-red-300">
                 Loading error
               </p>
-
               <h1 className="mt-3 text-2xl font-semibold">
                 Unable to load course
               </h1>
-
-              <p className="mt-3 text-sm leading-7 text-white/65">
-                {error}
-              </p>
-
+              <p className="mt-3 text-sm leading-7 text-white/65">{error}</p>
               <button
                 type="button"
                 disabled={refreshing}
@@ -424,15 +467,12 @@ function CourseDetailsContent() {
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
                 Course unavailable
               </p>
-
               <h1 className="mt-4 text-3xl font-bold sm:text-5xl">
                 This course could not be found.
               </h1>
-
               <p className="mt-5 leading-7 text-white/60">
                 It may not be published yet, or the link may be incorrect.
               </p>
-
               <Link
                 href="/academy"
                 className="mt-7 inline-flex rounded-full bg-[#1687ff] px-6 py-3 text-sm font-semibold transition hover:bg-[#45a5ff]"
@@ -450,22 +490,19 @@ function CourseDetailsContent() {
                 {course.title}
               </h1>
 
-              {course.subtitle && (
+              {course.description && (
                 <p className="mt-5 max-w-3xl text-lg leading-8 text-white/65">
-                  {course.subtitle}
+                  {course.description}
                 </p>
               )}
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <span className="rounded-full border border-[#45a5ff]/30 bg-[#1687ff]/10 px-4 py-2 text-sm text-[#9dceff]">
-                  {difficultyLabels[course.difficulty] ??
-                    course.difficulty}
+                  {difficultyLabels[course.difficulty] ?? course.difficulty}
                 </span>
-
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70">
                   {typeLabels[course.course_type] ?? course.course_type}
                 </span>
-
                 {course.estimated_hours != null && (
                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70">
                     {course.estimated_hours} learning hours
@@ -478,9 +515,7 @@ function CourseDetailsContent() {
                   <p className="text-xs uppercase tracking-[0.2em] text-white/40">
                     Course price
                   </p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {formatPrice()}
-                  </p>
+                  <p className="mt-1 text-2xl font-bold">{formatPrice()}</p>
                 </div>
 
                 <div>
@@ -488,14 +523,14 @@ function CourseDetailsContent() {
                     Curriculum
                   </p>
                   <p className="mt-1 text-2xl font-bold">
-                    {lessons.length}{" "}
+                    {hasCourseAccess ? lessons.length : "—"}{" "}
                     <span className="text-base font-normal text-white/50">
                       lessons
                     </span>
                   </p>
                 </div>
 
-                {totalMinutes > 0 && (
+                {hasCourseAccess && totalMinutes > 0 && (
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-white/40">
                       Total lesson time
@@ -525,210 +560,221 @@ function CourseDetailsContent() {
         <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:py-16">
           <div className="min-w-0">
             {hasCourseAccess ? (
-            <>
-            <section>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
-                Course overview
-              </p>
-
-              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                About this course
-              </h2>
-
-              <p className="mt-5 whitespace-pre-line text-base leading-8 text-white/65">
-                {course.description ||
-                  "Course information will be available soon."}
-              </p>
-            </section>
-
-            <section className="mt-14">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+              <>
+                <section>
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
-                    Learning path
+                    Course overview
                   </p>
-
                   <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                    Course curriculum
+                    About this course
                   </h2>
-
-                  <p className="mt-2 text-sm text-white/45">
-                    {sections.length} sections · {lessons.length} published
-                    lessons
+                  <p className="mt-5 whitespace-pre-line text-base leading-8 text-white/65">
+                    {course.description ||
+                      "Course information will be available soon."}
                   </p>
-                </div>
+                </section>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={expandAll}
-                    className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
-                  >
-                    Expand all
-                  </button>
+                <section className="mt-14">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
+                        Learning path
+                      </p>
+                      <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
+                        Course curriculum
+                      </h2>
+                      <p className="mt-2 text-sm text-white/45">
+                        {sections.length} sections · {lessons.length} published
+                        lessons
+                      </p>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={collapseAll}
-                    className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
-                  >
-                    Collapse all
-                  </button>
-                </div>
-              </div>
-
-              <label htmlFor="lesson-search" className="sr-only">
-                Search course curriculum
-              </label>
-
-              <input
-                id="lesson-search"
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search sections and lessons..."
-                className="mt-7 w-full rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#45a5ff]/60"
-              />
-
-              {sections.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm leading-7 text-white/55">
-                  The curriculum has not been published yet.
-                </div>
-              ) : filteredSections.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/55">
-                  No sections or lessons match your search.
-                </div>
-              ) : (
-                <div className="mt-6 space-y-4">
-                  {filteredSections.map((section, index) => {
-                    const sectionLessons = lessons.filter(
-                      (lesson) => lesson.section_id === section.id
-                    );
-
-                    const visibleLessons = search.trim()
-                      ? section.filteredLessons ?? sectionLessons
-                      : sectionLessons;
-
-                    const isExpanded = expandedSections.includes(
-                      section.id
-                    );
-
-                    return (
-                      <article
-                        key={section.id}
-                        className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]"
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={expandAll}
+                        className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
                       >
-                        <button
-                          type="button"
-                          onClick={() => toggleSection(section.id)}
-                          aria-expanded={isExpanded}
-                          className="flex w-full items-center gap-4 px-4 py-5 text-left transition hover:bg-white/[0.025] sm:px-6"
-                        >
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#45a5ff]/25 bg-[#1687ff]/10 text-sm font-bold text-[#79bdff]">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
+                        Expand all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={collapseAll}
+                        className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
+                      >
+                        Collapse all
+                      </button>
+                    </div>
+                  </div>
 
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-semibold">
-                              {section.title}
-                            </span>
+                  <label htmlFor="lesson-search" className="sr-only">
+                    Search course curriculum
+                  </label>
+                  <input
+                    id="lesson-search"
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search sections and lessons..."
+                    className="mt-7 w-full rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#45a5ff]/60"
+                  />
 
-                            {section.description && (
-                              <span className="mt-1 block text-sm leading-6 text-white/45">
-                                {section.description}
-                              </span>
-                            )}
+                  {sections.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm leading-7 text-white/55">
+                      The curriculum has not been published yet.
+                    </div>
+                  ) : filteredSections.length === 0 ? (
+                    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/55">
+                      No sections or lessons match your search.
+                    </div>
+                  ) : (
+                    <div className="mt-6 space-y-4">
+                      {filteredSections.map((section, index) => {
+                        const sectionLessons = lessons.filter(
+                          (lesson) => lesson.section_id === section.id
+                        );
 
-                            <span className="mt-2 block text-xs text-white/40">
-                              {visibleLessons.length} lessons shown
-                            </span>
-                          </span>
+                        const visibleLessons = search.trim()
+                          ? section.filteredLessons ?? sectionLessons
+                          : sectionLessons;
 
-                          <span
-                            aria-hidden="true"
-                            className="shrink-0 text-lg text-[#79bdff]"
+                        const isExpanded = expandedSections.includes(
+                          section.id
+                        );
+
+                        return (
+                          <article
+                            key={section.id}
+                            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]"
                           >
-                            {isExpanded ? "−" : "+"}
-                          </span>
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(section.id)}
+                              aria-expanded={isExpanded}
+                              className="flex w-full items-center gap-4 px-4 py-5 text-left transition hover:bg-white/[0.025] sm:px-6"
+                            >
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#45a5ff]/25 bg-[#1687ff]/10 text-sm font-bold text-[#79bdff]">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
 
-                        {isExpanded && (
-                          <div className="border-t border-white/10">
-                            {visibleLessons.length === 0 ? (
-                              <p className="px-6 py-5 text-sm text-white/45">
-                                No published lessons in this section yet.
-                              </p>
-                            ) : (
-                              <ul className="divide-y divide-white/[0.07]">
-                                {visibleLessons.map((lesson) => (
-                                  <li
-                                    key={lesson.id}
-                                    className="flex items-center gap-3 px-4 py-4 sm:px-6"
-                                  >
-                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-[#79bdff]">
-                                      {lesson.lesson_type === "video"
-                                        ? "▶"
-                                        : lesson.lesson_type === "article"
-                                          ? "≡"
-                                          : lesson.lesson_type === "file"
-                                            ? "↓"
-                                            : "◷"}
-                                    </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-semibold">
+                                  {section.title}
+                                </span>
+                                {section.description && (
+                                  <span className="mt-1 block text-sm leading-6 text-white/45">
+                                    {section.description}
+                                  </span>
+                                )}
+                                <span className="mt-2 block text-xs text-white/40">
+                                  {visibleLessons.length} lessons shown
+                                </span>
+                              </span>
 
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-sm font-medium">
-                                        {lesson.title}
-                                      </span>
+                              <span
+                                aria-hidden="true"
+                                className="shrink-0 text-lg text-[#79bdff]"
+                              >
+                                {isExpanded ? "−" : "+"}
+                              </span>
+                            </button>
 
-                                      {lesson.description && (
-                                        <span className="mt-1 block text-xs leading-5 text-white/45">
-                                          {lesson.description}
+                            {isExpanded && (
+                              <div className="border-t border-white/10">
+                                {visibleLessons.length === 0 ? (
+                                  <p className="px-6 py-5 text-sm text-white/45">
+                                    No published lessons in this section yet.
+                                  </p>
+                                ) : (
+                                  <ul className="divide-y divide-white/[0.07]">
+                                    {visibleLessons.map((lesson) => (
+                                      <li
+                                        key={lesson.id}
+                                        className="flex items-center gap-3 px-4 py-4 sm:px-6"
+                                      >
+                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-[#79bdff]">
+                                          {lesson.lesson_type === "video"
+                                            ? "▶"
+                                            : lesson.lesson_type === "article"
+                                              ? "≡"
+                                              : lesson.lesson_type === "file"
+                                                ? "↓"
+                                                : "◷"}
                                         </span>
-                                      )}
 
-                                      <span className="mt-1 block text-xs text-white/35">
-                                        {lessonTypeLabels[
-                                          lesson.lesson_type
-                                        ] ?? lesson.lesson_type}
-                                      </span>
-                                    </span>
-
-                                    <span className="shrink-0 text-right">
-                                      {lesson.is_preview && (
-                                        <span className="block text-xs font-medium text-[#79bdff]">
-                                          Preview
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block text-sm font-medium">
+                                            {lesson.title}
+                                          </span>
+                                          {lesson.description && (
+                                            <span className="mt-1 block text-xs leading-5 text-white/45">
+                                              {lesson.description}
+                                            </span>
+                                          )}
+                                          <span className="mt-1 block text-xs text-white/35">
+                                            {lessonTypeLabels[
+                                              lesson.lesson_type
+                                            ] ?? lesson.lesson_type}
+                                          </span>
                                         </span>
-                                      )}
 
-                                      {lesson.duration_minutes != null && (
-                                        <span className="mt-1 block text-xs text-white/40">
-                                          {formatDuration(
-                                            lesson.duration_minutes
+                                        <span className="shrink-0 text-right">
+                                          {lesson.is_preview && (
+                                            <span className="block text-xs font-medium text-[#79bdff]">
+                                              Preview
+                                            </span>
+                                          )}
+                                          {lesson.duration_minutes != null && (
+                                            <span className="mt-1 block text-xs text-white/40">
+                                              {formatDuration(
+                                                lesson.duration_minutes
+                                              )}
+                                            </span>
                                           )}
                                         </span>
-                                      )}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-            </>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              </>
             ) : (
               <section className="relative overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#10283a] via-[#0b1420] to-[#080d15] p-7 sm:p-10">
-                <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] text-3xl text-cyan-100">⌁</div>
-                <p className="relative mt-5 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">Protected course content</p>
-                <h2 className="relative mt-3 text-2xl font-semibold text-white sm:text-3xl">Your next chapter is waiting.</h2>
-                <p className="relative mt-3 max-w-xl text-sm leading-7 text-slate-300">The course overview and preview media are available now. Course sections and lessons unlock only after VEXORA reviews your request and grants access.</p>
-                <div className="relative mt-6 flex flex-wrap gap-3 text-xs text-slate-400"><span className="rounded-full border border-white/10 px-3 py-2">Private curriculum</span><span className="rounded-full border border-white/10 px-3 py-2">Administrator approval</span><span className="rounded-full border border-white/10 px-3 py-2">Account-linked access</span></div>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl"
+                />
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] text-3xl text-cyan-100">
+                  ⌁
+                </div>
+                <p className="relative mt-5 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">
+                  Protected course content
+                </p>
+                <h2 className="relative mt-3 text-2xl font-semibold text-white sm:text-3xl">
+                  Your next chapter is waiting.
+                </h2>
+                <p className="relative mt-3 max-w-xl text-sm leading-7 text-slate-300">
+                  Course details are available now. Course sections and lessons
+                  unlock after VEXORA reviews your request and grants access.
+                </p>
+                <div className="relative mt-6 flex flex-wrap gap-3 text-xs text-slate-400">
+                  <span className="rounded-full border border-white/10 px-3 py-2">
+                    Private curriculum
+                  </span>
+                  <span className="rounded-full border border-white/10 px-3 py-2">
+                    Administrator approval
+                  </span>
+                  <span className="rounded-full border border-white/10 px-3 py-2">
+                    Account-linked access
+                  </span>
+                </div>
               </section>
             )}
           </div>
@@ -737,11 +783,9 @@ function CourseDetailsContent() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#79bdff]">
               Start learning
             </p>
-
             <h2 className="mt-4 text-2xl font-bold">
               Ready to build your skills?
             </h2>
-
             <p className="mt-3 text-sm leading-7 text-white/55">
               {hasCourseAccess
                 ? "Your access is active. Explore the full curriculum and continue your learning journey."
@@ -749,7 +793,12 @@ function CourseDetailsContent() {
             </p>
 
             {hasCourseAccess ? (
-              <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">✓ Open my courses</Link>
+              <Link
+                href="/student"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110"
+              >
+                ✓ Open my courses
+              </Link>
             ) : (
               <button
                 type="button"
@@ -757,11 +806,57 @@ function CourseDetailsContent() {
                 disabled={accessLoading}
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
               >
-                {accessLoading ? "Creating request…" : "Request purchase / access code"}
+                {accessLoading
+                  ? "Creating request…"
+                  : "Request purchase / access code"}
               </button>
             )}
-            {accessError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessError}</p>}
-            {accessResult && <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"><p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Your reference code</p><div className="mt-2 flex items-center justify-between gap-2"><code className="font-bold tracking-wider">{accessResult.code}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(accessResult.code)} className="rounded-lg border border-white/10 px-2 py-1 text-xs">Copy</button></div><p className="mt-2 text-sm leading-6 text-slate-300">{accessResult.message}</p><p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessResult.status}</p></div>}
+
+            {accessError && (
+              <p
+                role="alert"
+                className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200"
+              >
+                {accessError}
+              </p>
+            )}
+
+            {accessResult && (
+              <div
+                role="status"
+                className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"
+              >
+                <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">
+                  Your reference code
+                </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <code className="font-bold tracking-wider">
+                    {accessResult.code}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard
+                        ?.writeText(accessResult.code)
+                        .catch(() => {
+                          setAccessError(
+                            "Could not copy the code. Please copy it manually."
+                          );
+                        });
+                    }}
+                    className="rounded-lg border border-white/10 px-2 py-1 text-xs"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  {accessResult.message}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-wider text-amber-200">
+                  Status: {accessResult.status}
+                </p>
+              </div>
+            )}
 
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
               <div className="flex items-start gap-3">
@@ -770,14 +865,12 @@ function CourseDetailsContent() {
                   Published course curriculum
                 </p>
               </div>
-
               <div className="flex items-start gap-3">
                 <span className="text-[#79bdff]">✓</span>
                 <p className="text-sm leading-6 text-white/55">
                   Course details and lesson duration
                 </p>
               </div>
-
               <div className="flex items-start gap-3">
                 <span className="text-[#79bdff]">✓</span>
                 <p className="text-sm leading-6 text-white/55">
@@ -797,11 +890,7 @@ function CourseDetailsContent() {
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-7 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <span>© {new Date().getFullYear()} VEXORA Technology</span>
-
-          <Link
-            href="/academy"
-            className="transition hover:text-white/75"
-          >
+          <Link href="/academy" className="transition hover:text-white/75">
             Explore Academy
           </Link>
         </div>
