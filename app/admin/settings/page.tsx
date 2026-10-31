@@ -257,7 +257,15 @@ export default function AdminSettingsPage() {
       try {
         const response = await fetch("/api/admin/settings", { method: "GET", cache: "no-store" });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Could not load shared settings.");
+        if (!response.ok) {
+          const diagnostic = result.diagnostic && typeof result.diagnostic === "object"
+            ? result.diagnostic as { code?: string | null; message?: string; hint?: string | null }
+            : null;
+          const details = diagnostic
+            ? [diagnostic.code, diagnostic.message, diagnostic.hint].filter(Boolean).join(" · ")
+            : "";
+          throw new Error([result.error || "Could not load shared settings.", details].filter(Boolean).join(" — "));
+        }
         if (!active) return;
         const saved = result.settings && typeof result.settings === "object" ? result.settings as Record<string, unknown> : {};
         if (saved.company && typeof saved.company === "object") setCompany((current) => ({ ...current, ...(saved.company as Partial<typeof current>) }));
