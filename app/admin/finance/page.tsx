@@ -37,6 +37,13 @@ type Expense = {
   expense_date: string;
 };
 
+function getErrorDetail(error: unknown, key: "code" | "message"): string {
+  if (typeof error === "string") return key === "message" ? error : "";
+  if (!error || typeof error !== "object") return "";
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
 function formatMoney(amount: number | string, currency: string) {
   const value = Number(amount);
 
@@ -238,9 +245,9 @@ export default async function AdminFinancePage() {
                   <li key={table} className="break-words rounded-lg border border-amber-300/15 bg-black/20 p-3">
                     <span className="font-semibold">{table}</span>
                     <span className="ml-2 text-xs text-amber-100/60">
-                      {error.code ? `[${error.code}]` : ""}
+                      {getErrorDetail(error, "code") ? `[${getErrorDetail(error, "code")}]` : ""}
                     </span>
-                    <p className="mt-1 text-amber-100/80">{error.message}</p>
+                    <p className="mt-1 text-amber-100/80">{getErrorDetail(error, "message") || "Unknown Supabase error"}</p>
                   </li>
                 ))}
             </ul>
