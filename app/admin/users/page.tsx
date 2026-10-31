@@ -139,9 +139,9 @@ export default function AdminUsersPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/admin" className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.04]">
+            <Link href="/admin" className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.04]">
               ← Dashboard
-            </a>
+            </Link>
             <button type="button" onClick={() => { setNotice(""); setShowForm(true); }} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400">
               + Add demo user
             </button>
