@@ -411,7 +411,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="relative flex flex-wrap gap-3 xl:max-w-[360px] xl:justify-end">
-              <a href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</a>
+              <Link href="/admin" className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07]">← Dashboard</Link>
               <button type="button" onClick={exportSettings} className="rounded-xl border border-blue-300/20 bg-blue-400/[0.08] px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-400/[0.15]">Export configuration ↓</button>
               <button type="button" onClick={savePreview} disabled={saving} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 disabled:opacity-60">{saving ? "Applying..." : "Apply preview changes ✓"}</button>
             </div>
