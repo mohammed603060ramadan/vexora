@@ -401,6 +401,40 @@ export default function StudentDashboard() {
     };
   }, [loadStudent, loadTechnologyNews, router]);
 
+  const refreshStudentWorkspace = useCallback(async () => {
+    try {
+      const response = await fetch("/api/student/workspace", { cache: "no-store" });
+      const payload = await response.json() as {
+        projects?: StudentProject[];
+        requests?: StudentProjectRequest[];
+        tasks?: StudentTask[];
+        error?: string;
+      };
+      if (!response.ok) throw new Error(payload.error || "Unable to refresh your workspace.");
+      setStudentProjects(Array.isArray(payload.projects) ? payload.projects : []);
+      setProjectRequests(Array.isArray(payload.requests) ? payload.requests : []);
+      setStudentTasks(Array.isArray(payload.tasks) ? payload.tasks : []);
+      setWorkspaceError("");
+    } catch (caught) {
+      setWorkspaceError(caught instanceof Error ? caught.message : "Unable to refresh your workspace.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!email) return;
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") void refreshStudentWorkspace();
+    };
+
+    const interval = window.setInterval(refreshIfVisible, 60_000);
+    window.addEventListener("focus", refreshIfVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshIfVisible);
+    };
+  }, [email, refreshStudentWorkspace]);
+
   async function updateStudentTask(task: StudentTask, status: string) {
     setTaskBusyId(task.id);
     setWorkspaceError("");
