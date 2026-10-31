@@ -24,8 +24,6 @@ const reservedSlugs = new Set([
   "events", "login", "portfolio", "privacy", "projects", "register", "services", "student",
 ]);
 
-|-$/g, "");
-}
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 }
