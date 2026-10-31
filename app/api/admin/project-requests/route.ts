@@ -75,7 +75,7 @@ export async function GET() {
 
     const [clientsResult, projectsResult] = await Promise.all([
       clientIds.length
-        ? admin.from("clients").select("id,name,email,company").in("id", clientIds)
+        ? admin.from("clients").select("id,name,email,company_name").in("id", clientIds)
         : Promise.resolve({ data: [], error: null }),
       projectIds.length
         ? admin.from("projects").select("id,title,status").in("id", projectIds)
@@ -91,7 +91,7 @@ export async function GET() {
     return NextResponse.json({
       requests: requests.map((item) => ({
         ...item,
-        client: clients.get(item.client_id) ?? null,
+        client: (() => { const client = clients.get(item.client_id); return client ? { ...client, company: client.company_name ?? null } : null; })(),
         project: projects.get(item.project_id) ?? null,
       })),
     }, { headers });
