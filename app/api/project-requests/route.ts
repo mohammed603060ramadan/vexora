@@ -90,6 +90,17 @@ async function findClientForUser(admin: ReturnType<typeof getAdminClient>, userI
   return data;
 }
 
+function hasSameOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
 function isValidUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -164,13 +175,17 @@ export async function GET() {
     console.error("Project requests GET failed:", error);
 
     return jsonError(
-      "Project requests are temporarily unavailable. Verify the project_requests migration is applied.",
+      "Project requests are temporarily unavailable. Check the server database connection and access configuration.",
       500
     );
   }
 }
 
 export async function POST(request: Request) {
+  if (!hasSameOrigin(request)) {
+    return jsonError("Request origin could not be verified.", 403);
+  }
+
   try {
     const supabase = await createClient();
 
