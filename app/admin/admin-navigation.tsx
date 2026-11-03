@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const navigation = [
   { label: "Overview", href: "/admin", icon: "grid" },
   { label: "Analytics", href: "/admin/analytics", icon: "chart" },
+  { label: "AI Assistant", href: "/admin/ai", icon: "sparkles" },
   { label: "Projects", href: "/admin/projects", icon: "layers" },
   { label: "Portfolio Studio", href: "/admin/portfolio", icon: "image" },
   { label: "Clients", href: "/admin/clients", icon: "users" },
@@ -28,6 +29,7 @@ const navigation = [
 const paths: Record<string, string> = {
   grid: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z",
   chart: "M4 19V5 M4 19h17 M8 16v-4 M13 16V7 M18 16v-7",
+  sparkles: "m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z M19 14l1.1 3L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z",
   layers: "m12 3 9 5-9 5-9-5 9-5Z M3 12l9 5 9-5 M3 16l9 5 9-5",
   image: "M4 4h16v16H4z M4 16l5-5 4 4 3-3 4 4 M9 9h.01",
   users: "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 8v6 M23 11h-6",
