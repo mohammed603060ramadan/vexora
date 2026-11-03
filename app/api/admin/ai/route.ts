@@ -130,9 +130,9 @@ export async function POST(request: Request) {
       ? result.output
       : [];
 
-    const answer = output.flatMap((item) => {
+    const answer = output.flatMap((item: unknown) => {
       if (!item || typeof item !== "object" || !("content" in item) || !Array.isArray(item.content)) return [];
-      return item.content.flatMap((part) =>
+      return item.content.flatMap((part: unknown) =>
         part && typeof part === "object" && "type" in part && part.type === "output_text" &&
         "text" in part && typeof part.text === "string" ? [part.text] : []
       );
