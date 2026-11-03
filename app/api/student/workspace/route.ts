@@ -60,6 +60,7 @@ const allowedStatuses: readonly TaskStatus[] = [
   "review",
   "completed",
   "blocked",
+  "cancelled",
 ];
 
 function errorResponse(message: string, status: number) {
