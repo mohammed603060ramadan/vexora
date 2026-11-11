@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {user,response}=await authorizeAdmin(); if(response) return response;
-  let body: unknown; try { body=await readJsonBody(request); } catch { return NextResponse.json({error:"Invalid JSON body."},{status:400}); }
+  let body: unknown; try { body=await readJsonBody(request, 160000); } catch { return NextResponse.json({error:"Invalid JSON body."},{status:400}); }
   const invalid=validate(body); if(invalid) return NextResponse.json({error:invalid},{status:400});
   const item=body as Record<string,unknown>, status=item.status as string;
   const payload={
