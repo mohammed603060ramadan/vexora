@@ -88,6 +88,103 @@ CREATE POLICY quotations_admin_read
 GRANT SELECT ON public.quotations TO authenticated;
 GRANT ALL ON public.quotations TO service_role;
 
+-- The CMS is accessed through authenticated admin APIs. Add explicit admin-only
+-- policies so direct authenticated access remains protected by RLS as well.
+ALTER TABLE public.site_pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.news_articles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS site_pages_admin_select ON public.site_pages;
+CREATE POLICY site_pages_admin_select ON public.site_pages
+  FOR SELECT TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS site_pages_admin_insert ON public.site_pages;
+CREATE POLICY site_pages_admin_insert ON public.site_pages
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS site_pages_admin_update ON public.site_pages;
+CREATE POLICY site_pages_admin_update ON public.site_pages
+  FOR UPDATE TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin')
+  WITH CHECK ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS site_pages_admin_delete ON public.site_pages;
+CREATE POLICY site_pages_admin_delete ON public.site_pages
+  FOR DELETE TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS news_articles_admin_select ON public.news_articles;
+CREATE POLICY news_articles_admin_select ON public.news_articles
+  FOR SELECT TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS news_articles_admin_insert ON public.news_articles;
+CREATE POLICY news_articles_admin_insert ON public.news_articles
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS news_articles_admin_update ON public.news_articles;
+CREATE POLICY news_articles_admin_update ON public.news_articles
+  FOR UPDATE TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin')
+  WITH CHECK ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+DROP POLICY IF EXISTS news_articles_admin_delete ON public.news_articles;
+CREATE POLICY news_articles_admin_delete ON public.news_articles
+  FOR DELETE TO authenticated
+  USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.site_pages TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.news_articles TO authenticated;
+
+-- Restrict trigger/event-trigger SECURITY DEFINER functions to database execution.
+-- These functions are invoked by their triggers, not through the public RPC API.
+REVOKE EXECUTE ON FUNCTION public.grant_course_enrollment_on_access_approval() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+
+-- The trigger function now respects internal account types instead of creating
+-- a client record for every newly invited employee, manager, or administrator.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_name text;
+  v_account_type text;
+BEGIN
+  v_name := COALESCE(
+    NULLIF(trim(NEW.raw_user_meta_data ->> 'full_name'), ''),
+    NULLIF(split_part(COALESCE(NEW.email, ''), '@', 1), ''),
+    'New client'
+  );
+
+  v_account_type := CASE
+    WHEN NEW.raw_user_meta_data ->> 'account_type' IN ('student', 'admin', 'manager', 'employee')
+      THEN NEW.raw_user_meta_data ->> 'account_type'
+    ELSE 'client'
+  END;
+
+  INSERT INTO public.profiles (id, full_name, account_type)
+  VALUES (
+    NEW.id,
+    NULLIF(trim(NEW.raw_user_meta_data ->> 'full_name'), ''),
+    v_account_type
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  IF v_account_type = 'client' THEN
+    INSERT INTO public.clients (name, email, auth_user_id)
+    VALUES (v_name, NEW.email, NEW.id)
+    ON CONFLICT (auth_user_id)
+    WHERE auth_user_id IS NOT NULL
+    DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+-- Pin the generic timestamp trigger to trusted system/application schemas.
+ALTER FUNCTION public.set_updated_at() SET search_path = pg_catalog, public;
+
 NOTIFY pgrst, 'reload schema';
 
 COMMIT;
