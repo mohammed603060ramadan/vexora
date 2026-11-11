@@ -18,12 +18,20 @@ function dbError(error:{code?:string;message?:string;details?:string;hint?:strin
   console.error("[Admin News API]",error);
   return NextResponse.json({error:error.message||"News database operation failed.",code:error.code||null,details:error.details||null,hint:error.hint||null},{status:error.code==="23505"?409:400});
 }
+async function readJsonBody(request: Request, maxBytes = 160000): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function PATCH(request:Request,context:Context) {
   if((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {user,response}=await authorizeAdmin(); if(response) return response;
   const {id}=await context.params;
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return NextResponse.json({error:"Invalid article ID."},{status:400});
-  let body:unknown; try{body=await request.json();}catch{return NextResponse.json({error:"Invalid JSON body."},{status:400});}
+  let body:unknown; try{body=await readJsonBody(request);}catch{return NextResponse.json({error:"Invalid JSON body."},{status:400});}
   if(!body || typeof body!=="object" || Array.isArray(body)) return NextResponse.json({error:"A valid article payload is required."},{status:400});
   const item=body as Record<string,unknown>;
   if(typeof item.title!=="string"||!item.title.trim()||item.title.length>160) return NextResponse.json({error:"Title is required (160 characters maximum)."},{status:400});
