@@ -101,7 +101,7 @@ export async function PATCH(request: Request) {
   const id = typeof value.id === "string" ? value.id : "";
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return json({ error: "A valid message ID is required." }, 400);
 
-  const updates: Record<string, string> = {};
+  const updates: { status?: string; priority?: string } = {};
   if (value.status !== undefined) {
     if (!["Unread", "Read", "Archived"].includes(String(value.status))) return json({ error: "Invalid message status." }, 400);
     updates.status = value.status === "Unread" ? "new" : value.status === "Archived" ? "closed" : "contacted";
