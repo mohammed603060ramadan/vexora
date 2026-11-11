@@ -75,16 +75,6 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (clientError) {
-      throw clientError;
-    }
-
     router.replace("/client");
     router.refresh();
   }, [router]);
