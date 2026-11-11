@@ -1,0 +1,53 @@
+name: Refresh security dependencies
+
+on:
+  push:
+    branches:
+      - security/harden-api-endpoints-2026-11-12
+    paths:
+      - .github/workflows/refresh-security-dependencies.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout security branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/harden-api-endpoints-2026-11-12
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Update patched framework dependencies and lockfile
+        run: |
+          npm install --save-exact next@16.4.6 react@19.3.1 react-dom@19.3.1
+          npm install --save-dev --save-exact eslint-config-next@16.4.6
+
+      - name: Validate clean lockfile install
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Commit generated dependency lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "security(deps): patch Next.js and React advisories"
+            git push origin HEAD:security/harden-api-endpoints-2026-11-12
+          else
+            echo "Dependency files already up to date."
+          fi
