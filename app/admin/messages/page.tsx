@@ -798,9 +798,10 @@ export default function AdminMessagesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400"
+                  disabled={saving}
+                  className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-60"
                 >
-                  Add inquiry
+                  {saving ? "Saving..." : "Add inquiry"}
                 </button>
               </div>
             </form>
