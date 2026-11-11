@@ -1,4 +1,5 @@
 
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -279,10 +280,6 @@ export async function PATCH(request: Request) {
     return errorResponse("Invalid request origin.", 403);
   }
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > 2_048) {
-    return errorResponse("Request body is too large.", 413);
-  }
   const supabase = await createClient();
   const { data: auth, error: authError } =
     await supabase.auth.getUser();
@@ -294,13 +291,9 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const rawBody = await request.text().catch(() => "");
-  if (rawBody.length > 2_048) return errorResponse("Request body is too large.", 413);
-  let body: unknown = null;
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return errorResponse("Invalid JSON body.", 400);
+  const body = await readJsonBody(request, 2_048);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return errorResponse("Invalid or oversized JSON body.", 400);
   }
 
   if (
