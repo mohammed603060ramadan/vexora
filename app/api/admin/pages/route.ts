@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,14 +60,6 @@ function databaseError(error: { code?: string; message?: string; details?: strin
     details: error.details || null,
     hint: error.hint || null,
   }, { status: error.code === "23505" ? 409 : 400 });
-}
-
-async function readJsonBody(request: Request, maxBytes = 110000): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export async function GET(request: Request) {
