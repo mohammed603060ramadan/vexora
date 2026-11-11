@@ -165,13 +165,25 @@ export async function POST(request: Request) {
       return json({ error: "The invitation was sent, but the profile role could not be synchronized.", userId: invitedUser.id }, 500);
     }
 
-    if (role === "Client") {
-      const { error: clientError } = await admin.from("clients")
-        .update({ company: company || null })
-        .eq("auth_user_id", invitedUser.id);
-      if (clientError) {
-        console.error("[Admin Users API] Client profile update failed:", clientError);
-        return json({ error: "The invitation was sent, but the client profile could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
+    if (role === "Client" || role === "Student") {
+      const { data: existingWorkspace, error: workspaceLookupError } = await admin.from("clients")
+        .select("id").eq("auth_user_id", invitedUser.id).maybeSingle();
+      if (workspaceLookupError) {
+        console.error("[Admin Users API] User workspace lookup failed:", workspaceLookupError);
+        return json({ error: "The invitation was sent, but the user workspace could not be checked.", userId: invitedUser.id }, 500);
+      }
+
+      const workspaceWrite = existingWorkspace
+        ? await admin.from("clients").update({ company: company || null }).eq("auth_user_id", invitedUser.id)
+        : await admin.from("clients").insert({
+            name,
+            email,
+            company: company || null,
+            auth_user_id: invitedUser.id,
+          });
+      if (workspaceWrite.error) {
+        console.error("[Admin Users API] User workspace write failed:", workspaceWrite.error);
+        return json({ error: "The invitation was sent, but the user workspace could not be created or updated.", userId: invitedUser.id }, 500);
       }
     } else if (role === "Admin") {
       const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: invitedUser.id }, { onConflict: "user_id" });
