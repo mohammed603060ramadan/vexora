@@ -13,7 +13,7 @@ function json(data: unknown, status = 200) {
 
 function validOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return false;
+  if (!origin) return true;
   try {
     return new URL(origin).origin === new URL(request.url).origin;
   } catch {
@@ -61,7 +61,7 @@ function normalizeStatus(user: {
 }
 
 export async function GET(request: Request) {
-  if (!request.headers.get("origin") || !validOrigin(request)) return json({ error: "Request origin could not be verified." }, 403);
+  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if (!request.headers.get("origin") || !validOrigin(request)) return json({ error: "Request origin could not be verified." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
