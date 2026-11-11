@@ -211,7 +211,10 @@ BEGIN
   )
   ON CONFLICT (id) DO NOTHING;
 
-  IF v_account_type IN ('client', 'student') THEN
+  -- Internal accounts are provisioned by the admin API. Do not create
+  -- a client record for an admin/manager/employee invitation.
+  IF COALESCE(NEW.raw_user_meta_data ->> 'account_type', 'client')
+     NOT IN ('admin', 'manager', 'employee') THEN
     INSERT INTO public.clients (name, email, auth_user_id)
     VALUES (v_name, NEW.email, NEW.id)
     ON CONFLICT (auth_user_id)
