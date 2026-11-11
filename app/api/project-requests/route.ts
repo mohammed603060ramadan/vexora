@@ -219,11 +219,17 @@ export async function POST(request: Request) {
     if (accountProfileError) throw accountProfileError;
     if (accountProfile?.account_type !== "client") return jsonError("Only client accounts can submit project requests.", 403);
 
-    const body: unknown = await request.json().catch(() => null);
+    const contentLength = Number(request.headers.get("content-length") ?? "0");
+    if (Number.isFinite(contentLength) && contentLength > 4_096) return jsonError("Request body is too large.", 413);
+    const rawBody = await request.text().catch(() => "");
+    if (rawBody.length > 4_096) return jsonError("Request body is too large.", 413);
+    let body: unknown = null;
+    try { body = JSON.parse(rawBody); } catch { return jsonError("Invalid JSON body.", 400); }
 
     if (
       !body ||
       typeof body !== "object" ||
+      Array.isArray(body) ||
       !("projectId" in body) ||
       typeof body.projectId !== "string"
     ) {
