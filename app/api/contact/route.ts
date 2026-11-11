@@ -1,4 +1,5 @@
 ﻿
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,52 +41,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const contentLength = Number(
-    request.headers.get("content-length") ?? "0",
-  );
-
-  if (
-    Number.isFinite(contentLength) &&
-    contentLength > MAX_BODY_LENGTH
-  ) {
+  const parsed = await readJsonBody(request, MAX_BODY_LENGTH);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return NextResponse.json(
-      { error: "Request body is too large." },
-      { status: 413 },
-    );
-  }
-
-  let payload: ContactPayload;
-
-  try {
-    const rawBody = await request.text();
-
-    if (rawBody.length > MAX_BODY_LENGTH) {
-      return NextResponse.json(
-        { error: "Request body is too large." },
-        { status: 413 },
-      );
-    }
-
-    const parsed: unknown = JSON.parse(rawBody);
-
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid request body." },
-        { status: 400 },
-      );
-    }
-
-    payload = parsed as ContactPayload;
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body." },
+      { error: "Invalid or oversized JSON body." },
       { status: 400 },
     );
   }
+  const payload = parsed as ContactPayload;
 
   // Honeypot: return a generic success response without storing bot submissions.
   if (cleanText(payload.website, 200)) {
