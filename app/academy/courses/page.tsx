@@ -13,8 +13,6 @@ type Course = {
   difficulty: string | null;
   course_type: string | null;
   estimated_hours: number | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
 };
@@ -57,13 +55,13 @@ export default function AcademyCoursesPage() {
     async function load() {
       let { data, error: queryError } = await supabase
         .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency,cover_image_url,promo_video_url")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
       if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
         const fallback = await supabase
           .from("courses")
-          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,price,currency")
+          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours")
           .eq("status", "published")
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((course) => ({ ...course, cover_image_url: null, promo_video_url: null }));
@@ -94,7 +92,7 @@ export default function AcademyCoursesPage() {
         <header className="mt-8 rounded-3xl border border-blue-400/15 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,.16),transparent_55%),#0b111b] p-7 sm:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-300">VEXORA / Learning</p>
           <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">Course Directory</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">Browse published courses, preview the course media, and view pricing. Full lessons are unlocked only after VEXORA approves access.</p>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">Browse all free published courses, preview the course media, and start learning directly.</p>
           <div className="mt-7 grid gap-3 sm:grid-cols-[1fr_auto]">
             <input value={search} onChange={(event) => setSearch(event.target.value)} type="search" placeholder="Search courses, skills or categories..." aria-label="Search courses" className="w-full rounded-xl border border-white/10 bg-[#080d16] px-4 py-3 text-sm outline-none transition focus:border-blue-400/50" />
             <span className="flex items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-400">{filtered.length} courses</span>
@@ -135,12 +133,12 @@ export default function AcademyCoursesPage() {
                     {course.difficulty && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.difficulty}</span>}
                     {course.course_type && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.course_type.replace("_", " ")}</span>}
                     {course.estimated_hours !== null && <span className="rounded-full border border-white/10 px-2.5 py-1">{course.estimated_hours} hours</span>}
-                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-semibold text-cyan-100">{course.price == null || Number(course.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(Number(course.price))}</span>
+                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 font-semibold text-cyan-100">Free</span>
                   </div>
                   <h2 className="mt-4 text-xl font-semibold leading-snug">{course.title}</h2>
                   <p className="mt-3 min-h-16 text-sm leading-6 text-slate-400">{course.description || "Course details will be announced soon."}</p>
-                  <Link href={`/academy/${course.slug}`} className="mt-5 flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">View course & request access <span aria-hidden="true">↗</span></Link>
-                  <p className="mt-3 text-xs leading-5 text-slate-500">Course content stays locked until VEXORA approves your access request.</p>
+                  <Link href={`/academy/${course.slug}`} className="mt-5 flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">View course & enroll free <span aria-hidden="true">↗</span></Link>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">Published course lessons are free to explore. Sign in to save your enrollment and progress.</p>
                 </div>
               </article>
             ))}

@@ -40,7 +40,6 @@ const initialModules: ModuleItem[] = [
   { id: "messages", name: "Messages", description: "Communication inbox and customer conversations.", enabled: true, category: "Communication" },
   { id: "users", name: "User Management", description: "User directory and account administration.", enabled: true, category: "Security" },
   { id: "team", name: "Team Management", description: "Team members, roles and responsibilities.", enabled: true, category: "People" },
-  { id: "finance", name: "Finance", description: "Invoices, payments and financial tracking.", enabled: true, category: "Finance" },
   { id: "contracts", name: "Contracts", description: "Contract records and lifecycle tracking.", enabled: true, category: "Business" },
   { id: "reports", name: "Reports & Analytics", description: "Operational reports and business insights.", enabled: true, category: "Analytics" },
   { id: "news", name: "News & Articles", description: "Manage news and editorial content.", enabled: true, category: "Content" },
@@ -232,7 +231,6 @@ export default function AdminSettingsPage() {
     emailProvider: false,
     analytics: false,
     storage: false,
-    payment: false,
     webhook: false,
   });
   const [advanced, setAdvanced] = useState({
@@ -426,7 +424,7 @@ export default function AdminSettingsPage() {
     });
     setIntegrations({
       supabase: true, emailProvider: false, analytics: false, storage: false,
-      payment: false, webhook: false,
+      webhook: false,
     });
     setAdvanced({
       debugMode: false, cacheEnabled: true, publicApi: false,
@@ -697,7 +695,7 @@ export default function AdminSettingsPage() {
                       <Field label="Module name" value={newModuleName} onChange={setNewModuleName} placeholder="e.g. HR Management" />
                       <label className="block text-sm text-slate-300">Category
                         <select value={newModuleCategory} onChange={(event) => setNewModuleCategory(event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
-                          {["Core", "Operations", "Business", "Communication", "Security", "People", "Finance", "Analytics", "Content", "Custom"].map((category) => <option key={category} value={category}>{category}</option>)}
+                          {["Core", "Operations", "Business", "Communication", "Security", "People", "Analytics", "Content", "Custom"].map((category) => <option key={category} value={category}>{category}</option>)}
                         </select>
                       </label>
                       <button type="submit" className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400">Add</button>
@@ -706,7 +704,7 @@ export default function AdminSettingsPage() {
                   <div className="grid gap-3 sm:grid-cols-3">
                     <label className="sm:col-span-2"><span className="sr-only">Search modules</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search departments and modules..." className="w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400/60" /></label>
                     <select value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)} aria-label="Filter modules" className="rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-slate-300 outline-none focus:border-blue-400/60">
-                      {["All", "Enabled", "Disabled", "Core", "Operations", "Business", "Communication", "Security", "People", "Finance", "Analytics", "Content", "Custom"].map((item) => <option key={item} value={item}>{item}</option>)}
+                      {["All", "Enabled", "Disabled", "Core", "Operations", "Business", "Communication", "Security", "People", "Analytics", "Content", "Custom"].map((item) => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -775,7 +773,6 @@ export default function AdminSettingsPage() {
                   { id: "emailProvider" as const, title: "Email provider", description: "Transactional email delivery and notifications.", icon: "✉", color: "text-blue-300" },
                   { id: "analytics" as const, title: "Web analytics", description: "Traffic measurement and website performance insights.", icon: "↗", color: "text-violet-300" },
                   { id: "storage" as const, title: "File storage", description: "Documents, user uploads and company assets.", icon: "▤", color: "text-cyan-300" },
-                  { id: "payment" as const, title: "Payment gateway", description: "Invoices and online payment processing.", icon: "$", color: "text-amber-300" },
                   { id: "webhook" as const, title: "Webhooks / API", description: "Connect external services to authorized event endpoints.", icon: "⛓", color: "text-rose-300" },
                 ].map((item) => (
                   <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#080c14] p-4 sm:flex-row sm:items-center">
@@ -784,7 +781,7 @@ export default function AdminSettingsPage() {
                     <div className="flex items-center gap-3"><span className={`text-[10px] ${integrations[item.id] ? "text-emerald-300" : "text-slate-500"}`}>{integrations[item.id] ? "Selected" : "Not selected"}</span><Toggle checked={integrations[item.id]} onChange={(value) => setIntegrations((current) => ({ ...current, [item.id]: value }))} label={`Select ${item.title}`} /></div>
                   </div>
                 ))}
-                <p className="rounded-xl border border-amber-300/10 bg-amber-300/[0.035] p-3 text-xs leading-5 text-amber-100/70">Never put service-role keys, private API secrets, or payment credentials in this client-side page. Configure secrets on the server or in your hosting environment.</p>
+                <p className="rounded-xl border border-amber-300/10 bg-amber-300/[0.035] p-3 text-xs leading-5 text-amber-100/70">Never put service-role keys or private API secrets in this client-side page. Configure secrets on the server or in your hosting environment.</p>
               </Panel>
             )}
 

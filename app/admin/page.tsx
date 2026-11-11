@@ -21,7 +21,6 @@ const modules: ModuleCard[] = [
   { title: "Team & Roles", description: "Manage team records and responsibilities.", href: "/admin/team", code: "TM", group: "People", icon: "♧" },
   { title: "Users", description: "Review registered platform users.", href: "/admin/users", code: "US", group: "People", icon: "◎" },
   { title: "Student Registrations", description: "Review Academy applications and enrollment.", href: "/admin/registrations", code: "ST", group: "People", icon: "⌂" },
-  { title: "Finance", description: "Review financial operations and records.", href: "/admin/finance", code: "FN", group: "Business", icon: "＄" },
   { title: "Analytics & Reports", description: "Monitor operational data and business performance.", href: "/admin/analytics", code: "AN", group: "Business", icon: "⌁" },
   { title: "Messages", description: "Review incoming messages and communication.", href: "/admin/messages", code: "MS", group: "Business", icon: "✉" },
   { title: "Settings", description: "Configure platform preferences and operations.", href: "/admin/settings", code: "ST", group: "System", icon: "⚙" },
