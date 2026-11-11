@@ -169,7 +169,7 @@ function CourseDetailsContent() {
 
           if (enrollmentError) throw enrollmentError;
 
-          canAccess = Boolean(enrollment);
+          canAccess = canAccess || Boolean(enrollment);
         }
 
         setHasCourseAccess(canAccess);
