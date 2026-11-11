@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-type UserRole = "Admin" | "Manager" | "Employee" | "Client";
+type UserRole = "Admin" | "Manager" | "Employee" | "Client" | "Student";
 type UserStatus = "Active" | "Pending" | "Suspended";
 
 type UserItem = {
@@ -30,6 +30,7 @@ const roleStyle: Record<UserRole, string> = {
   Manager: "text-blue-300",
   Employee: "text-cyan-300",
   Client: "text-slate-300",
+  Student: "text-amber-300",
 };
 
 function initials(name: string) {
@@ -59,7 +60,7 @@ export default function AdminUsersPage() {
     total: users.length,
     active: users.filter((user) => user.status === "Active").length,
     pending: users.filter((user) => user.status === "Pending").length,
-    internal: users.filter((user) => user.role !== "Client").length,
+    internal: users.filter((user) => !["Client", "Student"].includes(user.role)).length,
   }), [users]);
 
   const filteredUsers = useMemo(() => {
@@ -214,6 +215,7 @@ export default function AdminUsersPage() {
                 <option value="Manager">Manager</option>
                 <option value="Employee">Employee</option>
                 <option value="Client">Client</option>
+                <option value="Student">Student</option>
               </select>
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status" className="rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-slate-300 outline-none focus:border-blue-400/60">
                 <option value="All">All statuses</option>
@@ -352,6 +354,7 @@ export default function AdminUsersPage() {
                   <option value="Manager">Manager</option>
                   <option value="Employee">Employee</option>
                   <option value="Client">Client</option>
+                  <option value="Student">Student</option>
                 </select>
               </label>
 
