@@ -26,12 +26,15 @@ function validOrigin(request: Request) {
   try { return new URL(origin).origin === new URL(request.url).origin; } catch { return false; }
 }
 
-function databaseError(error: { code?: string; message?: string; details?: string; hint?: string }) {
-  console.error("[Admin Pages API]", error);
-  return NextResponse.json({
-    error: error.message || "The pages database operation failed.",
-    code: error.code || null, details: error.details || null, hint: error.hint || null,
-  }, { status: error.code === "23505" ? 409 : 400 });
+function databaseError(error: { code?: string; message?: string }) {
+  console.error("[Admin Pages API] Database operation failed:", {
+    code: error.code,
+    message: error.message,
+  });
+  return NextResponse.json(
+    { error: error.code === "23505" ? "A record with this value already exists." : "The database operation could not be completed." },
+    { status: error.code === "23505" ? 409 : 500 },
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
