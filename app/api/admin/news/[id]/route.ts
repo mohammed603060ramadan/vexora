@@ -19,7 +19,7 @@ function dbError(error:{code?:string;message?:string;details?:string;hint?:strin
   return NextResponse.json({error:error.message||"News database operation failed.",code:error.code||null,details:error.details||null,hint:error.hint||null},{status:error.code==="23505"?409:400});
 }
 export async function PATCH(request:Request,context:Context) {
-  if(!validOrigin(request)) return NextResponse.json({error:"Invalid request origin."},{status:403});
+  if((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {user,response}=await authorizeAdmin(); if(response) return response;
   const {id}=await context.params;
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return NextResponse.json({error:"Invalid article ID."},{status:400});
@@ -51,7 +51,7 @@ export async function PATCH(request:Request,context:Context) {
   return NextResponse.json({article:data});
 }
 export async function DELETE(request:Request,context:Context) {
-  if(!validOrigin(request)) return NextResponse.json({error:"Invalid request origin."},{status:403});
+  if((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {response}=await authorizeAdmin(); if(response) return response;
   const {id}=await context.params;
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(id)) return NextResponse.json({error:"Invalid article ID."},{status:400});
