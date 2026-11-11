@@ -19,11 +19,17 @@ export async function POST(request: Request) {
     return fail("Invalid request origin.", 403);
   }
 
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 2_048) return fail("Request body is too large.", 413);
+  const rawBody = await request.text().catch(() => "");
+  if (rawBody.length > 2_048) return fail("Request body is too large.", 413);
+  let body: unknown = null;
+  try { body = JSON.parse(rawBody); } catch { return fail("Invalid JSON body.", 400); }
+
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) return fail("Sign in to enroll in a free course.", 401);
 
-  const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body) || !("courseId" in body) || typeof body.courseId !== "string") {
     return fail("Select a valid course.", 400);
   }
