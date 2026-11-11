@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type MessageStatus = "Unread" | "Read" | "Archived";
 type MessagePriority = "Normal" | "Important" | "Urgent";
@@ -113,7 +113,7 @@ export default function AdminMessagesPage() {
       );
   }, [messages, search, statusFilter, priorityFilter]);
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/admin/messages", { cache: "no-store" });
@@ -141,11 +141,11 @@ export default function AdminMessagesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadMessages();
-  }, []);
+  }, [loadMessages]);
 
   async function updateMessage(id: string, updates: Partial<MessageItem>) {
     setSaving(true);
