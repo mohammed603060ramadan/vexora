@@ -46,12 +46,6 @@ type StudentTask = {
   due_date: string | null; updated_at: string;
 };
 
-type CourseAccessRequest = {
-  id: string; course_id: string; email: string; purchase_code: string;
-  status: string; created_at: string; admin_note: string | null;
-  courses: { title: string; price: number | null; currency: string | null } | null;
-};
-
 type TechArticle = {
   id: number;
   title: string;
@@ -180,8 +174,6 @@ export default function StudentDashboard() {
   const [projectRequests, setProjectRequests] = useState<StudentProjectRequest[]>([]);
   const [studentTasks, setStudentTasks] = useState<StudentTask[]>([]);
   const [workspaceError, setWorkspaceError] = useState("");
-  const [courseAccessRequests, setCourseAccessRequests] = useState<CourseAccessRequest[]>([]);
-  const [accessError, setAccessError] = useState("");
   const [taskBusyId, setTaskBusyId] = useState("");
   const [coursesError, setCoursesError] = useState("");
   const [coursesLoading, setCoursesLoading] = useState(false);
@@ -230,10 +222,7 @@ export default function StudentDashboard() {
       }
 
       try {
-        const [workspaceResponse, accessResponse] = await Promise.all([
-          fetch("/api/student/workspace", { cache: "no-store" }),
-          fetch("/api/course-access", { cache: "no-store" }),
-        ]);
+        const workspaceResponse = await fetch("/api/student/workspace", { cache: "no-store" });
         const workspacePayload = await workspaceResponse.json() as {
           projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; error?: string;
         };
@@ -243,13 +232,8 @@ export default function StudentDashboard() {
         setStudentTasks(Array.isArray(workspacePayload.tasks) ? workspacePayload.tasks : []);
         setWorkspaceError("");
 
-        const accessPayload = await accessResponse.json() as { requests?: CourseAccessRequest[]; error?: string };
-        if (!accessResponse.ok) throw new Error(accessPayload.error || "Unable to load course access requests.");
-        setCourseAccessRequests(Array.isArray(accessPayload.requests) ? accessPayload.requests : []);
-        setAccessError("");
       } catch (workspaceLoadError) {
         setWorkspaceError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load your project workspace.");
-        setAccessError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load course access requests.");
       }
 
       const { data: profileData, error: profileError } = await supabase
@@ -832,15 +816,6 @@ export default function StudentDashboard() {
           )}
         </section>
 
-        <section className="section-block">
-          <div className="section-heading"><div><p className="eyebrow">ONLINE LEARNING ACCESS</p><h2>Course access requests</h2><p className="section-description">Paid online course access is activated after administrator approval.</p></div><span className="resource-count">{courseAccessRequests.length} requests</span></div>
-          {accessError && <div className="error-banner" role="alert"><span>{accessError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
-          {courseAccessRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">✧</span><strong>No online access requests</strong><p>Request a course access code from an online course page. Your request and approval status will appear here.</p><Link href="/academy" className="primary-button">Browse online courses ↗</Link></div> : (
-            <div className="resource-grid">
-              {courseAccessRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">✧</span><span className={`status-pill ${request.status === "approved" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status}</span></div><h3>{request.courses?.title || "Online course"}</h3><p>Reference code</p><code className="mt-2 block break-all text-lg font-bold tracking-wider text-cyan-200">{request.purchase_code}</code><div className="course-meta"><span>{request.courses?.price ? `${request.courses.currency || "USD"} ${request.courses.price}` : "Free course"}</span><span>{formatDate(request.created_at)}</span></div>{request.admin_note && <p className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-slate-300">Admin note: {request.admin_note}</p>}</article>)}
-            </div>
-          )}
-        </section>
 
         <section className="section-block">
           <div className="section-heading">
