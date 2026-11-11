@@ -143,8 +143,43 @@ export default function AdminMessagesPage() {
   }, []);
 
   useEffect(() => {
-    void loadMessages();
-  }, [loadMessages]);
+    let cancelled = false;
+
+    async function fetchInitialMessages() {
+      try {
+        const response = await fetch("/api/admin/messages", { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not load messages.");
+        const rows = Array.isArray(result.messages) ? result.messages : [];
+        const mapped: MessageItem[] = rows.map((item: {
+          id: string; full_name: string; email: string | null; service: string | null;
+          message: string | null; company: string | null; created_at: string;
+          status: string; priority: string;
+        }) => ({
+          id: item.id,
+          name: item.full_name,
+          email: item.email || "",
+          subject: item.service || "Website inquiry",
+          message: item.message || "",
+          date: item.created_at,
+          status: item.status === "new" ? "Unread" : item.status === "closed" ? "Archived" : "Read",
+          priority: item.priority === "urgent" ? "Urgent" : item.priority === "high" ? "Important" : "Normal",
+          starred: ["urgent", "high"].includes(item.priority),
+          company: item.company || "Not provided",
+        }));
+        if (!cancelled) setMessages(mapped);
+      } catch (error) {
+        if (!cancelled) setNotice(error instanceof Error ? error.message : "Could not load messages.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void fetchInitialMessages();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function updateMessage(id: string, updates: Partial<MessageItem>) {
     setSaving(true);
