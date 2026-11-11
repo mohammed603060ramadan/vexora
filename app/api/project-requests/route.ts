@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       return jsonError("Sign in to request a project.", 401);
     }
 
-    const accountAdmin = createAdminClient() as any;
+    const accountAdmin = getAdminClient();
     const { data: accountProfile, error: accountProfileError } = await accountAdmin
       .from("profiles").select("account_type").eq("id", user.id).maybeSingle();
     if (accountProfileError) throw accountProfileError;
