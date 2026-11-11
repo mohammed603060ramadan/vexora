@@ -124,7 +124,7 @@ export default function AdminMessagesPage() {
         id: string; full_name: string; email: string | null; service: string | null;
         message: string | null; company: string | null; created_at: string;
         status: string; priority: string;
-      }) => ({
+      }): MessageItem => ({
         id: item.id,
         name: item.full_name,
         email: item.email || "",
