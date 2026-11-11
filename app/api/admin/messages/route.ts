@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if ((!request.headers.get("origin") || !validOrigin(request))) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if ((!request.headers.get("origin") || !validOrigin(request))) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
