@@ -91,8 +91,26 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+    let cancelled = false;
+
+    async function fetchInitialUsers() {
+      try {
+        const response = await fetch("/api/admin/users", { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not load users.");
+        if (!cancelled) setUsers(Array.isArray(result.users) ? result.users as UserItem[] : []);
+      } catch (error) {
+        if (!cancelled) setNotice(error instanceof Error ? error.message : "Could not load users.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void fetchInitialUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function updateUser(id: string, updates: Partial<UserItem>) {
     setSaving(true);
