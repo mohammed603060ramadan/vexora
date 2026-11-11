@@ -353,9 +353,9 @@ export default function AcademyPage() {
   const [learnerName, setLearnerName] = useState("");
   const [learnerEmail, setLearnerEmail] = useState("");
   const [preferredFormat, setPreferredFormat] = useState("");
-  const [accessRequestLoading, setAccessRequestLoading] = useState(false);
-  const [accessRequestError, setAccessRequestError] = useState("");
-  const [accessRequestResult, setAccessRequestResult] = useState<{ code: string; status: string; message: string } | null>(null);
+  const [freeEnrollmentLoading, setFreeEnrollmentLoading] = useState(false);
+  const [freeEnrollmentError, setFreeEnrollmentError] = useState("");
+  const [freeEnrollmentSuccess, setFreeEnrollmentSuccess] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -393,8 +393,6 @@ export default function AcademyPage() {
         id: row.id,
         slug: row.slug,
         title: row.title,
-        price: row.price == null ? 0 : Number(row.price),
-        currency: row.currency || "USD",
         promoVideoUrl: row.promo_video_url || null,
         category: row.category || "Cybersecurity",
         level: row.difficulty ? row.difficulty.charAt(0).toUpperCase() + row.difficulty.slice(1) : "All levels",
@@ -482,45 +480,35 @@ export default function AcademyPage() {
     setRegistrationOpen(false);
     setSubmitted(false);
     setRegistrationError("");
-    setAccessRequestError("");
-    setAccessRequestResult(null);
+    setFreeEnrollmentError("");
+    setFreeEnrollmentSuccess("");
     setLearnerName("");
     setLearnerEmail("");
     setPreferredFormat(course.modes[0] ?? "");
   }
 
-  async function requestCourseAccess() {
-    if (!selectedCourse || selectedCourse.isOffline || !selectedCourse.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-      setAccessRequestError("This course does not support online access requests.");
-      return;
-    }
-    setAccessRequestLoading(true);
-    setAccessRequestError("");
+  async function enrollFreeCourse() {
+    if (!selectedCourse || selectedCourse.isOffline || freeEnrollmentLoading) return;
+    setFreeEnrollmentLoading(true);
+    setFreeEnrollmentError("");
+    setFreeEnrollmentSuccess("");
     try {
-      const response = await fetch("/api/course-access", {
+      const response = await fetch("/api/course-enroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: selectedCourse.id }),
       });
-      const payload = await response.json() as {
-        request?: { purchase_code?: string; status?: string };
-        message?: string;
-        error?: string;
-      };
+      const payload = await response.json() as { message?: string; error?: string };
       if (response.status === 401) {
         router.push("/login?next=" + encodeURIComponent(window.location.pathname));
         return;
       }
-      if (!response.ok || !payload.request) throw new Error(payload.error || "Unable to create the access request.");
-      setAccessRequestResult({
-        code: payload.request.purchase_code || "CODE PENDING",
-        status: payload.request.status || "pending",
-        message: payload.message || "Your request was recorded. Access is enabled after administrator approval.",
-      });
+      if (!response.ok) throw new Error(payload.error || "Free enrollment could not be completed.");
+      setFreeEnrollmentSuccess(payload.message || "You are enrolled. Open your student area to start learning.");
     } catch (error) {
-      setAccessRequestError(error instanceof Error ? error.message : "Unable to create the access request.");
+      setFreeEnrollmentError(error instanceof Error ? error.message : "Free enrollment could not be completed.");
     } finally {
-      setAccessRequestLoading(false);
+      setFreeEnrollmentLoading(false);
     }
   }
 
@@ -1261,7 +1249,7 @@ export default function AcademyPage() {
                     )}
                     {!course.isOffline && (
                       <span className="absolute bottom-4 left-4 rounded-md border border-cyan-300/30 bg-[#06131f]/85 px-3 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur-sm">
-                        {course.price == null || Number(course.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: course.currency || "USD", maximumFractionDigits: 2 }).format(Number(course.price))}
+                        Free
                       </span>
                     )}
                     <span className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-md border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-gray-200">
@@ -1654,28 +1642,7 @@ export default function AcademyPage() {
                   <p className="mt-5 leading-7 text-gray-400">
                     {selectedCourse.description}
                   </p>
-                  {!selectedCourse.isOffline && (
-                    <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
-                      <span className="text-sm text-gray-400">Course price</span>
-                      <strong className="text-lg text-cyan-100">
-                        {selectedCourse.price == null || Number(selectedCourse.price) === 0 ? "Free" : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD", maximumFractionDigits: 2 }).format(Number(selectedCourse.price))}
-                      </strong>
-                    </div>
-                  )}
 
-                  {!selectedCourse.isOffline && (
-                    <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-slate-400">Course price</span>
-                        <strong className="text-xl text-white">
-                          {selectedCourse.price == null || Number(selectedCourse.price) === 0
-                            ? "Free"
-                            : new Intl.NumberFormat("en", { style: "currency", currency: selectedCourse.currency || "USD" }).format(Number(selectedCourse.price))}
-                        </strong>
-                      </div>
-                      <p className="mt-2 text-xs leading-5 text-slate-500">Only the course overview is public. Full lessons become available after the VEXORA administrator approves your request.</p>
-                    </div>
-                  )}
 
                   <h3 className="mt-7 font-semibold">What you will explore</h3>
                   <ul className="mt-4 space-y-3">
@@ -1694,39 +1661,18 @@ export default function AcademyPage() {
 
                   {selectedCourse.isOffline ? (
                     <>
-                      <button
-                        type="button"
-                        onClick={openRegistration}
-                        className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc]"
-                      >
-                        Register for offline training
-                        <Icon name="arrow" size={18} />
+                      <button type="button" onClick={openRegistration} className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-[#176fbd] px-5 py-3.5 font-semibold hover:bg-[#2084dc]">
+                        Register for free classroom training <Icon name="arrow" size={18} />
                       </button>
-                      <p className="mt-3 text-center text-xs leading-5 text-gray-500">Your request is sent to the VEXORA Academy team for follow-up.</p>
+                      <p className="mt-3 text-center text-xs leading-5 text-gray-500">All classroom training is free. Submit your registration and our team will contact you.</p>
                     </>
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => void requestCourseAccess()}
-                        disabled={accessRequestLoading}
-                        className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
-                      >
-                        {accessRequestLoading ? "Creating request…" : "Request purchase / access code"}
-                        <Icon name="arrow" size={18} />
+                      <button type="button" onClick={() => void enrollFreeCourse()} disabled={freeEnrollmentLoading} className="academy-button academy-focus mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50">
+                        {freeEnrollmentLoading ? "Enrolling..." : "Enroll for free"} <Icon name="arrow" size={18} />
                       </button>
-                      {accessRequestError && <p role="alert" className="mt-3 rounded-lg border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{accessRequestError}</p>}
-                      {accessRequestResult && (
-                        <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-200">Your reference code</p>
-                          <div className="mt-2 flex items-center justify-between gap-3">
-                            <code className="text-lg font-bold tracking-wider text-white">{accessRequestResult.code}</code>
-                            <button type="button" onClick={() => void navigator.clipboard?.writeText(accessRequestResult.code)} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-slate-300 hover:text-white">Copy</button>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{accessRequestResult.message}</p>
-                          <p className="mt-2 text-xs uppercase tracking-wider text-amber-200">Status: {accessRequestResult.status}</p>
-                        </div>
-                      )}
+                      {freeEnrollmentError && <p role="alert" className="mt-3 rounded-lg border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{freeEnrollmentError}</p>}
+                      {freeEnrollmentSuccess && <div role="status" className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/[0.06] p-4"><p className="text-sm leading-6 text-emerald-100">{freeEnrollmentSuccess}</p><Link href="/student" className="mt-3 inline-flex rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">Open student area ↗</Link></div>}
                     </>
                   )}
                 </>
