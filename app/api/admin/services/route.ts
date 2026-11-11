@@ -117,7 +117,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
