@@ -93,6 +93,15 @@ GRANT ALL ON public.quotations TO service_role;
 ALTER TABLE public.site_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.news_articles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS site_pages_public_read ON public.site_pages;
+CREATE POLICY site_pages_public_read ON public.site_pages
+  FOR SELECT TO anon, authenticated
+  USING (
+    status = 'published'
+    AND published_at IS NOT NULL
+    AND published_at <= NOW()
+  );
+
 DROP POLICY IF EXISTS site_pages_admin_select ON public.site_pages;
 CREATE POLICY site_pages_admin_select ON public.site_pages
   FOR SELECT TO authenticated
@@ -110,6 +119,15 @@ DROP POLICY IF EXISTS site_pages_admin_delete ON public.site_pages;
 CREATE POLICY site_pages_admin_delete ON public.site_pages
   FOR DELETE TO authenticated
   USING ((SELECT auth.jwt()) -> 'app_metadata' ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS news_articles_public_read ON public.news_articles;
+CREATE POLICY news_articles_public_read ON public.news_articles
+  FOR SELECT TO anon, authenticated
+  USING (
+    status = 'published'
+    AND published_at IS NOT NULL
+    AND published_at <= NOW()
+  );
 
 DROP POLICY IF EXISTS news_articles_admin_select ON public.news_articles;
 CREATE POLICY news_articles_admin_select ON public.news_articles
@@ -160,9 +178,11 @@ BEGIN
     'New client'
   );
 
+  -- Public sign-up metadata is user-editable. Only the student self-selection
+  -- is used here for routing; internal roles are assigned by the admin API
+  -- through app_metadata and a service-role profile update after invitation.
   v_account_type := CASE
-    WHEN NEW.raw_user_meta_data ->> 'account_type' IN ('student', 'admin', 'manager', 'employee')
-      THEN NEW.raw_user_meta_data ->> 'account_type'
+    WHEN NEW.raw_user_meta_data ->> 'account_type' = 'student' THEN 'student'
     ELSE 'client'
   END;
 
