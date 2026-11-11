@@ -183,7 +183,7 @@ END;
 $function$;
 
 -- Pin the generic timestamp trigger to trusted system/application schemas.
-ALTER FUNCTION public.set_updated_at() SET search_path = pg_catalog, public;
+ALTER FUNCTION public.set_updated_at() SET search_path = pg_catalog;
 
 NOTIFY pgrst, 'reload schema';
 
