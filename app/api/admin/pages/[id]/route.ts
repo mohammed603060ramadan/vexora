@@ -51,6 +51,14 @@ function validatePage(value: unknown) {
   return null;
 }
 
+async function readJsonBody(request: Request, maxBytes = 110000): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { user, response } = await authorizeAdmin();
@@ -62,7 +70,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   let body: unknown;
-  try { body = await request.json(); } catch {
+  try { body = await readJsonBody(request); } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
   const validationError = validatePage(body);
