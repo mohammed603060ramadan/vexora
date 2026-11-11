@@ -52,15 +52,8 @@ export async function GET() {
       hint: error.hint,
     });
     return NextResponse.json(
-      {
-        error: "Could not load settings.",
-        diagnostic: {
-          code: error.code ?? null,
-          message: error.message,
-          hint: error.hint ?? null,
-        },
-      },
-      { status: 500 }
+      { error: "Could not load settings." },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 
@@ -147,7 +140,7 @@ export async function PUT(request: Request) {
     console.error("Settings save failed:", error.message);
     return NextResponse.json(
       { error: "Could not save settings. Check the database migration and permissions." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 
