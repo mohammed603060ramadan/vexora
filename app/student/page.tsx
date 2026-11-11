@@ -14,6 +14,7 @@ type StudentProfile = {
 
 type CourseDetails = {
   id: string;
+  slug: string;
   title: string;
   description: string | null;
   difficulty: string;
@@ -174,6 +175,7 @@ export default function StudentDashboard() {
   const [projectRequests, setProjectRequests] = useState<StudentProjectRequest[]>([]);
   const [studentTasks, setStudentTasks] = useState<StudentTask[]>([]);
   const [workspaceError, setWorkspaceError] = useState("");
+  const [workspaceWarnings, setWorkspaceWarnings] = useState<string[]>([]);
   const [taskBusyId, setTaskBusyId] = useState("");
   const [coursesError, setCoursesError] = useState("");
   const [coursesLoading, setCoursesLoading] = useState(false);
@@ -230,11 +232,14 @@ export default function StudentDashboard() {
         setStudentProjects(Array.isArray(workspacePayload.projects) ? workspacePayload.projects : []);
         setProjectRequests(Array.isArray(workspacePayload.requests) ? workspacePayload.requests : []);
         setStudentTasks(Array.isArray(workspacePayload.tasks) ? workspacePayload.tasks : []);
-        setWorkspaceError(Array.isArray(workspacePayload.warnings) && workspacePayload.warnings.length
-          ? `Some workspace sections need attention: ${workspacePayload.warnings.join(" · ")}`
+        const warnings = Array.isArray(workspacePayload.warnings) ? workspacePayload.warnings : [];
+        setWorkspaceWarnings(warnings);
+        setWorkspaceError(warnings.length
+          ? `Some workspace sections need attention: ${warnings.join(" · ")}`
           : "");
 
       } catch (workspaceLoadError) {
+        setWorkspaceWarnings(["Projects: unavailable", "Requests: unavailable", "Tasks: unavailable"]);
         setWorkspaceError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load your project workspace.");
       }
 
@@ -305,7 +310,7 @@ export default function StudentDashboard() {
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
         .select(
-          "id, title, description, difficulty, course_type, estimated_hours"
+          "id, slug, title, description, difficulty, course_type, estimated_hours"
         )
         .in("id", courseIds);
 
@@ -664,7 +669,7 @@ export default function StudentDashboard() {
         <section className="stats-grid" aria-label="Learning statistics">
           <article className="stat-card">
             <span className="stat-icon blue">▤</span>
-            <span className="stat-label">Registered courses</span>
+            <span className="stat-label">Online registrations</span>
             <strong>{enrollments.length}</strong>
             <small>Your total registrations</small>
           </article>
@@ -695,10 +700,12 @@ export default function StudentDashboard() {
               <h2>My Projects</h2>
               <p className="section-description">Projects associated with your client account, including completed work.</p>
             </div>
-            <span className="resource-count">{studentProjects.length} projects</span>
+            <span className="resource-count">{studentProjects.length} {studentProjects.length === 1 ? "project" : "projects"}</span>
           </div>
           {workspaceError && <div className="error-banner" role="alert"><span>{workspaceError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
-          {studentProjects.length === 0 ? (
+          {workspaceWarnings.some((warning) => warning.startsWith("Projects:") || warning.startsWith("Project details:")) ? (
+            <div className="error-banner" role="alert"><span>Project information is temporarily unavailable. Your other workspace sections can still load.</span><button type="button" onClick={() => void loadStudent()}>Retry</button></div>
+          ) : studentProjects.length === 0 ? (
             <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects assigned to your client profile will appear here as the VEXORA team updates them.</p><Link href="/client" className="primary-button">Open client workspace ↗</Link></div>
           ) : (
             <div className="resource-grid">
@@ -717,7 +724,7 @@ export default function StudentDashboard() {
 
         <section className="section-block">
           <div className="section-heading"><div><p className="eyebrow">PROJECT COMMUNICATION</p><h2>My Project Requests</h2><p className="section-description">Track requests submitted for projects and the latest administrator response.</p></div><span className="resource-count">{projectRequests.length} requests</span></div>
-          {projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects" className="primary-button">Explore projects ↗</Link></div> : (
+          {workspaceWarnings.some((warning) => warning.startsWith("Requests:")) ? <div className="error-banner" role="alert"><span>Project requests are temporarily unavailable.</span><button type="button" onClick={() => void loadStudent()}>Retry</button></div> : projectRequests.length === 0 ? <div className="empty-state"><span aria-hidden="true">⌁</span><strong>No project requests yet</strong><p>When you request a project from the VEXORA portfolio, its status will appear here.</p><Link href="/projects" className="primary-button">Explore projects ↗</Link></div> : (
             <div className="resource-grid">
               {projectRequests.map((request) => <article key={request.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">⌁</span><span className={`status-pill ${request.status === "approved" || request.status === "completed" ? "status-active" : request.status === "rejected" ? "status-cancelled" : "status-pending"}`}>{request.status.replaceAll("_", " ")}</span></div><h3>{request.project_title}</h3><p>{request.message || "Project request submitted to VEXORA."}</p><div className="course-meta"><span>Submitted {formatDate(request.created_at)}</span><span>Updated {formatDate(request.updated_at)}</span></div></article>)}
             </div>
@@ -726,7 +733,7 @@ export default function StudentDashboard() {
 
         <section className="section-block">
           <div className="section-heading"><div><p className="eyebrow">ASSIGNED BY VEXORA</p><h2>My Tasks</h2><p className="section-description">Tasks assigned to your account by the administration team. Update your progress as you work.</p></div><span className="resource-count">{studentTasks.length} tasks</span></div>
-          {studentTasks.length === 0 ? <div className="empty-state"><span aria-hidden="true">◈</span><strong>No assigned tasks</strong><p>Tasks assigned to your signed-in account will show up here automatically.</p></div> : (
+          {workspaceWarnings.some((warning) => warning.startsWith("Tasks:")) ? <div className="error-banner" role="alert"><span>Assigned tasks are temporarily unavailable.</span><button type="button" onClick={() => void loadStudent()}>Retry</button></div> : studentTasks.length === 0 ? <div className="empty-state"><span aria-hidden="true">◈</span><strong>No assigned tasks</strong><p>Tasks assigned to your signed-in account will show up here automatically.</p></div> : (
             <div className="resource-grid">
               {studentTasks.map((task) => <article key={task.id} className="resource-card"><div className="resource-top"><span className="resource-icon" aria-hidden="true">◈</span><span className={`status-pill ${task.status === "completed" ? "status-active" : task.status === "blocked" ? "status-cancelled" : "status-pending"}`}>{task.status.replaceAll("_", " ")}</span></div><h3>{task.title}</h3><p>{task.description || task.project_title}</p><div className="course-meta"><span>{task.project_title}</span><span>{task.priority} priority</span>{task.due_date && <span>Due {formatDate(task.due_date)}</span>}</div><label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-slate-500">Update task status<select value={task.status} disabled={taskBusyId === task.id} onChange={(event) => void updateStudentTask(task, event.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080d16] px-3 py-2.5 text-sm normal-case text-white outline-none focus:border-cyan-300/50 disabled:opacity-50"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="review">Ready for review</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></label></article>)}
             </div>
@@ -742,7 +749,7 @@ export default function StudentDashboard() {
                 Track your registrations and learning progress.
               </p>
             </div>
-            <span className="resource-count">{enrollments.length} courses</span>
+            <span className="resource-count">{enrollments.length} {enrollments.length === 1 ? "course" : "courses"}</span>
           </div>
 
           {coursesLoading ? (
@@ -833,6 +840,11 @@ export default function StudentDashboard() {
                     <span className="course-enrolled-date">
                       Enrolled {formatDate(enrollment.enrolled_at)}
                     </span>
+                    {enrollment.course?.slug && (
+                      <Link href={`/academy/${enrollment.course.slug}`} className="primary-button">
+                        {progress > 0 ? "Continue learning" : "Start learning"} ↗
+                      </Link>
+                    )}
                   </article>
                 );
               })}
@@ -850,7 +862,7 @@ export default function StudentDashboard() {
                 Registration requests made with {email || "your account email"}.
               </p>
             </div>
-            <span className="resource-count">{courseRegistrations.length} requests</span>
+            <span className="resource-count">{courseRegistrations.length} {courseRegistrations.length === 1 ? "request" : "requests"}</span>
           </div>
           {registrationError ? (
             <div className="error-banner" role="alert">
