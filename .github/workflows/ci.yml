@@ -36,6 +36,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependency vulnerabilities
+        run: |
+          npm audit --json > npm-audit.json || true
+          node <<'NODE'
+          const report = require('./npm-audit.json');
+          const summary = report.metadata?.vulnerabilities ?? {};
+          console.log('Dependency audit summary:', JSON.stringify(summary));
+          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+            const via = item.via.map((entry) => typeof entry === 'string' ? entry : entry.title);
+            console.log(JSON.stringify({
+              package: name,
+              severity: item.severity,
+              range: item.range,
+              via,
+              fixAvailable: item.fixAvailable
+            }));
+          }
+          NODE
+          rm -f npm-audit.json
+
       - name: Run ESLint
         run: npm run lint
 
