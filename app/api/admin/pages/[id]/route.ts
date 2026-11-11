@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -49,14 +50,6 @@ function validatePage(value: unknown) {
   if (value.seo_title !== null && value.seo_title !== undefined && (typeof value.seo_title !== "string" || value.seo_title.length > 160)) return "SEO title must be 160 characters or fewer.";
   if (value.seo_description !== null && value.seo_description !== undefined && (typeof value.seo_description !== "string" || value.seo_description.length > 320)) return "SEO description must be 320 characters or fewer.";
   return null;
-}
-
-async function readJsonBody(request: Request, maxBytes = 110000): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
