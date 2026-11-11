@@ -13,8 +13,6 @@ type Course = {
   description: string | null;
   difficulty: "beginner" | "intermediate" | "advanced";
   course_type: "online" | "in_person" | "hybrid";
-  price: number | null;
-  currency: string | null;
   estimated_hours: number | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
@@ -86,13 +84,9 @@ function CourseDetailsContent() {
   const [search, setSearch] = useState("");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [accessLoading, setAccessLoading] = useState(false);
-  const [accessError, setAccessError] = useState("");
-  const [accessResult, setAccessResult] = useState<{
-    code: string;
-    status: string;
-    message: string;
-  } | null>(null);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState("");
+  const [enrollmentMessage, setEnrollmentMessage] = useState("");
   const [hasCourseAccess, setHasCourseAccess] = useState(false);
 
   const loadCourse = useCallback(
@@ -126,7 +120,7 @@ function CourseDetailsContent() {
         const courseQuery = await supabase
           .from("courses")
           .select(
-            "id, title, slug, description, difficulty, course_type, estimated_hours, price, currency, cover_image_url, promo_video_url"
+            "id, title, slug, description, difficulty, course_type, estimated_hours, price, cover_image_url, promo_video_url"
           )
           .eq("slug", slug)
           .eq("status", "published")
@@ -139,7 +133,7 @@ function CourseDetailsContent() {
         if (courseError && /cover_image_url|promo_video_url|does not exist/i.test(courseError.message)) {
           const fallbackQuery = await supabase
             .from("courses")
-            .select("id, title, slug, description, difficulty, course_type, estimated_hours, price, currency")
+            .select("id, title, slug, description, difficulty, course_type, estimated_hours, price")
             .eq("slug", slug)
             .eq("status", "published")
             .maybeSingle();
@@ -161,7 +155,7 @@ function CourseDetailsContent() {
           return;
         }
 
-        let canAccess = false;
+        let canAccess = Number(courseData.price ?? 0) === 0;
 
         if (signedInUser) {
           const { data: enrollment, error: enrollmentError } =
@@ -189,8 +183,6 @@ function CourseDetailsContent() {
           description: courseData.description,
           difficulty: courseData.difficulty,
           course_type: courseData.course_type,
-          price: courseData.price ?? null,
-          currency: courseData.currency ?? null,
           estimated_hours: courseData.estimated_hours,
           cover_image_url: courseData.cover_image_url ?? null,
           promo_video_url: courseData.promo_video_url ?? null,
@@ -316,78 +308,31 @@ function CourseDetailsContent() {
     [lessons]
   );
 
-  const formatPrice = () => {
-    if (course?.price == null) return "Pricing on request";
-    if (Number(course.price) === 0) return "Free";
-
+  async function enrollFreeCourse() {
+    if (!course || enrollmentLoading) return;
+    setEnrollmentLoading(true);
+    setEnrollmentError("");
+    setEnrollmentMessage("");
     try {
-      return new Intl.NumberFormat("en", {
-        style: "currency",
-        currency: course.currency || "USD",
-        maximumFractionDigits: 2,
-      }).format(Number(course.price));
-    } catch {
-      return `${Number(course.price).toLocaleString()} ${
-        course.currency ?? ""
-      }`.trim();
-    }
-  };
-
-  async function requestAccess() {
-    if (!course || accessLoading) return;
-
-    setAccessLoading(true);
-    setAccessError("");
-    setAccessResult(null);
-
-    try {
-      const response = await fetch("/api/course-access", {
+      const response = await fetch("/api/course-enroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
       });
-
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            request?: {
-              purchase_code?: string;
-              status?: string;
-            };
-            message?: string;
-            error?: string;
-          }
-        | null;
-
+      const payload = await response.json() as { message?: string; error?: string };
       if (response.status === 401) {
-        const next = `${window.location.pathname}${window.location.search}`;
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+        const next = window.location.pathname + window.location.search;
+        window.location.assign("/login?next=" + encodeURIComponent(next));
         return;
       }
-
-      if (!response.ok || !payload?.request) {
-        throw new Error(
-          payload?.error ||
-            payload?.message ||
-            "Unable to request course access."
-        );
-      }
-
-      setAccessResult({
-        code: payload.request.purchase_code || "CODE PENDING",
-        status: payload.request.status || "pending",
-        message:
-          payload.message ||
-          "Access will be enabled after administrator approval.",
-      });
+      if (!response.ok) throw new Error(payload.error || "Free enrollment could not be completed.");
+      setHasCourseAccess(true);
+      setEnrollmentMessage(payload.message || "You are enrolled. Start learning now.");
+      await loadCourse(true);
     } catch (cause) {
-      setAccessError(
-        cause instanceof Error
-          ? cause.message
-          : "Unable to request course access."
-      );
+      setEnrollmentError(cause instanceof Error ? cause.message : "Free enrollment could not be completed.");
     } finally {
-      setAccessLoading(false);
+      setEnrollmentLoading(false);
     }
   }
 
@@ -580,329 +525,22 @@ function CourseDetailsContent() {
         <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:py-16">
           <div className="min-w-0">
             {hasCourseAccess ? (
-              <>
-                <section>
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
-                    Course overview
-                  </p>
-                  <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                    About this course
-                  </h2>
-                  <p className="mt-5 whitespace-pre-line text-base leading-8 text-white/65">
-                    {course.description ||
-                      "Course information will be available soon."}
-                  </p>
-                </section>
-
-                <section className="mt-14">
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#45a5ff]">
-                        Learning path
-                      </p>
-                      <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                        Course curriculum
-                      </h2>
-                      <p className="mt-2 text-sm text-white/45">
-                        {sections.length} sections · {lessons.length} published
-                        lessons
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={expandAll}
-                        className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
-                      >
-                        Expand all
-                      </button>
-                      <button
-                        type="button"
-                        onClick={collapseAll}
-                        className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/65 transition hover:border-[#45a5ff] hover:text-white"
-                      >
-                        Collapse all
-                      </button>
-                    </div>
-                  </div>
-
-                  <label htmlFor="lesson-search" className="sr-only">
-                    Search course curriculum
-                  </label>
-                  <input
-                    id="lesson-search"
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search sections and lessons..."
-                    className="mt-7 w-full rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#45a5ff]/60"
-                  />
-
-                  {sections.length === 0 ? (
-                    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm leading-7 text-white/55">
-                      The curriculum has not been published yet.
-                    </div>
-                  ) : filteredSections.length === 0 ? (
-                    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/55">
-                      No sections or lessons match your search.
-                    </div>
-                  ) : (
-                    <div className="mt-6 space-y-4">
-                      {filteredSections.map((section, index) => {
-                        const sectionLessons = lessons.filter(
-                          (lesson) => lesson.section_id === section.id
-                        );
-
-                        const visibleLessons = search.trim()
-                          ? section.filteredLessons ?? sectionLessons
-                          : sectionLessons;
-
-                        const isExpanded = expandedSections.includes(
-                          section.id
-                        );
-
-                        return (
-                          <article
-                            key={section.id}
-                            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleSection(section.id)}
-                              aria-expanded={isExpanded}
-                              className="flex w-full items-center gap-4 px-4 py-5 text-left transition hover:bg-white/[0.025] sm:px-6"
-                            >
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#45a5ff]/25 bg-[#1687ff]/10 text-sm font-bold text-[#79bdff]">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-
-                              <span className="min-w-0 flex-1">
-                                <span className="block font-semibold">
-                                  {section.title}
-                                </span>
-                                {section.description && (
-                                  <span className="mt-1 block text-sm leading-6 text-white/45">
-                                    {section.description}
-                                  </span>
-                                )}
-                                <span className="mt-2 block text-xs text-white/40">
-                                  {visibleLessons.length} lessons shown
-                                </span>
-                              </span>
-
-                              <span
-                                aria-hidden="true"
-                                className="shrink-0 text-lg text-[#79bdff]"
-                              >
-                                {isExpanded ? "−" : "+"}
-                              </span>
-                            </button>
-
-                            {isExpanded && (
-                              <div className="border-t border-white/10">
-                                {visibleLessons.length === 0 ? (
-                                  <p className="px-6 py-5 text-sm text-white/45">
-                                    No published lessons in this section yet.
-                                  </p>
-                                ) : (
-                                  <ul className="divide-y divide-white/[0.07]">
-                                    {visibleLessons.map((lesson) => (
-                                      <li
-                                        key={lesson.id}
-                                        className="flex items-center gap-3 px-4 py-4 sm:px-6"
-                                      >
-                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-[#79bdff]">
-                                          {lesson.lesson_type === "video"
-                                            ? "▶"
-                                            : lesson.lesson_type === "article"
-                                              ? "≡"
-                                              : lesson.lesson_type === "file"
-                                                ? "↓"
-                                                : "◷"}
-                                        </span>
-
-                                        <span className="min-w-0 flex-1">
-                                          <span className="block text-sm font-medium">
-                                            {lesson.title}
-                                          </span>
-                                          {lesson.description && (
-                                            <span className="mt-1 block text-xs leading-5 text-white/45">
-                                              {lesson.description}
-                                            </span>
-                                          )}
-                                          <span className="mt-1 block text-xs text-white/35">
-                                            {lessonTypeLabels[
-                                              lesson.lesson_type
-                                            ] ?? lesson.lesson_type}
-                                          </span>
-                                        </span>
-
-                                        <span className="shrink-0 text-right">
-                                          {lesson.is_preview && (
-                                            <span className="block text-xs font-medium text-[#79bdff]">
-                                              Preview
-                                            </span>
-                                          )}
-                                          {lesson.duration_minutes != null && (
-                                            <span className="mt-1 block text-xs text-white/40">
-                                              {formatDuration(
-                                                lesson.duration_minutes
-                                              )}
-                                            </span>
-                                          )}
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            )}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-              </>
-            ) : (
-              <section className="relative overflow-hidden rounded-3xl border border-cyan-300/15 bg-gradient-to-br from-[#10283a] via-[#0b1420] to-[#080d15] p-7 sm:p-10">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl"
-                />
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] text-3xl text-cyan-100">
-                  ⌁
-                </div>
-                <p className="relative mt-5 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">
-                  Protected course content
-                </p>
-                <h2 className="relative mt-3 text-2xl font-semibold text-white sm:text-3xl">
-                  Your next chapter is waiting.
-                </h2>
-                <p className="relative mt-3 max-w-xl text-sm leading-7 text-slate-300">
-                  Course details are available now. Course sections and lessons
-                  unlock after VEXORA reviews your request and grants access.
-                </p>
-                <div className="relative mt-6 flex flex-wrap gap-3 text-xs text-slate-400">
-                  <span className="rounded-full border border-white/10 px-3 py-2">
-                    Private curriculum
-                  </span>
-                  <span className="rounded-full border border-white/10 px-3 py-2">
-                    Administrator approval
-                  </span>
-                  <span className="rounded-full border border-white/10 px-3 py-2">
-                    Account-linked access
-                  </span>
-                </div>
-              </section>
-            )}
-          </div>
-
-          <aside className="h-fit rounded-2xl border border-white/10 bg-gradient-to-b from-[#111c2c] to-[#0b1018] p-6 sm:p-7 lg:sticky lg:top-24">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#79bdff]">
-              Start learning
-            </p>
-            <h2 className="mt-4 text-2xl font-bold">
-              Ready to build your skills?
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-white/55">
-              {hasCourseAccess
-                ? "Your access is active. Explore the full curriculum and continue your learning journey."
-                : "Request your course access reference code. The full curriculum unlocks after an administrator approves your request."}
-            </p>
-
-            {hasCourseAccess ? (
-              <Link
-                href="/student"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110"
-              >
+              <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">
                 ✓ Open my courses
               </Link>
             ) : (
-              <button
-                type="button"
-                onClick={() => void requestAccess()}
-                disabled={accessLoading}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-sm font-semibold transition hover:brightness-110 disabled:opacity-50"
-              >
-                {accessLoading
-                  ? "Creating request…"
-                  : "Request purchase / access code"}
+              <button type="button" onClick={() => void enrollFreeCourse()} disabled={enrollmentLoading} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50">
+                {enrollmentLoading ? "Enrolling..." : "Enroll for free"}
               </button>
             )}
-
-            {accessError && (
-              <p
-                role="alert"
-                className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200"
-              >
-                {accessError}
-              </p>
-            )}
-
-            {accessResult && (
-              <div
-                role="status"
-                className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4"
-              >
-                <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">
-                  Your reference code
-                </p>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <code className="font-bold tracking-wider">
-                    {accessResult.code}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard
-                        ?.writeText(accessResult.code)
-                        .catch(() => {
-                          setAccessError(
-                            "Could not copy the code. Please copy it manually."
-                          );
-                        });
-                    }}
-                    className="rounded-lg border border-white/10 px-2 py-1 text-xs"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  {accessResult.message}
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-wider text-amber-200">
-                  Status: {accessResult.status}
-                </p>
-              </div>
-            )}
-
+            {enrollmentError && <p role="alert" className="mt-3 rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-sm text-rose-200">{enrollmentError}</p>}
+            {enrollmentMessage && <p role="status" className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-300/[0.06] p-3 text-sm text-emerald-100">{enrollmentMessage}</p>}
             <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
-              <div className="flex items-start gap-3">
-                <span className="text-[#79bdff]">✓</span>
-                <p className="text-sm leading-6 text-white/55">
-                  Published course curriculum
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-[#79bdff]">✓</span>
-                <p className="text-sm leading-6 text-white/55">
-                  Course details and lesson duration
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-[#79bdff]">✓</span>
-                <p className="text-sm leading-6 text-white/55">
-                  Enrollment access through your account
-                </p>
-              </div>
+              <div className="flex items-start gap-3"><span className="text-[#79bdff]">✓</span><p className="text-sm leading-6 text-white/55">Free published course curriculum</p></div>
+              <div className="flex items-start gap-3"><span className="text-[#79bdff]">✓</span><p className="text-sm leading-6 text-white/55">Course details and lesson duration</p></div>
+              <div className="flex items-start gap-3"><span className="text-[#79bdff]">✓</span><p className="text-sm leading-6 text-white/55">Direct enrollment with your account</p></div>
             </div>
-
-            <p className="mt-6 text-xs leading-6 text-white/35">
-              Enrollment, lesson access, assessments, and certificates depend
-              on account permissions and available features.
-            </p>
+            <p className="mt-6 text-xs leading-6 text-white/35">All VEXORA Academy courses are free. Sign in to save your enrollment and track your learning progress.</p>
           </aside>
         </section>
       )}
