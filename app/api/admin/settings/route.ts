@@ -33,6 +33,14 @@ async function getAdmin() {
   return { supabase, user: data.user, response: null };
 }
 
+async function readJsonBody(request: Request, maxBytes = 100000): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function GET() {
   const { supabase, response } = await getAdmin();
   if (response) return response;
@@ -86,7 +94,7 @@ export async function PUT(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readJsonBody(request);
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body." },
