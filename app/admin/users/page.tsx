@@ -426,6 +426,7 @@ export default function AdminUsersPage() {
                   <option value="Client">Client</option>
                   <option value="Employee">Employee</option>
                   <option value="Manager">Manager</option>
+                  <option value="Student">Student</option>
                   <option value="Admin">Admin</option>
                 </select>
               </label>
