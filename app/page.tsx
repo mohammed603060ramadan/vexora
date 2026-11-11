@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
 type HomepageProject = {
@@ -372,32 +372,6 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [publishedEvents, setPublishedEvents] = useState<HomepageEvent[]>([]);
   const [featuredProjects, setFeaturedProjects] = useState<HomepageProject[]>([]);
-  const [consultationForm, setConsultationForm] = useState({ name: "", email: "", phone: "", company: "", service: "Technology strategy", message: "" });
-  const [consultationLoading, setConsultationLoading] = useState(false);
-  const [consultationFeedback, setConsultationFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  async function submitConsultation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (consultationLoading) return;
-    setConsultationLoading(true);
-    setConsultationFeedback(null);
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...consultationForm, subject: "Free consultation request" }),
-      });
-      const result = await response.json() as { success?: boolean; error?: string };
-      if (!response.ok || !result.success) throw new Error(result.error || "We could not submit your consultation request.");
-      setConsultationFeedback({ type: "success", message: "Your free consultation request has been received. The VEXORA team will contact you." });
-      setConsultationForm({ name: "", email: "", phone: "", company: "", service: "Technology strategy", message: "" });
-    } catch (error) {
-      setConsultationFeedback({ type: "error", message: error instanceof Error ? error.message : "Please try again." });
-    } finally {
-      setConsultationLoading(false);
-    }
-  }
-
   useEffect(() => {
     let active = true;
     async function loadPublicEventsAndSession() {
@@ -681,6 +655,10 @@ export default function Home() {
               Events
             </Link>
 
+            <Link href="/consultation" onClick={closeMenu}>
+              Free consultation
+            </Link>
+
             <Link href="/contact" onClick={closeMenu}>
               Contact
             </Link>
@@ -694,7 +672,7 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/contact"
+              href="/consultation"
               className="button button-small"
               onClick={closeMenu}
             >
@@ -869,73 +847,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Free consultation */}
-      <section id="free-consultation" className="relative overflow-hidden border-y border-sky-300/10 bg-[#07101b] py-20 sm:py-24">
+      {/* Free consultation call-to-action */}
+      <section className="relative overflow-hidden border-y border-sky-300/10 bg-[#07101b] py-16 sm:py-20">
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-blue-500/10 blur-[100px]" />
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-0 h-96 w-96 rounded-full bg-cyan-400/[0.07] blur-[110px]" />
-        <div className="page-width relative grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-          <div>
+        <div className="page-width relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
+          <div className="max-w-3xl">
             <p className="section-kicker">VEXORA ADVISORY / COMPLIMENTARY SESSION</p>
-            <h2 className="mt-5 text-3xl font-bold leading-tight text-white sm:text-5xl">
-              A clearer next step starts with a <span className="gradient-text">free consultation.</span>
-            </h2>
-            <p className="mt-6 max-w-xl text-sm leading-8 text-slate-300 sm:text-base">
-              Talk with the VEXORA team about your business challenge, technology needs, or growth plans. We will help you understand the situation, identify priorities, and outline practical next steps — with no consultation fee and no obligation.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {[
-                ["01", "Understand the challenge", "Clarify your goals and current obstacles."],
-                ["02", "Explore practical options", "Review suitable technical and business approaches."],
-                ["03", "Set clear priorities", "Leave with actionable next steps."],
-                ["04", "No consultation fee", "An initial conversation with no obligation."],
-              ].map(([number, title, detail]) => (
-                <div key={number} className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4">
-                  <span className="font-mono text-xs text-sky-300">{number} / VEXORA</span>
-                  <h3 className="mt-2 text-sm font-semibold text-white">{title}</h3>
-                  <p className="mt-1 text-xs leading-6 text-slate-400">{detail}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 text-xs leading-6 text-slate-500">Free consultation covers the initial discussion and recommendations. Any separately agreed implementation or delivery work is outside this free session.</p>
+            <h2 className="mt-5 text-3xl font-bold leading-tight text-white sm:text-5xl">A clearer next step starts with <span className="gradient-text">a free consultation.</span></h2>
+            <p className="mt-5 max-w-2xl text-sm leading-8 text-slate-300 sm:text-base">Tell us about your business challenge, technology needs, or growth plans. Our team will help you identify priorities and practical next steps.</p>
           </div>
-
-          <form onSubmit={submitConsultation} className="rounded-3xl border border-sky-300/15 bg-[#0b1624]/95 p-5 shadow-[0_24px_80px_rgba(0,0,0,.3)] sm:p-8">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[.22em] text-sky-300">Start here / 01</p>
-                <h3 className="mt-2 text-xl font-bold text-white sm:text-2xl">Request your free session</h3>
-                <p className="mt-2 text-xs leading-6 text-slate-400">Share a few details and our team will follow up.</p>
-              </div>
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.07] text-xl text-emerald-200">✳</span>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold text-slate-300">Full name
-                <input required minLength={2} maxLength={100} value={consultationForm.name} onChange={(e) => setConsultationForm(v => ({ ...v, name: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-sky-300/50" placeholder="Your name" />
-              </label>
-              <label className="text-xs font-semibold text-slate-300">Email address
-                <input required type="email" maxLength={254} value={consultationForm.email} onChange={(e) => setConsultationForm(v => ({ ...v, email: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-sky-300/50" placeholder="you@example.com" />
-              </label>
-              <label className="text-xs font-semibold text-slate-300">Phone / WhatsApp
-                <input type="tel" maxLength={40} value={consultationForm.phone} onChange={(e) => setConsultationForm(v => ({ ...v, phone: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-sky-300/50" placeholder="Optional" />
-              </label>
-              <label className="text-xs font-semibold text-slate-300">Company / project
-                <input maxLength={150} value={consultationForm.company} onChange={(e) => setConsultationForm(v => ({ ...v, company: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-sky-300/50" placeholder="Optional" />
-              </label>
-              <label className="text-xs font-semibold text-slate-300 sm:col-span-2">Consultation area
-                <select value={consultationForm.service} onChange={(e) => setConsultationForm(v => ({ ...v, service: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm text-white outline-none focus:border-sky-300/50">
-                  <option>Technology strategy</option><option>Software development</option><option>Cybersecurity</option><option>Networks & infrastructure</option><option>Data analytics</option><option>Digital marketing</option><option>Other / not sure yet</option>
-                </select>
-              </label>
-              <label className="text-xs font-semibold text-slate-300 sm:col-span-2">What would you like help with?
-                <textarea required minLength={10} maxLength={5000} rows={4} value={consultationForm.message} onChange={(e) => setConsultationForm(v => ({ ...v, message: e.target.value }))} className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-[#060d16] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-slate-600 focus:border-sky-300/50" placeholder="Briefly describe your goals or challenge..." />
-              </label>
-            </div>
-            {consultationFeedback && <p role={consultationFeedback.type === "error" ? "alert" : "status"} className={`mt-4 rounded-xl border p-3 text-sm leading-6 ${consultationFeedback.type === "success" ? "border-emerald-300/20 bg-emerald-300/[0.06] text-emerald-100" : "border-rose-300/20 bg-rose-300/[0.06] text-rose-200"}`}>{consultationFeedback.message}</p>}
-            <button type="submit" disabled={consultationLoading} className="mt-5 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-blue-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">
-              {consultationLoading ? "Sending request..." : "Request free consultation"} <span aria-hidden="true">↗</span>
-            </button>
-            <p className="mt-3 text-center text-[10px] leading-5 text-slate-500">Your details are sent securely to VEXORA for follow-up.</p>
-          </form>
+          <Link href="/consultation" className="button shrink-0">Request a free consultation <span aria-hidden="true">↗</span></Link>
         </div>
       </section>
 
