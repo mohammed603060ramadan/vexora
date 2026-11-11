@@ -295,7 +295,7 @@ export default function AdminUsersPage() {
                       <span className={`text-xs ${roleStyle[user.role]}`}>{user.role}</span>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setSelectedId(user.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300">View</button>
-                        <button type="button" onClick={() => suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">Suspend</button>
+                        <button type="button" onClick={() => void suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">{user.status === "Suspended" ? "Restore" : "Suspend"}</button>
                       </div>
                     </div>
                   </article>
