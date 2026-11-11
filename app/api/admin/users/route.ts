@@ -215,10 +215,7 @@ export async function PATCH(request: Request) {
   }
   if (value.status !== undefined) {
     if (value.status === "Suspended") updates.ban_duration = "876000h";
-    else if (value.status === "Active") {
-      if (!data.user.email_confirmed_at) return json({ error: "This account must confirm its email before it can become active." }, 400);
-      updates.ban_duration = "none";
-    }
+    else if (value.status === "Active") updates.ban_duration = "none";
     else return json({ error: "Pending status is controlled by email confirmation and cannot be set manually." }, 400);
   }
   if (!updates.app_metadata && !updates.ban_duration) return json({ error: "No supported account changes were provided." }, 400);
