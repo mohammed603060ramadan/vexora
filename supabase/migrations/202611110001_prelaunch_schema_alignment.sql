@@ -88,6 +88,11 @@ CREATE POLICY quotations_admin_read
 GRANT SELECT ON public.quotations TO authenticated;
 GRANT ALL ON public.quotations TO service_role;
 
+-- Public news and published CMS pages are rendered through the publishable
+-- server client. RLS exposes only published rows; drafts remain admin-only.
+GRANT SELECT ON public.site_pages TO anon;
+GRANT SELECT ON public.news_articles TO anon;
+
 -- The CMS is accessed through authenticated admin APIs. Add explicit admin-only
 -- policies so direct authenticated access remains protected by RLS as well.
 ALTER TABLE public.site_pages ENABLE ROW LEVEL SECURITY;
@@ -194,7 +199,7 @@ BEGIN
   )
   ON CONFLICT (id) DO NOTHING;
 
-  IF v_account_type = 'client' THEN
+  IF v_account_type IN ('client', 'student') THEN
     INSERT INTO public.clients (name, email, auth_user_id)
     VALUES (v_name, NEW.email, NEW.id)
     ON CONFLICT (auth_user_id)
