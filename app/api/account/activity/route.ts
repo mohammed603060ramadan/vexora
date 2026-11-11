@@ -73,6 +73,14 @@ export async function POST(request: Request) {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("profiles").select("account_type").eq("id", user.id).maybeSingle();
+  if (profileError) return NextResponse.json({ error: "Account profile could not be verified." }, { status: 403 });
+  if (profile?.account_type !== "student" && profile?.account_type !== "client") {
+    return NextResponse.json({ error: "This activity log is for student and client accounts." }, { status: 403 });
+  }
+
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || !("activity_type" in body) ||
       typeof body.activity_type !== "string" || !allowed.has(body.activity_type)) {
@@ -87,7 +95,6 @@ export async function POST(request: Request) {
     logout: { title: "Signed out", description: "You signed out of your VEXORA account." },
   };
   const entry = labels[body.activity_type];
-  const admin = createAdminClient();
   const { error: insertError } = await admin.from("student_activity_logs").insert({
     user_id: user.id,
     activity_type: body.activity_type,
