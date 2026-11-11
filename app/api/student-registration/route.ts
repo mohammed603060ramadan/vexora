@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     const { error } = await supabase.from("student_registrations").insert({
       full_name: fullName, email, phone: phone || null, country: country || null,
       education_level: educationLevel || null, track, experience: experience || null,
-      motivation: motivation || null, status: "new", source: "website",
+      motivation: motivation || null,
     });
     if (error) {
       console.error("Student registration insert failed:", error.message);
