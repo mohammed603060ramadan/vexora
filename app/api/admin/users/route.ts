@@ -194,6 +194,17 @@ export async function POST(request: Request) {
         console.error("[Admin Users API] Team record write failed:", teamWrite.error);
         return json({ error: "The invitation was sent, but the team record could not be saved. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
+
+      const { error: workspaceError } = await admin.from("clients").insert({
+        name,
+        email,
+        company: company || null,
+        auth_user_id: invitedUser.id,
+      });
+      if (workspaceError && workspaceError.code !== "23505") {
+        console.error("[Admin Users API] Staff workspace creation failed:", workspaceError);
+        return json({ error: "The invitation was sent, but the staff workspace could not be created.", userId: invitedUser.id }, 500);
+      }
     }
 
     return json({ success: true, message: "Invitation sent successfully.", userId: invitedUser.id }, 201);
@@ -291,6 +302,19 @@ export async function PATCH(request: Request) {
           status: "active",
         });
         if (teamInsertError) return json({ error: "The profile role changed, but the team record could not be created." }, 500);
+      }
+
+      const { data: staffWorkspace, error: staffWorkspaceLookupError } = await admin.from("clients")
+        .select("id").eq("auth_user_id", id).maybeSingle();
+      if (staffWorkspaceLookupError) return json({ error: "The role changed, but the staff workspace could not be checked." }, 500);
+      if (!staffWorkspace && data.user.email) {
+        const { error: staffWorkspaceError } = await admin.from("clients").insert({
+          name: data.user.user_metadata?.full_name || data.user.email,
+          email: data.user.email,
+          company: data.user.user_metadata?.company || null,
+          auth_user_id: id,
+        });
+        if (staffWorkspaceError) return json({ error: "The role changed, but the staff workspace could not be created." }, 500);
       }
     }
   }
