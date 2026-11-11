@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -161,13 +161,17 @@ export type Database = {
       courses: {
         Row: {
           category: string
+          cover_image_url: string | null
+          promo_video_url: string | null
           course_type: string
           created_at: string
           created_by: string | null
+          currency: string
           description: string | null
           difficulty: string
           estimated_hours: number | null
           id: string
+          price: number
           slug: string
           status: string
           title: string
@@ -175,13 +179,17 @@ export type Database = {
         }
         Insert: {
           category?: string
+          cover_image_url?: string | null
+          promo_video_url?: string | null
           course_type?: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           description?: string | null
           difficulty?: string
           estimated_hours?: number | null
           id?: string
+          price?: number
           slug: string
           status?: string
           title: string
@@ -189,13 +197,17 @@ export type Database = {
         }
         Update: {
           category?: string
+          cover_image_url?: string | null
+          promo_video_url?: string | null
           course_type?: string
           created_at?: string
           created_by?: string | null
+          currency?: string
           description?: string | null
           difficulty?: string
           estimated_hours?: number | null
           id?: string
+          price?: number
           slug?: string
           status?: string
           title?: string
@@ -356,6 +368,99 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          expense_date: string
+          expense_number: number
+          id: string
+          notes: string | null
+          payment_method: string | null
+          project_id: string | null
+          receipt_path: string | null
+          recorded_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_date?: string
+          expense_number?: never
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          receipt_path?: string | null
+          recorded_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_date?: string
+          expense_number?: never
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          receipt_path?: string | null
+          recorded_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inquiries: {
         Row: {
           company: string | null
@@ -404,6 +509,116 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number | null
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number | null
+          quantity?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number | null
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          client_id: string
+          created_at: string
+          currency: string
+          discount_amount: number
+          due_date: string | null
+          id: string
+          invoice_number: number
+          issue_date: string
+          issued_by: string | null
+          notes: string | null
+          project_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: never
+          issue_date?: string
+          issued_by?: string | null
+          notes?: string | null
+          project_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: never
+          issue_date?: string
+          issued_by?: string | null
+          notes?: string | null
+          project_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed_at: string | null
@@ -443,6 +658,126 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "course_lessons"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_articles: {
+        Row: {
+          author: string
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          excerpt: string
+          id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          author?: string
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          excerpt: string
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          currency: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          paid_at: string | null
+          payment_method: string
+          payment_number: number
+          received_by: string | null
+          status: string
+          transaction_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          payment_number?: never
+          received_by?: string | null
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string
+          payment_number?: never
+          received_by?: string | null
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_client_currency_fk"
+            columns: ["invoice_id", "client_id", "currency"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id", "client_id", "currency"]
           },
         ]
       }
@@ -615,6 +950,78 @@ export type Database = {
           },
         ]
       }
+      service_requests: {
+        Row: {
+          assigned_to: string | null
+          budget_max: number | null
+          budget_min: number | null
+          client_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          request_number: number
+          requested_at: string
+          service_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          client_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          request_number?: never
+          requested_at?: string
+          service_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          client_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          request_number?: never
+          requested_at?: string
+          service_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -667,6 +1074,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_pages: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       site_settings: {
         Row: {
@@ -850,6 +1308,10 @@ export type Database = {
     }
     Functions: {
       is_vexora_admin: { Args: never; Returns: boolean }
+      refresh_invoice_payment_status: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_user_status: "active" | "inactive" | "suspended" | "pending"
@@ -986,4 +1448,3 @@ export const Constants = {
     },
   },
 } as const
-
