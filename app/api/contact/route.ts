@@ -1,4 +1,4 @@
-﻿
+
 import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const company = cleanText(payload.company, 150);
   const service = cleanText(payload.service, 100);
 
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 
   if (
     !name ||
@@ -97,11 +97,9 @@ export async function POST(request: Request) {
         company: company || null,
         service: service || null,
         message: subject
-          ? `Subject: ${subject}\n\n${message}`
+          ? `Subject: ${subject}\\n\\n${message}`
           : message,
-        source: "website",
-        status: "new",
-        priority: "medium",
+        // source, status, and priority use trusted database defaults.
       });
 
     if (error) {
