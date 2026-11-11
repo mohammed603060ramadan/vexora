@@ -61,6 +61,14 @@ function databaseError(error: { code?: string; message?: string; details?: strin
   }, { status: error.code === "23505" ? 409 : 400 });
 }
 
+async function readJsonBody(request: Request, maxBytes = 110000): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function GET(request: Request) {
   if (!validOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { response } = await authorizeAdmin();
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
   if (length > 110_000) return NextResponse.json({ error: "Page payload is too large." }, { status: 413 });
 
   let body: unknown;
-  try { body = await request.json(); } catch {
+  try { body = await readJsonBody(request); } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
