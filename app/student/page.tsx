@@ -104,7 +104,6 @@ const resources = [
 const navigation = [
   { label: "Overview", href: "/student", icon: "▦" },
   { label: "Academy", href: "/academy", icon: "▤" },
-  { label: "Client Portal", href: "/client", icon: "◫" },
   { label: "Main Website", href: "/", icon: "⌂" },
 ];
 
@@ -202,6 +201,18 @@ export default function StudentDashboard() {
 
       if (!user) {
         router.replace("/login?next=/student");
+        return;
+      }
+
+      const { data: accountProfile, error: accountProfileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (accountProfileError) throw accountProfileError;
+      if (accountProfile?.account_type !== "student") {
+        router.replace(accountProfile?.account_type === "client" ? "/client" : "/login");
         return;
       }
 
