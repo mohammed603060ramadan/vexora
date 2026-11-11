@@ -384,14 +384,16 @@ export default function Home() {
         .order("event_date", { ascending: true, nullsFirst: false })
         .limit(3);
       if (active && !error) setPublishedEvents((data ?? []) as HomepageEvent[]);
-      const { data: projectData, error: projectError } = await supabase
-        .from("projects")
-        .select("id,title,description,status,show_on_homepage")
-        .eq("show_on_homepage", true)
-        .in("status", ["in_progress", "completed"])
-        .order("name", { ascending: true })
-        .limit(3);
-      if (active && !projectError) setFeaturedProjects((projectData ?? []) as HomepageProject[]);
+      try {
+        const response = await fetch("/api/public/homepage-projects", {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Featured projects are unavailable.");
+        const result = (await response.json()) as { projects?: HomepageProject[] };
+        if (active) setFeaturedProjects(result.projects ?? []);
+      } catch {
+        if (active) setFeaturedProjects([]);
+      }
     }
     void loadPublicEventsAndSession();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

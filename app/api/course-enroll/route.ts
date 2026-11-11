@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,11 +20,13 @@ export async function POST(request: Request) {
     return fail("Invalid request origin.", 403);
   }
 
+  const body = await readJsonBody(request, 2_048);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail("Invalid or oversized JSON body.", 400);
+
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) return fail("Sign in to enroll in a free course.", 401);
 
-  const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body) || !("courseId" in body) || typeof body.courseId !== "string") {
     return fail("Select a valid course.", 400);
   }

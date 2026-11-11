@@ -1,4 +1,4 @@
-﻿
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) {
+  if (!request.headers.get("origin") || !validOrigin(request)) {
     return NextResponse.json(
       { error: "Invalid request origin." },
       { status: 403 }
@@ -115,24 +115,10 @@ export async function POST(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const contentLength = Number(
-    request.headers.get("content-length") ?? 0
-  );
-
-  if (contentLength > 10_000) {
+  const body: unknown = await readJsonBody(request, 10000);
+  if (body === null) {
     return NextResponse.json(
-      { error: "Request body is too large." },
-      { status: 413 }
-    );
-  }
-
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body." },
+      { error: "Invalid or oversized JSON body." },
       { status: 400 }
     );
   }
@@ -265,7 +251,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!validOrigin(request)) {
+  if (!request.headers.get("origin") || !validOrigin(request)) {
     return NextResponse.json(
       { error: "Invalid request origin." },
       { status: 403 }
@@ -275,13 +261,10 @@ export async function DELETE(request: Request) {
   const { user: currentUser, response } = await authorizeAdmin();
   if (response) return response;
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
+  const body: unknown = await readJsonBody(request, 10000);
+  if (body === null) {
     return NextResponse.json(
-      { error: "Invalid JSON body." },
+      { error: "Invalid or oversized JSON body." },
       { status: 400 }
     );
   }

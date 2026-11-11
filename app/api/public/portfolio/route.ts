@@ -66,7 +66,8 @@ export async function GET() {
       )
       .eq("show_on_projects_page", true)
       .in("status", ["in_progress", "completed"])
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
 
     if (projectsError) {
       logSupabaseError(
@@ -107,7 +108,8 @@ export async function GET() {
       .from("project_media")
       .select("id,project_id,name,path,mime_type,created_at")
       .in("project_id", projectIds)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (mediaError) {
       logSupabaseError(
@@ -120,7 +122,13 @@ export async function GET() {
       );
     }
 
-    const safeMedia = (media ?? []) as unknown as PortfolioMedia[];
+    const mediaByProject = new Map<string, PortfolioMedia[]>();
+    for (const item of (media ?? []) as unknown as PortfolioMedia[]) {
+      const group = mediaByProject.get(item.project_id) ?? [];
+      if (group.length < 5) group.push(item);
+      mediaByProject.set(item.project_id, group);
+    }
+    const safeMedia = [...mediaByProject.values()].flat();
 
     const mediaWithUrls = await Promise.all(
       safeMedia.map(async (item) => {

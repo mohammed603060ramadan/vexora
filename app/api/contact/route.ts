@@ -1,4 +1,5 @@
-﻿
+
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +22,16 @@ function cleanText(value: unknown, maxLength: number): string {
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
+      return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.toLowerCase().includes("application/json")) {
@@ -30,52 +41,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const contentLength = Number(
-    request.headers.get("content-length") ?? "0",
-  );
-
-  if (
-    Number.isFinite(contentLength) &&
-    contentLength > MAX_BODY_LENGTH
-  ) {
+  const parsed = await readJsonBody(request, MAX_BODY_LENGTH);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return NextResponse.json(
-      { error: "Request body is too large." },
-      { status: 413 },
-    );
-  }
-
-  let payload: ContactPayload;
-
-  try {
-    const rawBody = await request.text();
-
-    if (rawBody.length > MAX_BODY_LENGTH) {
-      return NextResponse.json(
-        { error: "Request body is too large." },
-        { status: 413 },
-      );
-    }
-
-    const parsed: unknown = JSON.parse(rawBody);
-
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid request body." },
-        { status: 400 },
-      );
-    }
-
-    payload = parsed as ContactPayload;
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body." },
+      { error: "Invalid or oversized JSON body." },
       { status: 400 },
     );
   }
+  const payload = parsed as ContactPayload;
 
   // Honeypot: return a generic success response without storing bot submissions.
   if (cleanText(payload.website, 200)) {
@@ -126,9 +99,7 @@ export async function POST(request: Request) {
         message: subject
           ? `Subject: ${subject}\n\n${message}`
           : message,
-        source: "website",
-        status: "new",
-        priority: "medium",
+        // source, status, and priority use trusted database defaults.
       });
 
     if (error) {

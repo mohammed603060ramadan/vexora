@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -42,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { response } = await authorizeAdmin();
@@ -55,7 +56,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readJsonBody(request, 20000);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -109,7 +110,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { response } = await authorizeAdmin();

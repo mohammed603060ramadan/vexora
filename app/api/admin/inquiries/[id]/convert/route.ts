@@ -31,9 +31,16 @@ type ConversionAdminClient = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: RouteContext,
 ) {
+  const origin = request.headers.get("origin");
+  if (!origin) return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  } catch {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
   const supabase = await createClient();
   const { data: authData, error: authError } =
     await supabase.auth.getUser();

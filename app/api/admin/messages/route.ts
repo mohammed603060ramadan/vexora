@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -46,11 +47,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if ((!request.headers.get("origin") || !validOrigin(request))) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request, 16384);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid message is required." }, 400);
   const value = body as Record<string, unknown>;
   const name = typeof value.name === "string" ? value.name.trim() : "";
@@ -91,11 +92,11 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if ((!request.headers.get("origin") || !validOrigin(request))) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request, 16384);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid message update is required." }, 400);
   const value = body as Record<string, unknown>;
   const id = typeof value.id === "string" ? value.id : "";

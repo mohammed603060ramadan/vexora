@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/server/read-json-body";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 
@@ -51,15 +52,8 @@ export async function GET() {
       hint: error.hint,
     });
     return NextResponse.json(
-      {
-        error: "Could not load settings.",
-        diagnostic: {
-          code: error.code ?? null,
-          message: error.message,
-          hint: error.hint ?? null,
-        },
-      },
-      { status: 500 }
+      { error: "Could not load settings." },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 
@@ -70,7 +64,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { supabase, user, response } = await getAdmin();
@@ -86,7 +80,7 @@ export async function PUT(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readJsonBody(request, 100000);
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body." },
@@ -146,7 +140,7 @@ export async function PUT(request: Request) {
     console.error("Settings save failed:", error.message);
     return NextResponse.json(
       { error: "Could not save settings. Check the database migration and permissions." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 

@@ -1,4 +1,5 @@
 
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -270,15 +271,15 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return errorResponse("Invalid request origin.", 403);
-      }
-    } catch {
+  if (!origin) return errorResponse("Request origin could not be verified.", 403);
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
       return errorResponse("Invalid request origin.", 403);
     }
+  } catch {
+    return errorResponse("Invalid request origin.", 403);
   }
+
   const supabase = await createClient();
   const { data: auth, error: authError } =
     await supabase.auth.getUser();
@@ -290,9 +291,10 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const body: unknown = await request
-    .json()
-    .catch(() => null);
+  const body = await readJsonBody(request, 2_048);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return errorResponse("Invalid or oversized JSON body.", 400);
+  }
 
   if (
     typeof body !== "object" ||

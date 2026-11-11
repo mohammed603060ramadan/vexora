@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readJsonBody(request, 20000);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }

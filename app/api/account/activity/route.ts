@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,16 +60,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
-      }
-    } catch {
+  if (!origin) return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
       return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
     }
+  } catch {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
-
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -81,8 +80,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This activity log is for student and client accounts." }, { status: 403 });
   }
 
-  const body: unknown = await request.json().catch(() => null);
-  if (!body || typeof body !== "object" || !("activity_type" in body) ||
+  const body = await readJsonBody(request, 2_048);
+  if (!body || typeof body !== "object" || Array.isArray(body) || !("activity_type" in body) ||
       typeof body.activity_type !== "string" || !allowed.has(body.activity_type)) {
     return NextResponse.json({ error: "Unsupported activity." }, { status: 400 });
   }
