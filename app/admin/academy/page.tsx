@@ -12,8 +12,6 @@ type Course = {
   title: string;
   slug: string;
   description: string | null;
-  price: number | null;
-  currency: string | null;
   cover_image_url: string | null;
   promo_video_url: string | null;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
@@ -29,8 +27,6 @@ type CourseForm = {
   title: string;
   slug: string;
   description: string;
-  price: string;
-  currency: string;
   cover_image_url: string;
   promo_video_url: string;
   difficulty: "beginner" | "intermediate" | "advanced";
@@ -44,8 +40,6 @@ const initialForm: CourseForm = {
   title: "",
   slug: "",
   description: "",
-  price: "0",
-  currency: "USD",
   cover_image_url: "",
   promo_video_url: "",
   difficulty: "beginner",
@@ -112,12 +106,12 @@ export default function AcademyPage() {
       let { data, error: queryError } = await supabase
         .from("courses")
         .select(
-          "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency, cover_image_url, promo_video_url"
+          "id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, cover_image_url, promo_video_url"
         )
         .order("created_at", { ascending: false });
       if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
         const fallback = await supabase.from("courses")
-          .select("id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at, price, currency")
+          .select("id, title, slug, description, category, difficulty, course_type, estimated_hours, status, created_at, updated_at")
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
         queryError = fallback.error;
@@ -176,16 +170,6 @@ export default function AcademyPage() {
       return;
     }
 
-    const price = form.price.trim() === "" ? 0 : Number(form.price);
-    if (!Number.isFinite(price) || price < 0) {
-      setFormError("Course price must be zero or a positive amount.");
-      return;
-    }
-    const currency = form.currency.trim().toUpperCase();
-    if (!/^[A-Z]{3}$/.test(currency)) {
-      setFormError("Use a valid three-letter currency code, such as USD or EGP.");
-      return;
-    }
     const coverImageUrl = form.cover_image_url.trim();
     const promoVideoUrl = form.promo_video_url.trim();
     if (coverImageUrl && !/^https?:\/\//i.test(coverImageUrl)) {
@@ -218,8 +202,6 @@ export default function AcademyPage() {
         title,
         slug,
         description: form.description.trim() || null,
-        price,
-        currency,
         cover_image_url: coverImageUrl || null,
         promo_video_url: promoVideoUrl || null,
         difficulty: form.difficulty,
@@ -302,7 +284,6 @@ export default function AcademyPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/academy/access" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/[0.1]">Course access requests ↗</Link>
           <Link href="/academy/courses" target="_blank" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-blue-400/20 px-4 py-3 text-sm font-semibold text-blue-200 transition hover:border-blue-400/40 hover:bg-blue-400/[0.06]">View public courses ↗</Link>
           <button
             type="button"
@@ -417,16 +398,11 @@ export default function AcademyPage() {
               />
             </div>
 
+            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 text-sm text-emerald-200">
+              <strong>Free course</strong>
+              <p className="mt-1 text-xs leading-5 text-emerald-100/70">Every VEXORA Academy course is free. Students can enroll directly with their account.</p>
+            </div>
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label htmlFor="course-price" className="mb-2 block text-sm font-medium text-gray-300">Course price</label>
-                <input id="course-price" type="number" min="0" step="0.01" value={form.price} onChange={(event) => updateForm("price", event.target.value)} placeholder="0.00" className={fieldClass} />
-                <p className="mt-2 text-xs text-gray-500">Set 0 for a free course. Paid courses stay locked until access is approved.</p>
-              </div>
-              <div>
-                <label htmlFor="course-currency" className="mb-2 block text-sm font-medium text-gray-300">Currency code</label>
-                <input id="course-currency" maxLength={3} value={form.currency} onChange={(event) => updateForm("currency", event.target.value.toUpperCase())} placeholder="USD or EGP" className={fieldClass} />
-              </div>
               <div>
                 <label htmlFor="course-cover-image" className="mb-2 block text-sm font-medium text-gray-300">Cover image URL</label>
                 <input id="course-cover-image" type="url" value={form.cover_image_url} onChange={(event) => updateForm("cover_image_url", event.target.value)} placeholder="https://…" className={fieldClass} />
@@ -734,11 +710,6 @@ export default function AcademyPage() {
                         </span>
                       )}
 
-                      <span className="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.05] px-3 py-1.5 text-xs font-semibold text-cyan-100">
-                        {course.price == null || Number(course.price) === 0
-                          ? "Free"
-                          : new Intl.NumberFormat("en", { style: "currency", currency: (course.currency || "USD").trim(), maximumFractionDigits: 2 }).format(Number(course.price))}
-                      </span>
                     </div>
                   </div>
 

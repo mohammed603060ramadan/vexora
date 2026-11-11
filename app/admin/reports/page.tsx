@@ -62,24 +62,6 @@ export default async function AdminReportsPage() {
       href: "/admin/services",
       description: "Available company services",
     },
-    {
-      label: "Invoices",
-      table: "invoices",
-      href: "/admin/finance",
-      description: "Financial records visible to your account",
-    },
-    {
-      label: "Payments",
-      table: "payments",
-      href: "/admin/finance",
-      description: "Payment records visible to your account",
-    },
-    {
-      label: "Expenses",
-      table: "expenses",
-      href: "/admin/finance",
-      description: "Expense records visible to your account",
-    },
   ] as const;
 
   const results = await Promise.all(
@@ -125,12 +107,6 @@ export default async function AdminReportsPage() {
             </p>
           </div>
 
-          <Link
-            href="/admin/finance"
-            className="inline-flex w-fit items-center rounded-xl border border-[#45a5ff]/30 bg-[#1687ff]/10 px-5 py-3 text-sm font-medium text-[#8bc7ff] transition hover:bg-[#1687ff]/20"
-          >
-            Open Finance →
-          </Link>
         </header>
 
         {failedCount > 0 && (
