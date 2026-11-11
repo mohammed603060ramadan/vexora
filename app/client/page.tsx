@@ -649,6 +649,18 @@ export default function ClientPage() {
         return;
       }
 
+      const { data: accountProfile, error: accountProfileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+
+      if (accountProfileError || accountProfile?.account_type !== "client") {
+        router.replace(accountProfile?.account_type === "student" ? "/student" : "/login");
+        setChecking(false);
+        return;
+      }
+
       setUser(data.session.user);
       setChecking(false);
     }
