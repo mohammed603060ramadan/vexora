@@ -477,10 +477,10 @@ function CourseDetailsContent() {
 
               <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                    Course price
+                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/70">
+                    Course access
                   </p>
-                  <p className="mt-1 text-2xl font-bold">{formatPrice()}</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-200">Free</p>
                 </div>
 
                 <div>
