@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const allowed = new Set(["profile_updated", "password_changed", "logout"]);
+const allowed = new Set(["account_created", "login", "profile_updated", "password_changed", "logout"]);
 
 export async function GET() {
   const supabase = await createClient();
@@ -69,6 +69,8 @@ export async function POST(request: Request) {
   }
 
   const labels: Record<string, { title: string; description: string }> = {
+    account_created: { title: "Account created", description: "Your VEXORA account was created." },
+    login: { title: "Signed in", description: "You signed in to your VEXORA account." },
     profile_updated: { title: "Profile updated", description: "Your account profile details were updated." },
     password_changed: { title: "Password changed", description: "Your account password was changed." },
     logout: { title: "Signed out", description: "You signed out of your VEXORA account." },
