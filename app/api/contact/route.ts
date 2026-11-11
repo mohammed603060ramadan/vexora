@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         company: company || null,
         service: service || null,
         message: subject
-          ? \`Subject: \${subject}\n\n\${message}\`
+          ? `Subject: ${subject}\n\n${message}`
           : message,
         // source, status, and priority use trusted database defaults.
       });
