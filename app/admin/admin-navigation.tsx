@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const navigation = [
   { label: "Overview", href: "/admin", icon: "grid" },
   { label: "Analytics", href: "/admin/analytics", icon: "chart" },
-  { label: "AI Assistant", href: "/admin/ai", icon: "sparkles" },
   { label: "Projects", href: "/admin/projects", icon: "layers" },
   { label: "Portfolio Studio", href: "/admin/portfolio", icon: "image" },
   { label: "Clients", href: "/admin/clients", icon: "users" },
@@ -22,14 +21,12 @@ const navigation = [
   { label: "Tasks", href: "/admin/tasks", icon: "check" },
   { label: "Messages", href: "/admin/messages", icon: "message" },
   { label: "Users", href: "/admin/users", icon: "user" },
-  { label: "Finance", href: "/admin/finance", icon: "wallet" },
   { label: "Settings", href: "/admin/settings", icon: "settings" },
 ];
 
 const paths: Record<string, string> = {
   grid: "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z",
   chart: "M4 19V5 M4 19h17 M8 16v-4 M13 16V7 M18 16v-7",
-  sparkles: "m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z M19 14l1.1 3L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z",
   layers: "m12 3 9 5-9 5-9-5 9-5Z M3 12l9 5 9-5 M3 16l9 5 9-5",
   image: "M4 4h16v16H4z M4 16l5-5 4 4 3-3 4 4 M9 9h.01",
   users: "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 8v6 M23 11h-6",
@@ -45,7 +42,6 @@ const paths: Record<string, string> = {
   check: "M4 12l5 5L20 6 M3 3h18v18H3z",
   message: "M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z",
   user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
-  wallet: "M3 6h18v15H3z M3 6l2-3h14l2 3 M16 14h5 M16 14a1 1 0 1 0 0 .01",
   settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 2.9-.2-.1a1.7 1.7 0 0 0-1.8.2l-.2.1h-3.4l-.1-.2a1.7 1.7 0 0 0-1.6-1l-.2.1-3-1.7.1-.2a1.7 1.7 0 0 0-.2-1.8l-.1-.2v-3.4l.2-.1a1.7 1.7 0 0 0 1-1.6l-.1-.2 1.7-3 .2.1a1.7 1.7 0 0 0 1.8-.2l.2-.1h3.4l.1.2a1.7 1.7 0 0 0 1.6 1l.2-.1 3 1.7-.1.2a1.7 1.7 0 0 0 .2 1.8l.1.2v3.4Z",
 };
 
