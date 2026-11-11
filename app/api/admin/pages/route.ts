@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   if (length > 110_000) return NextResponse.json({ error: "Page payload is too large." }, { status: 413 });
 
   let body: unknown;
-  try { body = await readJsonBody(request); } catch {
+  try { body = await readJsonBody(request, 110000); } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
