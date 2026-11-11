@@ -123,7 +123,7 @@ function CourseDetailsContent() {
         const signedInUser = authData.user;
 
         // Use columns confirmed in the current Academy schema.
-        const { data: courseData, error: courseError } = await supabase
+        const courseQuery = await supabase
           .from("courses")
           .select(
             "id, title, slug, description, difficulty, course_type, estimated_hours, price, currency, cover_image_url, promo_video_url"
@@ -131,6 +131,24 @@ function CourseDetailsContent() {
           .eq("slug", slug)
           .eq("status", "published")
           .maybeSingle();
+
+        let courseData = courseQuery.data;
+        let courseError = courseQuery.error;
+
+        // Keep course details available while the optional media migration is pending.
+        if (courseError && /cover_image_url|promo_video_url|does not exist/i.test(courseError.message)) {
+          const fallbackQuery = await supabase
+            .from("courses")
+            .select("id, title, slug, description, difficulty, course_type, estimated_hours, price, currency")
+            .eq("slug", slug)
+            .eq("status", "published")
+            .maybeSingle();
+
+          courseData = fallbackQuery.data
+            ? { ...fallbackQuery.data, cover_image_url: null, promo_video_url: null }
+            : null;
+          courseError = fallbackQuery.error;
+        }
 
         if (courseError) throw courseError;
 
@@ -162,7 +180,7 @@ function CourseDetailsContent() {
 
         setHasCourseAccess(canAccess);
 
-        // These optional fields are not assumed to exist in the current schema.
+        // Optional media fields fall back to null until the schema migration is applied.
         const normalizedCourse: Course = {
           id: courseData.id,
           title: courseData.title,
