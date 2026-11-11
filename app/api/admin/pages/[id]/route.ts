@@ -52,7 +52,7 @@ function validatePage(value: unknown) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { user, response } = await authorizeAdmin();
   if (response) return response;
 
@@ -96,7 +96,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { response } = await authorizeAdmin();
   if (response) return response;
 
