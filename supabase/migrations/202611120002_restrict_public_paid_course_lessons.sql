@@ -20,6 +20,6 @@ USING (
     FROM public.courses AS c
     WHERE c.id = course_lessons.course_id
       AND c.status = 'published'
-      AND c.price = 0
+      AND COALESCE(c.price, 0) = 0
   )
 );
