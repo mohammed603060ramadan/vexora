@@ -142,15 +142,6 @@ export async function GET() {
     const tasks =
       (taskResult.error ? [] : taskResult.data ?? []) as TaskRow[];
 
-    const clientProjects =
-      (projectResult.data ?? []) as ProjectRow[];
-
-    const requests =
-      (requestResult.data ?? []) as ProjectRequestRow[];
-
-    const tasks =
-      (taskResult.data ?? []) as TaskRow[];
-
     const projectIds = [
       ...new Set<string>(
         [
