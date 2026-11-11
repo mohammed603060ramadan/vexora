@@ -76,7 +76,7 @@ export default function LoginPage() {
 
     router.replace(safeNext || (actualType === "student" ? "/student" : "/client"));
     router.refresh();
-  }, [router]);
+  }, [router, accountType]);
 
   useEffect(() => {
     let active = true;
