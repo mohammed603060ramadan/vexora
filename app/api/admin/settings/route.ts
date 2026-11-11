@@ -2,6 +2,16 @@
 import { createClient } from "@/lib/supabase/server";
 
 
+function validOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
 async function getAdmin() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
@@ -60,6 +70,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  if (!validOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
   const { supabase, user, response } = await getAdmin();
   if (response) return response;
 
