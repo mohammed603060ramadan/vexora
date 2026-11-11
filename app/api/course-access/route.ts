@@ -35,6 +35,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      if (new URL(origin).origin !== new URL(request.url).origin) {
+        return fail("Invalid request origin.", 403);
+      }
+    } catch {
+      return fail("Invalid request origin.", 403);
+    }
+  }
   const user = await getSignedInUser();
   if (!user) return fail("Sign in before requesting course access.", 401);
   const email = user.email?.trim().toLowerCase();
