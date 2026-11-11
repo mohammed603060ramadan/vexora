@@ -33,9 +33,15 @@ function validate(value: unknown) {
   if (item.seo_description != null && (typeof item.seo_description !== "string" || item.seo_description.length > 320)) return "SEO description is too long.";
   return null;
 }
-function dbError(error: {code?:string;message?:string;details?:string;hint?:string}) {
-  console.error("[Admin News API]", error);
-  return NextResponse.json({error:error.message || "News database operation failed.",code:error.code || null,details:error.details || null,hint:error.hint || null},{status:error.code==="23505"?409:400});
+function dbError(error: { code?: string; message?: string }) {
+  console.error("[Admin News API] Database operation failed:", {
+    code: error.code,
+    message: error.message,
+  });
+  return NextResponse.json(
+    { error: error.code === "23505" ? "A record with this value already exists." : "The database operation could not be completed." },
+    { status: error.code === "23505" ? 409 : 500 },
+  );
 }
 export async function GET(request: Request) {
   if (!validOrigin(request)) return NextResponse.json({error:"Invalid request origin."},{status:403});
