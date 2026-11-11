@@ -131,11 +131,6 @@ const navItems: {
     label: "Technology",
     description: "Technology radar",
   },
-  {
-    id: "academy",
-    label: "My Courses",
-    description: "Offline course registrations",
-  },
 ];
 
 const techResources = [
@@ -646,6 +641,18 @@ export default function ClientPage() {
       if (sessionError || !data.session) {
         setChecking(false);
         router.replace("/login");
+        return;
+      }
+
+      const { data: accountProfile, error: accountProfileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+
+      if (accountProfileError || accountProfile?.account_type !== "client") {
+        router.replace(accountProfile?.account_type === "student" ? "/student" : "/login");
+        setChecking(false);
         return;
       }
 
@@ -2565,6 +2572,12 @@ export default function ClientPage() {
                       : "Pending"}
                   </strong>
                 </article>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/account/profile" className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20">
+                  Manage profile & security ↗
+                </Link>
               </div>
 
               <section className="contact-command">

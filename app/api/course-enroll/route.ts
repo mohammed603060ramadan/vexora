@@ -34,6 +34,14 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await admin
+      .from("profiles")
+      .select("account_type")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "student") return fail("Only student accounts can enroll in Academy courses.", 403);
+
     const { data: course, error: courseError } = await admin
       .from("courses")
       .select("id,title,status,price")
@@ -69,6 +77,14 @@ export async function POST(request: Request) {
       .from("enrollments")
       .upsert(enrollmentPayload, { onConflict: "student_id,course_id" });
     if (enrollmentError) throw enrollmentError;
+
+    await admin.from("student_activity_logs").insert({
+      user_id: auth.user.id,
+      activity_type: "course_registered",
+      title: "Course enrollment completed",
+      description: `You enrolled in ${String(course.title).slice(0, 160)}.`,
+      metadata: { course_id: course.id },
+    });
 
     return NextResponse.json({ success: true, message: "Free enrollment completed. Open My Courses to start learning." }, { status: 201, headers });
   } catch (error) {

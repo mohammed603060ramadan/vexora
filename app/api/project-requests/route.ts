@@ -18,6 +18,16 @@ type ProjectRequestsDatabase = {
         { id?: string; auth_user_id?: string | null },
         { id?: string; auth_user_id?: string | null }
       >;
+      profiles: DatabaseTable<
+        { id: string; account_type: string | null },
+        { id: string; account_type?: string | null },
+        { account_type?: string | null }
+      >;
+      student_activity_logs: DatabaseTable<
+        { id: string; user_id: string; activity_type: string; title: string; description: string | null; metadata: Record<string, unknown>; created_at: string },
+        { user_id: string; activity_type: string; title: string; description?: string | null; metadata?: Record<string, unknown> },
+        Record<string, never>
+      >;
       projects: DatabaseTable<
         {
           id: string;
@@ -121,6 +131,11 @@ export async function GET() {
     }
 
     const admin = getAdminClient();
+    const accountAdmin = getAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await accountAdmin
+      .from("profiles").select("account_type").eq("id", user.id).maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "client") return jsonError("Only client accounts can view project requests.", 403);
 
     const client = await findClientForUser(admin, user.id);
 
@@ -197,6 +212,12 @@ export async function POST(request: Request) {
     if (authError || !user) {
       return jsonError("Sign in to request a project.", 401);
     }
+
+    const accountAdmin = getAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await accountAdmin
+      .from("profiles").select("account_type").eq("id", user.id).maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "client") return jsonError("Only client accounts can submit project requests.", 403);
 
     const body: unknown = await request.json().catch(() => null);
 
@@ -306,6 +327,14 @@ export async function POST(request: Request) {
 
       throw insertError;
     }
+
+    await getAdminClient().from("student_activity_logs").insert({
+      user_id: user.id,
+      activity_type: "project_request",
+      title: "Project request submitted",
+      description: "A new request was submitted to the VEXORA team.",
+      metadata: { project_id: projectId, request_id: created.id },
+    });
 
     return NextResponse.json(
       { request: created },

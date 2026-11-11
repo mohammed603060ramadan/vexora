@@ -20,6 +20,16 @@ export async function GET() {
     return NextResponse.json({ error: "Sign in to view your course registrations." }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  const { data: accountProfile, error: accountProfileError } = await admin
+    .from("profiles")
+    .select("account_type")
+    .eq("id", authData.user.id)
+    .maybeSingle();
+  if (accountProfileError || accountProfile?.account_type !== "student") {
+    return NextResponse.json({ error: "Student account access is required." }, { status: 403 });
+  }
+
   const email = authData.user.email?.trim().toLowerCase();
   if (!email) {
     return NextResponse.json({ registrations: [] }, { status: 200 });
@@ -98,6 +108,20 @@ export async function POST(request: Request) {
     if (error) {
       console.error("Student registration insert failed:", error.message);
       return NextResponse.json({ error: "Could not save your registration. Please try again later." }, { status: 500 });
+    }
+
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user?.email?.trim().toLowerCase() === email) {
+      const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", authData.user.id).maybeSingle();
+      if (profile?.account_type === "student") {
+        const admin = createAdminClient();
+        await admin.from("student_activity_logs").insert({
+          user_id: authData.user.id,
+          activity_type: "offline_registration",
+          title: "Offline course registration submitted",
+          description: `Registration received for ${track.slice(0, 100)}.`,
+        });
+      }
     }
     return NextResponse.json({ success: true, message: "Registration received." }, { status: 201 });
   } catch (error) {

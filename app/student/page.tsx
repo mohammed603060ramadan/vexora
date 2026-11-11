@@ -104,7 +104,7 @@ const resources = [
 const navigation = [
   { label: "Overview", href: "/student", icon: "▦" },
   { label: "Academy", href: "/academy", icon: "▤" },
-  { label: "Client Portal", href: "/client", icon: "◫" },
+  { label: "Profile & Security", href: "/account/profile", icon: "◉" },
   { label: "Main Website", href: "/", icon: "⌂" },
 ];
 
@@ -202,6 +202,18 @@ export default function StudentDashboard() {
 
       if (!user) {
         router.replace("/login?next=/student");
+        return;
+      }
+
+      const { data: accountProfile, error: accountProfileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (accountProfileError) throw accountProfileError;
+      if (accountProfile?.account_type !== "student") {
+        router.replace(accountProfile?.account_type === "client" ? "/client" : "/login");
         return;
       }
 
@@ -675,7 +687,7 @@ export default function StudentDashboard() {
           </div>
           {workspaceError && <div className="error-banner" role="alert"><span>{workspaceError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
           {studentProjects.length === 0 ? (
-            <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects assigned to your client profile will appear here as the VEXORA team updates them.</p><Link href="/client" className="primary-button">Open client workspace ↗</Link></div>
+            <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects explicitly linked to your student account will appear here as the VEXORA team updates them.</p><Link href="/contact" className="primary-button">Contact VEXORA ↗</Link></div>
           ) : (
             <div className="resource-grid">
               {studentProjects.map((project) => (

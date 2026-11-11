@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const routeUser = useCallback(async () => {
+  const routeUser = useCallback(async (enforceSelection = false) => {
     const {
       data: { user },
       error: userError,
@@ -41,43 +41,42 @@ export default function LoginPage() {
       return;
     }
 
-    const requestedNext = new URLSearchParams(
-      window.location.search
-    ).get("next");
-
-    const safeNext =
-      requestedNext &&
-      requestedNext.startsWith("/") &&
-      !requestedNext.startsWith("//") &&
-      !requestedNext.startsWith("/admin")
-        ? requestedNext
-        : null;
-
-    if (safeNext) {
-      router.replace(safeNext);
-      router.refresh();
-      return;
-    }
-
+    // The account type is read from the trusted profile row, never from
+    // the login selector or editable user metadata.
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("account_type")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profileError) {
-      throw profileError;
+    if (profileError) throw profileError;
+
+    const actualType = profile?.account_type;
+    if (actualType !== "student" && actualType !== "client") {
+      throw new Error("Your account type is not configured. Please contact VEXORA support.");
     }
 
-    if (profile?.account_type === "student") {
-      router.replace("/student");
-      router.refresh();
+    if (enforceSelection && actualType !== accountType) {
+      await supabase.auth.signOut();
+      setMessage(`This account is registered as a ${actualType}. Select ${actualType === "student" ? "Student" : "Client"} and sign in again.`);
       return;
     }
 
-    router.replace("/client");
+    const requestedNext = new URLSearchParams(window.location.search).get("next");
+    const safeNext =
+      requestedNext &&
+      requestedNext.startsWith("/") &&
+      !requestedNext.startsWith("//") &&
+      !requestedNext.startsWith("/admin") &&
+      (actualType === "student"
+        ? requestedNext.startsWith("/student") || requestedNext.startsWith("/academy")
+        : requestedNext.startsWith("/client"))
+        ? requestedNext
+        : null;
+
+    router.replace(safeNext || (actualType === "student" ? "/student" : "/client"));
     router.refresh();
-  }, [router]);
+  }, [router, accountType]);
 
   useEffect(() => {
     let active = true;
@@ -371,7 +370,8 @@ export default function LoginPage() {
         }
 
         if (data.session) {
-          await routeUser();
+          await fetch("/api/account/activity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activity_type: "account_created" }) }).catch(() => undefined);
+          await routeUser(false);
         } else {
           setMessage(
             "Account created. Check your email to confirm your address before signing in."
@@ -390,7 +390,8 @@ export default function LoginPage() {
         throw error;
       }
 
-      await routeUser();
+      await fetch("/api/account/activity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activity_type: "login" }) }).catch(() => undefined);
+      await routeUser(true);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -465,6 +466,27 @@ export default function LoginPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          {mode === "login" && (
+            <div>
+              <label className="mb-2 block text-sm text-slate-300" htmlFor="loginAccountType">I am signing in as</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["student", "client"] as const).map((type) => (
+                  <button
+                    key={type}
+                    id={type === "student" ? "loginAccountTypeStudent" : "loginAccountTypeClient"}
+                    type="button"
+                    aria-pressed={accountType === type}
+                    onClick={() => setAccountType(type)}
+                    className={`rounded-xl border px-4 py-3 text-sm font-semibold capitalize transition ${accountType === type ? "border-cyan-300 bg-cyan-300/10 text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-slate-900 text-slate-400 hover:border-white/25"}`}
+                  >
+                    {type === "student" ? "Student Space" : "Client Portal"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">This choice is checked against your registered account type. It does not grant or change permissions.</p>
+            </div>
+          )}
+
           {mode === "signup" && (
             <>
               <div>
