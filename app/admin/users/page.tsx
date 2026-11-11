@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UserRole = "Admin" | "Manager" | "Employee" | "Client" | "Student";
 type UserStatus = "Active" | "Pending" | "Suspended";
@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
     });
   }, [users, search, roleFilter, statusFilter]);
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/admin/users", { cache: "no-store" });
@@ -89,11 +89,11 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   async function updateUser(id: string, updates: Partial<UserItem>) {
     setSaving(true);
