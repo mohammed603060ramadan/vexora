@@ -687,7 +687,7 @@ export default function StudentDashboard() {
           </div>
           {workspaceError && <div className="error-banner" role="alert"><span>{workspaceError}</span><button type="button" onClick={() => void loadStudent()}>Try again</button></div>}
           {studentProjects.length === 0 ? (
-            <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects assigned to your client profile will appear here as the VEXORA team updates them.</p><Link href="/client" className="primary-button">Open client workspace ↗</Link></div>
+            <div className="empty-state"><span aria-hidden="true">✧</span><strong>No projects linked yet</strong><p>Projects explicitly linked to your student account will appear here as the VEXORA team updates them.</p><Link href="/contact" className="primary-button">Contact VEXORA ↗</Link></div>
           ) : (
             <div className="resource-grid">
               {studentProjects.map((project) => (
