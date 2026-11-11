@@ -270,14 +270,18 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return errorResponse("Invalid request origin.", 403);
-      }
-    } catch {
+  if (!origin) return errorResponse("Request origin could not be verified.", 403);
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
       return errorResponse("Invalid request origin.", 403);
     }
+  } catch {
+    return errorResponse("Invalid request origin.", 403);
+  }
+
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 2_048) {
+    return errorResponse("Request body is too large.", 413);
   }
   const supabase = await createClient();
   const { data: auth, error: authError } =
@@ -290,9 +294,14 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const body: unknown = await request
-    .json()
-    .catch(() => null);
+  const rawBody = await request.text().catch(() => "");
+  if (rawBody.length > 2_048) return errorResponse("Request body is too large.", 413);
+  let body: unknown = null;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return errorResponse("Invalid JSON body.", 400);
+  }
 
   if (
     typeof body !== "object" ||
