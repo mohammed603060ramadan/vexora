@@ -224,13 +224,15 @@ export default function StudentDashboard() {
       try {
         const workspaceResponse = await fetch("/api/student/workspace", { cache: "no-store" });
         const workspacePayload = await workspaceResponse.json() as {
-          projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; error?: string;
+          projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; warnings?: string[]; error?: string;
         };
         if (!workspaceResponse.ok) throw new Error(workspacePayload.error || "Unable to load your project workspace.");
         setStudentProjects(Array.isArray(workspacePayload.projects) ? workspacePayload.projects : []);
         setProjectRequests(Array.isArray(workspacePayload.requests) ? workspacePayload.requests : []);
         setStudentTasks(Array.isArray(workspacePayload.tasks) ? workspacePayload.tasks : []);
-        setWorkspaceError("");
+        setWorkspaceError(Array.isArray(workspacePayload.warnings) && workspacePayload.warnings.length
+          ? `Some workspace sections need attention: ${workspacePayload.warnings.join(" · ")}`
+          : "");
 
       } catch (workspaceLoadError) {
         setWorkspaceError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load your project workspace.");
@@ -501,7 +503,29 @@ export default function StudentDashboard() {
               transform: rotate(360deg);
             }
           }
-        `}</style>
+  
+        /* Student Space visual refresh */
+        .student-sidebar { position: sticky; top: 0; height: 100vh; border-right-color: #24364d; background: linear-gradient(180deg,#0b1524 0%,#09111d 100%); }
+        .brand-logo { filter: drop-shadow(0 0 18px #278fe955); }
+        .nav-link { border-radius: 12px; }
+        .nav-link.selected { background: linear-gradient(100deg,#15395a,#10243a); box-shadow: inset 3px 0 #59b7ff,0 8px 24px #0003; }
+        .student-app { background: radial-gradient(ellipse at 72% 0%,#102b48 0%,transparent 36%),#070c15; }
+        .student-main { max-width: 1560px; }
+        .welcome-panel { border-radius: 24px; border-color: #2b5277; box-shadow: 0 24px 70px #0004,inset 0 1px #ffffff0b; background: radial-gradient(ellipse at 82% 42%,#1c6aa24d,transparent 42%),linear-gradient(115deg,#122943,#0b1524 76%); }
+        .profile-strip,.stat-card,.shortcut-card,.resource-card { border-color: #263950; background: linear-gradient(145deg,#101d2d,#0b1421); box-shadow: 0 12px 30px #0002; }
+        .stat-card { position: relative; overflow: hidden; border-radius: 16px; }
+        .stat-card:after { content:""; position:absolute; inset:auto -30px -54px auto; width:120px; height:120px; border-radius:50%; background:#329fff12; filter:blur(8px); pointer-events:none; }
+        .section-block { margin-top: 46px; }
+        .section-heading h2 { letter-spacing: -.7px; }
+        .resource-card,.shortcut-card { border-radius: 16px; }
+        .resource-card:hover,.shortcut-card:hover { border-color:#438cc5; box-shadow:0 18px 40px #0004,0 0 0 1px #4caeff12; }
+        .empty-state { min-height: 170px; background:linear-gradient(145deg,#0d1a2a,#0a1421); }
+        .error-banner { border-color:#725b32; background:#241e14; color:#f4d69b; }
+        .status-pill { letter-spacing:.04em; }
+        .course-card { min-height: 310px; }
+        .student-footer { margin-top:56px; }
+        @media(max-width:720px) { .student-sidebar { position:relative; height:auto; } .student-main { padding-top:20px; } .section-block { margin-top:34px; } .welcome-panel { border-radius:18px; } }
+      `}</style>
       </main>
     );
   }
@@ -847,7 +871,7 @@ export default function StudentDashboard() {
                   <div className="resource-top">
                     <span className="resource-icon" aria-hidden="true">◇</span>
                     <span className={`status-pill status-${registration.status === "accepted" ? "active" : registration.status === "rejected" ? "cancelled" : "pending"}`}>
-                      {registration.status.replace("_", " ")}
+                      {registration.status === "new" ? "Received" : registration.status === "accepted" ? "Accepted" : registration.status === "rejected" ? "Not accepted" : registration.status.replaceAll("_", " ")}
                     </span>
                   </div>
                   <h3>{registration.track}</h3>
