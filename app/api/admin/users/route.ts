@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,14 +20,6 @@ function validOrigin(request: Request) {
   } catch {
     return false;
   }
-}
-
-async function readJsonBody(request: Request): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > 16_384) return null;
-  const raw = await request.text();
-  if (raw.length > 16_384) return null;
-  try { return JSON.parse(raw); } catch { return null; }
 }
 
 async function authorizeAdmin() {
