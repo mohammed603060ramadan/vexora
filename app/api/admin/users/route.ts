@@ -138,7 +138,7 @@ export async function POST(request: Request) {
       data: {
         full_name: name,
         company,
-        account_type: role === "Client" ? "client" : role === "Student" ? "student" : "employee",
+        account_type: role === "Client" ? "client" : role === "Student" ? "student" : String(role).toLowerCase(),
       },
       redirectTo: new URL("/login", request.url).toString(),
     });
@@ -154,15 +154,12 @@ export async function POST(request: Request) {
     }
 
     if (role === "Client") {
-      const { error: clientError } = await admin.from("clients").insert({
-        name,
-        email,
-        company: company || null,
-        auth_user_id: invitedUser.id,
-      });
+      const { error: clientError } = await admin.from("clients")
+        .update({ company: company || null })
+        .eq("auth_user_id", invitedUser.id);
       if (clientError) {
-        console.error("[Admin Users API] Client link creation failed:", clientError);
-        return json({ error: "The invitation was sent, but the client workspace link could not be created. Review the client record before retrying.", userId: invitedUser.id }, 500);
+        console.error("[Admin Users API] Client profile update failed:", clientError);
+        return json({ error: "The invitation was sent, but the client profile could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
     } else if (role === "Admin") {
       const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: invitedUser.id }, { onConflict: "user_id" });
@@ -218,7 +215,10 @@ export async function PATCH(request: Request) {
   }
   if (value.status !== undefined) {
     if (value.status === "Suspended") updates.ban_duration = "876000h";
-    else if (value.status === "Active") updates.ban_duration = "none";
+    else if (value.status === "Active") {
+      if (!data.user.email_confirmed_at) return json({ error: "This account must confirm its email before it can become active." }, 400);
+      updates.ban_duration = "none";
+    }
     else return json({ error: "Pending status is controlled by email confirmation and cannot be set manually." }, 400);
   }
   if (!updates.app_metadata && !updates.ban_duration) return json({ error: "No supported account changes were provided." }, 400);
@@ -226,12 +226,58 @@ export async function PATCH(request: Request) {
   const { data: updated, error } = await admin.auth.admin.updateUserById(id, updates);
   if (error || !updated.user) return json({ error: error?.message || "Could not update the user account." }, 400);
 
-  if (value.role === "Admin") {
-    const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: id }, { onConflict: "user_id" });
-    if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
-  } else if (value.role !== undefined) {
-    const { error: registryError } = await admin.from("vexora_admins").delete().eq("user_id", id);
-    if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
+  if (value.role !== undefined) {
+    const accountType = value.role === "Student"
+      ? "student"
+      : value.role === "Client"
+        ? "client"
+        : String(value.role).toLowerCase();
+    const { error: profileError } = await admin.from("profiles")
+      .upsert({ id, account_type: accountType }, { onConflict: "id" });
+    if (profileError) return json({ error: "The Auth role was updated, but the profile type could not be synchronized." }, 500);
+
+    if (value.role === "Admin") {
+      const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: id }, { onConflict: "user_id" });
+      if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
+    } else {
+      const { error: registryError } = await admin.from("vexora_admins").delete().eq("user_id", id);
+      if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
+    }
+
+    if (value.role === "Client" && data.user.email) {
+      const { data: clientLink, error: clientLookupError } = await admin.from("clients")
+        .select("id").eq("auth_user_id", id).maybeSingle();
+      if (clientLookupError) return json({ error: "The profile role changed, but the client workspace could not be checked." }, 500);
+      if (!clientLink) {
+        const { error: clientInsertError } = await admin.from("clients").insert({
+          name: data.user.user_metadata?.full_name || data.user.email,
+          email: data.user.email,
+          company: data.user.user_metadata?.company || null,
+          auth_user_id: id,
+        });
+        if (clientInsertError) return json({ error: "The profile role changed, but the client workspace could not be created." }, 500);
+      }
+    }
+
+    if (value.role === "Manager" || value.role === "Employee") {
+      const { data: teamRecords, error: teamLookupError } = await admin.from("team_members")
+        .select("id").eq("email", data.user.email ?? "").limit(1);
+      if (teamLookupError) return json({ error: "The profile role changed, but the team record could not be checked." }, 500);
+      if (teamRecords?.[0]) {
+        const { error: teamUpdateError } = await admin.from("team_members")
+          .update({ job_title: String(value.role) }).eq("id", teamRecords[0].id);
+        if (teamUpdateError) return json({ error: "The profile role changed, but the team record could not be synchronized." }, 500);
+      } else {
+        const { error: teamInsertError } = await admin.from("team_members").insert({
+          full_name: data.user.user_metadata?.full_name || data.user.email || "Team member",
+          email: data.user.email,
+          job_title: String(value.role),
+          department: data.user.user_metadata?.company || null,
+          status: "active",
+        });
+        if (teamInsertError) return json({ error: "The profile role changed, but the team record could not be created." }, 500);
+      }
+    }
   }
 
   return json({
