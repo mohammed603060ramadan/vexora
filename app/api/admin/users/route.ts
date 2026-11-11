@@ -224,15 +224,18 @@ export async function POST(request: Request) {
         return json({ error: "The invitation was sent, but the team record could not be saved. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
 
-      const { error: workspaceError } = await admin.from("clients").insert({
-        name,
-        email,
-        company: company || null,
-        auth_user_id: invitedUser.id,
-      });
-      if (workspaceError && workspaceError.code !== "23505") {
-        console.error("[Admin Users API] Staff workspace creation failed:", workspaceError);
-        return json({ error: "The invitation was sent, but the staff workspace could not be created.", userId: invitedUser.id }, 500);
+      const { data: staffWorkspace, error: staffWorkspaceLookupError } = await admin.from("clients")
+        .select("id").eq("auth_user_id", invitedUser.id).maybeSingle();
+      if (staffWorkspaceLookupError) {
+        console.error("[Admin Users API] Staff workspace lookup failed:", staffWorkspaceLookupError);
+        return json({ error: "The invitation was sent, but the staff workspace could not be checked.", userId: invitedUser.id }, 500);
+      }
+      const staffWorkspaceWrite = staffWorkspace
+        ? await admin.from("clients").update({ name, company: company || null }).eq("auth_user_id", invitedUser.id)
+        : await admin.from("clients").insert({ name, email, company: company || null, auth_user_id: invitedUser.id });
+      if (staffWorkspaceWrite.error) {
+        console.error("[Admin Users API] Staff workspace write failed:", staffWorkspaceWrite.error);
+        return json({ error: "The invitation was sent, but the staff workspace could not be created or updated.", userId: invitedUser.id }, 500);
       }
     }
 
@@ -314,8 +317,6 @@ export async function PATCH(request: Request) {
       }
     }
     if (value.role === "Admin") {
-      const { error: workspaceCleanupError } = await admin.from("clients").delete().eq("auth_user_id", id);
-      if (workspaceCleanupError) return json({ error: "The administrator role changed, but the old client workspace could not be cleaned up." }, 500);
     }
 
     if (value.role === "Manager" || value.role === "Employee") {
