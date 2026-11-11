@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 ﻿import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,14 +32,6 @@ async function getAdmin() {
   }
 
   return { supabase, user: data.user, response: null };
-}
-
-async function readJsonBody(request: Request, maxBytes = 100000): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export async function GET() {
