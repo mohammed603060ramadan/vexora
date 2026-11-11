@@ -188,33 +188,35 @@ function CourseDetailsContent() {
           return;
         }
 
-        const { data: sectionData, error: sectionError } = await supabase
-          .from("course_sections")
-          .select("id, title, description, sequence_number")
+        const { data: lessonData, error: lessonError } = await supabase
+          .from("course_lessons")
+          .select("id, title, content, video_url, sort_order, is_published")
           .eq("course_id", courseData.id)
-          .order("sequence_number", { ascending: true });
+          .eq("is_published", true)
+          .order("sort_order", { ascending: true });
 
-        if (sectionError) throw sectionError;
+        if (lessonError) throw lessonError;
 
-        const loadedSections = (sectionData ?? []) as Section[];
-        const sectionIds = loadedSections.map((section) => section.id);
+        const loadedLessons: Lesson[] = (lessonData ?? []).map((lesson, index) => ({
+          id: lesson.id,
+          section_id: courseData.id,
+          title: lesson.title,
+          description: lesson.content,
+          lesson_type: lesson.video_url ? "video" : "article",
+          duration_minutes: null,
+          is_preview: false,
+          sequence_number: lesson.sort_order ?? index + 1,
+          status: "published",
+        }));
 
-        let loadedLessons: Lesson[] = [];
-
-        if (sectionIds.length > 0) {
-          const { data: lessonData, error: lessonError } = await supabase
-            .from("lessons")
-            .select(
-              "id, section_id, title, description, lesson_type, duration_minutes, is_preview, sequence_number, status"
-            )
-            .in("section_id", sectionIds)
-            .eq("status", "published")
-            .order("sequence_number", { ascending: true });
-
-          if (lessonError) throw lessonError;
-
-          loadedLessons = (lessonData ?? []) as Lesson[];
-        }
+        const loadedSections: Section[] = loadedLessons.length > 0
+          ? [{
+              id: courseData.id,
+              title: "Course curriculum",
+              description: null,
+              sequence_number: 1,
+            }]
+          : [];
 
         setSections(loadedSections);
         setLessons(loadedLessons);
