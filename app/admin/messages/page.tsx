@@ -114,7 +114,6 @@ export default function AdminMessagesPage() {
   }, [messages, search, statusFilter, priorityFilter]);
 
   const loadMessages = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await fetch("/api/admin/messages", { cache: "no-store" });
       const result = await response.json();
