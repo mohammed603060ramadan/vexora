@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -219,12 +220,8 @@ export async function POST(request: Request) {
     if (accountProfileError) throw accountProfileError;
     if (accountProfile?.account_type !== "client") return jsonError("Only client accounts can submit project requests.", 403);
 
-    const contentLength = Number(request.headers.get("content-length") ?? "0");
-    if (Number.isFinite(contentLength) && contentLength > 4_096) return jsonError("Request body is too large.", 413);
-    const rawBody = await request.text().catch(() => "");
-    if (rawBody.length > 4_096) return jsonError("Request body is too large.", 413);
-    let body: unknown = null;
-    try { body = JSON.parse(rawBody); } catch { return jsonError("Invalid JSON body.", 400); }
+    const body = await readJsonBody(request, 4_096);
+    if (!body || typeof body !== "object" || Array.isArray(body)) return jsonError("Invalid or oversized JSON body.", 400);
 
     if (
       !body ||
