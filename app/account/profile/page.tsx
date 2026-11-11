@@ -42,10 +42,11 @@ export default function AccountProfilePage() {
         router.replace("/login?next=/account/profile");
         return;
       }
-      const [{ data: profile, error: profileError }, { data: history }] = await Promise.all([
+      const [{ data: profile, error: profileError }, historyResponse] = await Promise.all([
         supabase.from("profiles").select("full_name,avatar_url,account_type").eq("id", user.id).maybeSingle(),
-        supabase.from("student_activity_logs").select("id,title,description,created_at,activity_type").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
+        fetch("/api/account/activity", { cache: "no-store" }),
       ]);
+      const historyPayload = historyResponse.ok ? await historyResponse.json() as { activities?: Activity[] } : { activities: [] };
       if (!active) return;
       if (profileError || !profile || (profile.account_type !== "student" && profile.account_type !== "client")) {
         setError("We could not verify your account profile. Please contact VEXORA support.");
@@ -56,7 +57,7 @@ export default function AccountProfilePage() {
       setFullName(profile.full_name || user.user_metadata?.full_name || "");
       setAvatarUrl(profile.avatar_url || "");
       setEmail(user.email || "");
-      setActivities(history || []);
+      setActivities(Array.isArray(historyPayload.activities) ? historyPayload.activities : []);
       setLoading(false);
     }
     void load();
