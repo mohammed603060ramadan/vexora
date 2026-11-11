@@ -16,11 +16,16 @@ export async function GET() {
     return NextResponse.json({ error: "Account profile could not be verified." }, { status: 403 });
   }
   const isStudent = profile.account_type === "student";
+  const clientResult = isStudent ? { data: null, error: null } : await admin
+    .from("clients").select("id").eq("auth_user_id", user.id).maybeSingle();
+  const requestsQuery = !isStudent && clientResult.data
+    ? admin.from("project_requests").select("id,status,created_at").or(`user_id.eq.${user.id},client_id.eq.${clientResult.data.id}`).order("created_at", { ascending: false }).limit(30)
+    : admin.from("project_requests").select("id,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30);
   const [logsResult, enrollmentsResult, registrationsResult, requestsResult, tasksResult] = await Promise.all([
     admin.from("student_activity_logs").select("id,title,description,created_at,activity_type").eq("user_id", user.id).order("created_at", { ascending: false }).limit(40),
     isStudent ? admin.from("enrollments").select("id,course_id,status,progress_percent,enrolled_at").eq("student_id", user.id).order("enrolled_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
     isStudent && user.email ? admin.from("student_registrations").select("id,track,status,created_at").eq("email", user.email.toLowerCase()).order("created_at", { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
-    admin.from("project_requests").select("id,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
+    requestsQuery,
     admin.from("tasks").select("id,title,status,created_at,updated_at").eq("assigned_to", user.id).order("updated_at", { ascending: false }).limit(30),
   ]);
 
