@@ -12,18 +12,17 @@ async function getSignedInUser() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
-  return data.user;
+  return { supabase, user: data.user };
 }
 
 export async function GET() {
-  const user = await getSignedInUser();
-  if (!user) return fail("Sign in to view course access requests.", 401);
+  const session = await getSignedInUser();
+  if (!session) return fail("Sign in to view course access requests.", 401);
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    const { data, error } = await session.supabase
       .from("course_access_requests")
       .select("id,course_id,student_id,email,purchase_code,status,student_message,admin_note,reviewed_by,reviewed_at,created_at,updated_at,courses(id,title,slug,price,currency,course_type)")
-      .eq("student_id", user.id)
+      .eq("student_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;
@@ -45,8 +44,9 @@ export async function POST(request: Request) {
       return fail("Invalid request origin.", 403);
     }
   }
-  const user = await getSignedInUser();
-  if (!user) return fail("Sign in before requesting course access.", 401);
+  const session = await getSignedInUser();
+  if (!session) return fail("Sign in before requesting course access.", 401);
+  const { supabase, user } = session;
   const email = user.email?.trim().toLowerCase();
   if (!email) return fail("Your account needs a verified email address.", 400);
 
@@ -61,8 +61,7 @@ export async function POST(request: Request) {
   const studentMessage = "message" in body && typeof body.message === "string" ? body.message.trim().slice(0, 1000) || null : null;
 
   try {
-    const admin = createAdminClient();
-    const { data: course, error: courseError } = await admin
+    const { data: course, error: courseError } = await supabase
       .from("courses")
       .select("id,title,status,price")
       .eq("id", courseId)
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
     if (courseError) throw courseError;
     if (!course) return fail("This course is not available for access requests.", 404);
 
-    const { data: existing, error: existingError } = await admin
+    const { data: existing, error: existingError } = await supabase
       .from("course_access_requests")
       .select("id,purchase_code,status")
       .eq("course_id", courseId)
@@ -80,6 +79,9 @@ export async function POST(request: Request) {
     if (existingError) throw existingError;
     if (existing) {
       if (existing.status === "rejected" || existing.status === "cancelled") {
+        // Reopening a reviewed request is an administrator-only mutation;
+        // keep that narrow operation on the server-side service client.
+        const admin = createAdminClient();
         const { data: reopened, error: reopenError } = await admin
           .from("course_access_requests")
           .update({ status: "pending", student_message: studentMessage, admin_note: null, reviewed_by: null, reviewed_at: null, updated_at: new Date().toISOString() })
@@ -92,7 +94,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ request: existing, message: "You already have an access request for this course." }, { status: 200, headers });
     }
 
-    const { data: created, error: insertError } = await admin
+    // New requests are written with the signed-in session. The database RLS
+    // policy verifies student_id and email against the user's JWT, so this
+    // path does not depend on a service-role key being present in the deploy.
+    const { data: created, error: insertError } = await supabase
       .from("course_access_requests")
       .insert({ course_id: courseId, student_id: user.id, email, student_message: studentMessage })
       .select("id,purchase_code,status,course_id,created_at")
