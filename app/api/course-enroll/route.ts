@@ -34,6 +34,14 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await admin
+      .from("profiles")
+      .select("account_type")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "student") return fail("Only student accounts can enroll in Academy courses.", 403);
+
     const { data: course, error: courseError } = await admin
       .from("courses")
       .select("id,title,status,price")
