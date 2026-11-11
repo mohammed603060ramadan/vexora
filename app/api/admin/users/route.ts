@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-type UserRole = "Admin" | "Manager" | "Employee" | "Client";
+type UserRole = "Admin" | "Manager" | "Employee" | "Client" | "Student";
 type UserStatus = "Active" | "Pending" | "Suspended";
 
 const headers = { "Cache-Control": "private, no-store" };
@@ -38,6 +38,7 @@ function normalizeRole(value: unknown): UserRole {
   if (role === "admin") return "Admin";
   if (role === "manager") return "Manager";
   if (role === "employee") return "Employee";
+  if (role === "student") return "Student";
   return "Client";
 }
 
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
   if (name.length < 2 || name.length > 120) return json({ error: "Enter a name between 2 and 120 characters." }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return json({ error: "Enter a valid email address." }, 400);
   if (company.length > 160) return json({ error: "Company must be 160 characters or fewer." }, 400);
-  if (!["Admin", "Manager", "Employee", "Client"].includes(String(role))) return json({ error: "Select a valid user role." }, 400);
+  if (!["Admin", "Manager", "Employee", "Client", "Student"].includes(String(role))) return json({ error: "Select a valid user role." }, 400);
 
   try {
     const admin = createAdminClient();
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
       data: {
         full_name: name,
         company,
-        account_type: role === "Client" ? "client" : "employee",
+        account_type: role === "Client" ? "client" : role === "Student" ? "student" : "employee",
       },
       redirectTo: new URL("/login", request.url).toString(),
     });
@@ -162,6 +163,12 @@ export async function POST(request: Request) {
       if (clientError) {
         console.error("[Admin Users API] Client link creation failed:", clientError);
         return json({ error: "The invitation was sent, but the client workspace link could not be created. Review the client record before retrying.", userId: invitedUser.id }, 500);
+      }
+    } else if (role === "Admin") {
+      const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: invitedUser.id }, { onConflict: "user_id" });
+      if (registryError) {
+        console.error("[Admin Users API] Admin registry creation failed:", registryError);
+        return json({ error: "The invitation was sent, but the administrator registry could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
     } else if (role === "Manager" || role === "Employee") {
       const { error: teamError } = await admin.from("team_members").insert({
@@ -206,7 +213,7 @@ export async function PATCH(request: Request) {
 
   const updates: { app_metadata?: Record<string, unknown>; ban_duration?: string } = {};
   if (value.role !== undefined) {
-    if (!["Admin", "Manager", "Employee", "Client"].includes(String(value.role))) return json({ error: "Select a valid user role." }, 400);
+    if (!["Admin", "Manager", "Employee", "Client", "Student"].includes(String(value.role))) return json({ error: "Select a valid user role." }, 400);
     updates.app_metadata = { ...(data.user.app_metadata ?? {}), role: String(value.role).toLowerCase() };
   }
   if (value.status !== undefined) {
@@ -218,6 +225,14 @@ export async function PATCH(request: Request) {
 
   const { data: updated, error } = await admin.auth.admin.updateUserById(id, updates);
   if (error || !updated.user) return json({ error: error?.message || "Could not update the user account." }, 400);
+
+  if (value.role === "Admin") {
+    const { error: registryError } = await admin.from("vexora_admins").upsert({ user_id: id }, { onConflict: "user_id" });
+    if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
+  } else if (value.role !== undefined) {
+    const { error: registryError } = await admin.from("vexora_admins").delete().eq("user_id", id);
+    if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
+  }
 
   return json({
     success: true,
