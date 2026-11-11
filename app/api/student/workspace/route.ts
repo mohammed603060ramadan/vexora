@@ -93,6 +93,15 @@ export async function GET() {
 
   try {
     const admin: AdminDb = createAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await admin
+      .from("profiles")
+      .select("account_type")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "student") {
+      return errorResponse("This workspace is available to student accounts only.", 403);
+    }
 
     const client = await findClientForUser(
       admin,
@@ -306,6 +315,15 @@ export async function PATCH(request: Request) {
 
   try {
     const admin: AdminDb = createAdminClient();
+    const { data: accountProfile, error: accountProfileError } = await admin
+      .from("profiles")
+      .select("account_type")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    if (accountProfileError) throw accountProfileError;
+    if (accountProfile?.account_type !== "student") {
+      return errorResponse("Only student accounts can update student workspace tasks.", 403);
+    }
 
     const { data: task, error: taskError } = await admin
       .from("tasks")
@@ -338,6 +356,14 @@ export async function PATCH(request: Request) {
     if (error) {
       throw error;
     }
+
+    await admin.from("student_activity_logs").insert({
+      user_id: auth.user.id,
+      activity_type: "task_updated",
+      title: "Task status updated",
+      description: `Task status changed to ${status.replaceAll("_", " ")}.`,
+      metadata: { task_id: taskId, status },
+    });
 
     return NextResponse.json(
       { task: data },
