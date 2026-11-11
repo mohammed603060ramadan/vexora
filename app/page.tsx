@@ -671,11 +671,7 @@ export default function Home() {
               About
             </Link>
 
-            {isAuthenticated && (
-              <Link href="/academy" onClick={closeMenu}>
-                Academy
-              </Link>
-            )}
+            <Link href="/academy" onClick={closeMenu}>Academy</Link>
 
             <Link href="/projects" onClick={closeMenu}>
               Projects
@@ -1000,7 +996,6 @@ export default function Home() {
 
       {/* Academy */}
 
-      {isAuthenticated && (
       <section id="academy" className="section page-width academy-section">
         <div className="section-heading reveal">
           <div>
@@ -1073,7 +1068,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-      )}
 
       {/* Registration */}
 
@@ -1431,7 +1425,7 @@ export default function Home() {
           <div className="footer-links">
             <Link href="/services">Services</Link>
             <Link href="/about">About</Link>
-            {isAuthenticated && <Link href="/academy">Academy</Link>}
+            <Link href="/academy">Academy</Link>
             <Link href="/events">Events</Link>
             <Link href="/projects">Projects</Link>
             <Link href="/contact">Contact</Link>
