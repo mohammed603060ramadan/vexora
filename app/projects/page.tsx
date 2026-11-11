@@ -5,12 +5,21 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/browser";
 
+type PublicProjectMedia = {
+  id: string;
+  name: string;
+  mime_type: string;
+  url: string | null;
+};
+
 type PublicProject = {
   id: string;
   title: string;
   description: string | null;
   status: string;
   deadline: string | null;
+  portfolio_category: string | null;
+  media: PublicProjectMedia[];
   show_on_projects_page: boolean;
 };
 
@@ -633,14 +642,15 @@ export default function ProjectsPage() {
   useEffect(() => {
     let active = true;
     async function loadPublishedProjects() {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id,title,description,status,deadline,show_on_projects_page")
-        .eq("show_on_projects_page", true)
-        .in("status", ["in_progress", "completed"])
-        .order("title", { ascending: true })
-        .limit(12);
-      if (active && !error) setPublishedProjects((data ?? []) as unknown as PublicProject[]);
+      try {
+        const response = await fetch("/api/public/projects", { cache: "no-store" });
+        if (!response.ok) throw new Error("Could not load featured projects.");
+        const payload = (await response.json()) as { projects?: PublicProject[] };
+        if (active) setPublishedProjects(payload.projects ?? []);
+      } catch (error) {
+        console.error("Public projects load failed:", error);
+        if (active) setPublishedProjects([]);
+      }
     }
     void loadPublishedProjects();
     return () => { active = false; };
@@ -2370,22 +2380,62 @@ export default function ProjectsPage() {
       </section>
 
       {publishedProjects.length > 0 && (
-        <section className="border-y border-white/[0.07] bg-[#080d14]">
-          <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-24">
-            <span className="section-label">03 / FEATURED WORK</span>
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#e6f1fb] sm:text-4xl">Selected VEXORA projects</h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7e8ea1]">A selection of projects approved by the VEXORA team for public display.</p>
-            <div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {publishedProjects.map((project) => (
-                <article key={project.id} className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 transition hover:border-blue-400/30">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full border border-blue-400/20 bg-blue-400/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.15em] text-blue-200">{project.status.replaceAll("_", " ")}</span>
-                    {project.deadline && <span className="text-xs text-slate-500">Target: {project.deadline}</span>}
-                  </div>
-                  <h3 className="mt-5 text-xl font-semibold text-white">{project.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">{project.description || "Project details will be shared soon."}</p>
-                </article>
-              ))}
+        <section className="relative overflow-hidden border-y border-white/[0.07] bg-[#070c13]">
+          <div className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 15% 0%, rgba(22,135,255,.14), transparent 35%), radial-gradient(circle at 90% 100%, rgba(69,165,255,.08), transparent 32%)" }} />
+          <div className="relative mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-24">
+            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+              <div>
+                <span className="section-label">03 / FEATURED WORK</span>
+                <h2 className="mt-5 text-3xl font-bold tracking-tight text-[#e6f1fb] sm:text-4xl">Selected VEXORA projects</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#7e8ea1]">Real work selected by the VEXORA team — with project media, progress, and details.</p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/[0.06] px-4 py-2 font-mono text-[10px] tracking-[.12em] text-blue-200">
+                <i className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.8)]" />
+                {publishedProjects.length} PUBLISHED PROJECT{publishedProjects.length === 1 ? "" : "S"}
+              </span>
+            </div>
+            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {publishedProjects.map((project, index) => {
+                const cover = project.media?.[0];
+                const isVideo = cover?.mime_type?.startsWith("video/");
+                return (
+                  <article key={project.id} className="group overflow-hidden rounded-[22px] border border-white/[0.09] bg-[#0b121d]/90 shadow-[0_18px_55px_rgba(0,0,0,.22)] transition duration-300 hover:-translate-y-1 hover:border-blue-400/35 hover:shadow-[0_24px_70px_rgba(0,80,180,.14)]">
+                    <div className="relative aspect-[16/10] overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_40%,rgba(22,135,255,.18),transparent_60%),#080d16]">
+                      {cover?.url ? (
+                        isVideo ? (
+                          <video src={cover.url} controls preload="metadata" playsInline className="h-full w-full object-cover" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover.url} alt={cover.name || project.title} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.045]" />
+                        )
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center gap-3 text-blue-200/60">
+                          <span className="font-mono text-[10px] tracking-[.2em]">VEXORA / PROJECT {String(index + 1).padStart(2, "0")}</span>
+                          <div className="grid h-16 w-16 place-items-center rounded-2xl border border-blue-300/20 bg-blue-400/[0.07] text-2xl">✦</div>
+                          <span className="text-xs text-slate-500">{project.portfolio_category || "Technology project"}</span>
+                        </div>
+                      )}
+                      <div className="absolute left-4 top-4 rounded-full border border-blue-300/25 bg-[#050a12]/85 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[.13em] text-blue-100 backdrop-blur">
+                        {project.status.replaceAll("_", " ")}
+                      </div>
+                      {project.media?.length > 1 && (
+                        <span className="absolute bottom-4 right-4 rounded-full border border-white/15 bg-black/65 px-3 py-1.5 text-[10px] text-white backdrop-blur">
+                          +{project.media.length - 1} media
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="font-mono text-[9px] uppercase tracking-[.16em] text-blue-300/75">{project.portfolio_category || "VEXORA PROJECT"}</div>
+                      <h3 className="mt-3 text-xl font-semibold leading-snug text-white">{project.title}</h3>
+                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-400">{project.description || "Project details will be shared soon."}</p>
+                      <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-4 text-xs text-slate-500">
+                        <span>{project.deadline ? `Target: ${project.deadline}` : "VEXORA selected work"}</span>
+                        <span className="inline-flex items-center gap-2 font-semibold text-blue-200 transition group-hover:gap-3">Project overview <ArrowUpRight /></span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
         </section>
