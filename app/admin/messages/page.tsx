@@ -174,11 +174,7 @@ export default function AdminMessagesPage() {
     }
   }
 
-  async function archiveMessage(id: string) {
-    if (!window.confirm("Archive this inquiry? The original record will be preserved.")) return;
-    await updateMessage(id, { status: "Archived" });
-    if (selectedId === id) setSelectedId(null);
-  }
+
 
   async function createMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
