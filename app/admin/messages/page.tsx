@@ -251,7 +251,7 @@ export default function AdminMessagesPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400"
             >
               <span className="text-lg leading-none">+</span>
-              Add test message
+              Compose message
             </button>
           </div>
         </header>
@@ -379,7 +379,7 @@ export default function AdminMessagesPage() {
               </div>
               <h3 className="mt-5 font-medium">No messages found</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try changing your search or filters, or add a test message.
+                Try changing your search or filters, or compose a message.
               </p>
               <button
                 type="button"
@@ -690,7 +690,7 @@ export default function AdminMessagesPage() {
                   Workspace tools
                 </p>
                 <h2 id="compose-title" className="mt-2 text-xl font-semibold">
-                  Add test message
+                  Compose message
                 </h2>
               </div>
               <button
@@ -777,7 +777,7 @@ export default function AdminMessagesPage() {
                     setCompose({ ...compose, message: event.target.value })
                   }
                   className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60"
-                  placeholder="Write the test message..."
+                  placeholder="Write the message..."
                 />
               </label>
 
@@ -811,7 +811,7 @@ export default function AdminMessagesPage() {
                   type="submit"
                   className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400"
                 >
-                  Add test message
+                  Compose message
                 </button>
               </div>
             </form>
