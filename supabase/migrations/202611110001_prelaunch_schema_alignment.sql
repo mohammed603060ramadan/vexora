@@ -43,6 +43,12 @@ CREATE INDEX IF NOT EXISTS contracts_created_at_idx
 CREATE INDEX IF NOT EXISTS contracts_status_idx
   ON public.contracts (status);
 
+CREATE INDEX IF NOT EXISTS contracts_client_id_idx
+  ON public.contracts (client_id);
+
+CREATE INDEX IF NOT EXISTS contracts_project_id_idx
+  ON public.contracts (project_id);
+
 ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS contracts_admin_read ON public.contracts;
@@ -75,6 +81,12 @@ CREATE INDEX IF NOT EXISTS quotations_created_at_idx
 
 CREATE INDEX IF NOT EXISTS quotations_status_idx
   ON public.quotations (status);
+
+CREATE INDEX IF NOT EXISTS quotations_client_id_idx
+  ON public.quotations (client_id);
+
+CREATE INDEX IF NOT EXISTS quotations_request_id_idx
+  ON public.quotations (request_id);
 
 ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 
