@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 ﻿
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -39,18 +40,6 @@ function validOrigin(request: Request) {
     return new URL(origin).origin === new URL(request.url).origin;
   } catch {
     return false;
-  }
-}
-
-async function readJsonBody(request: Request, maxBytes = 10_000): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (raw.length > maxBytes) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
   }
 }
 
