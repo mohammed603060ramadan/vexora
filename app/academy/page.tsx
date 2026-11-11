@@ -22,8 +22,6 @@ type Course = {
   description: string;
   topics: string[];
   isOffline?: boolean;
-  price?: number | null;
-  currency?: string | null;
   promoVideoUrl?: string | null;
 };
 
@@ -362,13 +360,13 @@ export default function AcademyPage() {
     async function loadPublishedCourses() {
       let { data, error: queryError } = await supabase
         .from("courses")
-        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency,cover_image_url,promo_video_url")
+        .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,cover_image_url,promo_video_url")
         .eq("status", "published")
         .order("created_at", { ascending: false });
       if (queryError && /cover_image_url|promo_video_url|column .* does not exist|schema cache/i.test(queryError.message)) {
         const fallback = await supabase
           .from("courses")
-          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at,price,currency")
+          .select("id,title,slug,description,category,difficulty,course_type,estimated_hours,status,created_at")
           .eq("status", "published")
           .order("created_at", { ascending: false });
         data = (fallback.data ?? []).map((row) => ({ ...row, cover_image_url: null, promo_video_url: null }));
@@ -1327,7 +1325,7 @@ export default function AcademyPage() {
           )}
 
           <p className="mt-6 text-xs leading-5 text-gray-600">
-            Online courses published by VEXORA display their configured price and preview media. Full course content is unlocked only after an administrator approves access.
+            Every VEXORA Academy course is free. Sign in, enroll directly, and start learning without purchase codes or payment steps.
           </p>
         </section>
 
@@ -1685,8 +1683,7 @@ export default function AcademyPage() {
                     Registration received
                   </h2>
                   <p className="mx-auto mt-3 max-w-md leading-7 text-gray-400">
-                    Form validation worked successfully. This is a local
-                    demonstration only: your details were not sent or saved.
+                    Your free training registration has been sent to the VEXORA Academy team. We will contact you with the next steps.
                   </p>
                   <button
                     type="button"
