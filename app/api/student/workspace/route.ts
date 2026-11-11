@@ -20,7 +20,6 @@ type ProjectRow = {
   description: string | null;
   status: string | null;
   deadline: string | null;
-  progress_percent: number | null;
   client_id: string | null;
 };
 
@@ -73,21 +72,11 @@ async function findClientForUser(admin: AdminDb, userId: string) {
     return byAuthUser.data;
   }
 
-  const byLegacyUser = await admin
-    .from("clients")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (byLegacyUser.error) {
-    if (byAuthUser.error) {
-      throw byAuthUser.error;
-    }
-
-    throw byLegacyUser.error;
+  if (byAuthUser.error) {
+    throw byAuthUser.error;
   }
 
-  return byLegacyUser.data;
+  return byAuthUser.data;
 }
 
 export async function GET() {
@@ -116,7 +105,7 @@ export async function GET() {
           ? admin
               .from("projects")
               .select(
-                "id,title,description,status,deadline,progress_percent,client_id"
+                "id,title,description,status,deadline,client_id"
               )
               .eq("client_id", client.id)
               .order("created_at", { ascending: false })
@@ -182,7 +171,7 @@ export async function GET() {
       ? await admin
           .from("projects")
           .select(
-            "id,title,description,status,deadline,progress_percent,client_id"
+            "id,title,description,status,deadline,client_id"
           )
           .in("id", projectIds)
       : { data: [], error: null };
@@ -209,15 +198,34 @@ export async function GET() {
       )
     );
 
+    const tasksByProject = new Map<string, TaskRow[]>();
+    for (const task of tasks) {
+      if (!task.project_id) continue;
+      const projectTasks = tasksByProject.get(task.project_id) ?? [];
+      projectTasks.push(task);
+      tasksByProject.set(task.project_id, projectTasks);
+    }
+
     const projects = projectIds
       .map((id) => projectById.get(id))
       .filter(
         (item): item is ProjectRow => item !== undefined
       )
-      .map((item) => ({
-        ...item,
-        title: item.title || "Project",
-      }));
+      .map((item) => {
+        const projectTasks = tasksByProject.get(item.id) ?? [];
+        const completedTasks = projectTasks.filter(
+          (task) => task.status === "completed"
+        ).length;
+        const progress = projectTasks.length > 0
+          ? Math.round((completedTasks / projectTasks.length) * 100)
+          : item.status === "completed" ? 100 : 0;
+
+        return {
+          ...item,
+          title: item.title || "Project",
+          progress_percent: progress,
+        };
+      });
 
     return NextResponse.json(
       {
