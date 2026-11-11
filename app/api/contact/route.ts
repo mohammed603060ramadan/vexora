@@ -21,6 +21,16 @@ function cleanText(value: unknown, maxLength: number): string {
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
+      return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.toLowerCase().includes("application/json")) {
