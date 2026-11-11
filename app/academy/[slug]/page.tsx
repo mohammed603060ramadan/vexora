@@ -126,7 +126,7 @@ function CourseDetailsContent() {
         const { data: courseData, error: courseError } = await supabase
           .from("courses")
           .select(
-            "id, title, slug, description, difficulty, course_type, estimated_hours"
+            "id, title, slug, description, difficulty, course_type, estimated_hours, price, currency, cover_image_url, promo_video_url"
           )
           .eq("slug", slug)
           .eq("status", "published")
@@ -171,11 +171,11 @@ function CourseDetailsContent() {
           description: courseData.description,
           difficulty: courseData.difficulty,
           course_type: courseData.course_type,
-          price: null,
-          currency: null,
+          price: courseData.price ?? null,
+          currency: courseData.currency ?? null,
           estimated_hours: courseData.estimated_hours,
-          cover_image_url: null,
-          promo_video_url: null,
+          cover_image_url: courseData.cover_image_url ?? null,
+          promo_video_url: courseData.promo_video_url ?? null,
         };
 
         setCourse(normalizedCourse);
