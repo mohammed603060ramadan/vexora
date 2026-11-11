@@ -655,6 +655,10 @@ export default function Home() {
               Events
             </Link>
 
+            <Link href="/consultation" onClick={closeMenu}>
+              Free consultation
+            </Link>
+
             <Link href="/contact" onClick={closeMenu}>
               Contact
             </Link>
@@ -668,7 +672,7 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/contact"
+              href="/consultation"
               className="button button-small"
               onClick={closeMenu}
             >
