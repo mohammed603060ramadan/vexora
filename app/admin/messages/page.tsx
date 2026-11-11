@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type MessageStatus = "Unread" | "Read" | "Archived";
 type MessagePriority = "Normal" | "Important" | "Urgent";
@@ -19,47 +19,7 @@ type MessageItem = {
   company: string;
 };
 
-const initialMessages: MessageItem[] = [
-  {
-    id: "MSG-1001",
-    name: "Ahmed Hassan",
-    email: "ahmed@example.com",
-    subject: "Website Development Inquiry",
-    message:
-      "Hello VEXORA team, we are looking to build a modern company website with a content management system. Please contact us to discuss the scope, estimated timeline, and pricing.",
-    date: "2026-10-19T09:30:00",
-    status: "Unread",
-    priority: "Important",
-    starred: true,
-    company: "Hassan Group",
-  },
-  {
-    id: "MSG-1002",
-    name: "Sarah Mohamed",
-    email: "sarah@example.com",
-    subject: "Cybersecurity Assessment",
-    message:
-      "We would like to learn more about your cybersecurity assessment services for our business network and internal systems. Please share the next steps.",
-    date: "2026-10-18T14:15:00",
-    status: "Unread",
-    priority: "Urgent",
-    starred: false,
-    company: "Nile Solutions",
-  },
-  {
-    id: "MSG-1003",
-    name: "Omar Ali",
-    email: "omar@example.com",
-    subject: "Data Analytics Partnership",
-    message:
-      "Our team is exploring analytics dashboards and reporting automation. We would appreciate a short introduction to your services.",
-    date: "2026-10-17T11:45:00",
-    status: "Read",
-    priority: "Normal",
-    starred: false,
-    company: "Orbit Business",
-  },
-];
+const initialMessages: MessageItem[] = [];
 
 const statusStyles: Record<MessageStatus, string> = {
   Unread: "border-blue-400/25 bg-blue-400/10 text-blue-300",
@@ -94,6 +54,8 @@ function initials(name: string) {
 
 export default function AdminMessagesPage() {
   const [messages, setMessages] = useState<MessageItem[]>(initialMessages);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -151,61 +113,134 @@ export default function AdminMessagesPage() {
       );
   }, [messages, search, statusFilter, priorityFilter]);
 
-  function updateMessage(id: string, updates: Partial<MessageItem>) {
-    setMessages((current) =>
-      current.map((message) =>
-        message.id === id ? { ...message, ...updates } : message,
-      ),
-    );
+  const loadMessages = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/messages", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not load messages.");
+      const rows = Array.isArray(result.messages) ? result.messages : [];
+      setMessages(rows.map((item: {
+        id: string; full_name: string; email: string | null; service: string | null;
+        message: string | null; company: string | null; created_at: string;
+        status: string; priority: string;
+      }): MessageItem => ({
+        id: item.id,
+        name: item.full_name,
+        email: item.email || "",
+        subject: item.service || "Website inquiry",
+        message: item.message || "",
+        date: item.created_at,
+        status: item.status === "new" ? "Unread" : item.status === "closed" ? "Archived" : "Read",
+        priority: item.priority === "urgent" ? "Urgent" : item.priority === "high" ? "Important" : "Normal",
+        starred: ["urgent", "high"].includes(item.priority),
+        company: item.company || "Not provided",
+      })));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not load messages.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchInitialMessages() {
+      try {
+        const response = await fetch("/api/admin/messages", { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not load messages.");
+        const rows = Array.isArray(result.messages) ? result.messages : [];
+        const mapped: MessageItem[] = rows.map((item: {
+          id: string; full_name: string; email: string | null; service: string | null;
+          message: string | null; company: string | null; created_at: string;
+          status: string; priority: string;
+        }) => ({
+          id: item.id,
+          name: item.full_name,
+          email: item.email || "",
+          subject: item.service || "Website inquiry",
+          message: item.message || "",
+          date: item.created_at,
+          status: item.status === "new" ? "Unread" : item.status === "closed" ? "Archived" : "Read",
+          priority: item.priority === "urgent" ? "Urgent" : item.priority === "high" ? "Important" : "Normal",
+          starred: ["urgent", "high"].includes(item.priority),
+          company: item.company || "Not provided",
+        }));
+        if (!cancelled) setMessages(mapped);
+      } catch (error) {
+        if (!cancelled) setNotice(error instanceof Error ? error.message : "Could not load messages.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void fetchInitialMessages();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function updateMessage(id: string, updates: Partial<MessageItem>) {
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not update this message.");
+      await loadMessages();
+      setNotice("Message updated successfully.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update this message.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openMessage(message: MessageItem) {
     setSelectedId(message.id);
     if (message.status === "Unread") {
-      updateMessage(message.id, { status: "Read" });
+      void updateMessage(message.id, { status: "Read" });
     }
   }
 
-  function deleteMessage(id: string) {
-    if (!window.confirm("Delete this message permanently from this page?")) {
-      return;
-    }
 
-    setMessages((current) => current.filter((message) => message.id !== id));
-    if (selectedId === id) setSelectedId(null);
-    setNotice("Message removed from the current page.");
-  }
 
-  function createMessage(event: React.FormEvent<HTMLFormElement>) {
+  async function createMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const newMessage: MessageItem = {
-      id: `MSG-${Date.now()}`,
-      name: compose.name.trim(),
-      email: compose.email.trim(),
-      subject: compose.subject.trim(),
-      message: compose.message.trim(),
-      company: compose.company.trim() || "Not provided",
-      date: new Date().toISOString(),
-      status: "Unread",
-      priority: compose.priority,
-      starred: false,
-    };
-
-    setMessages((current) => [newMessage, ...current]);
-    setCompose({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-      company: "",
-      priority: "Normal",
-    });
-    setShowCompose(false);
-    setStatusFilter("All");
-    setPriorityFilter("All");
-    setSearch("");
-    setNotice("Test message added to the current page.");
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(compose),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save this message.");
+      setCompose({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+        company: "",
+        priority: "Normal",
+      });
+      setShowCompose(false);
+      setStatusFilter("All");
+      setPriorityFilter("All");
+      setSearch("");
+      await loadMessages();
+      setNotice("Message saved to the VEXORA inquiries database.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not save this message.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function clearNotice() {
@@ -246,7 +281,7 @@ export default function AdminMessagesPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400"
             >
               <span className="text-lg leading-none">+</span>
-              Add test message
+              Add inquiry
             </button>
           </div>
         </header>
@@ -365,14 +400,16 @@ export default function AdminMessagesPage() {
             </div>
           </div>
 
-          {filteredMessages.length === 0 ? (
+          {loading ? (
+            <div className="px-6 py-20 text-center text-sm text-slate-400">Loading live inquiries...</div>
+          ) : filteredMessages.length === 0 ? (
             <div className="px-6 py-20 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-2xl text-slate-400">
                 ✉
               </div>
               <h3 className="mt-5 font-medium">No messages found</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try changing your search or filters, or add a test message.
+                Try changing your search or filters, or add an inquiry.
               </p>
               <button
                 type="button"
@@ -399,7 +436,7 @@ export default function AdminMessagesPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        updateMessage(message.id, {
+                        void updateMessage(message.id, {
                           starred: !message.starred,
                         })
                       }
@@ -493,13 +530,6 @@ export default function AdminMessagesPage() {
                     >
                       {message.status === "Archived" ? "Restore" : "Archive"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteMessage(message.id)}
-                      className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-rose-400/30 hover:text-rose-300"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </article>
               ))}
@@ -516,7 +546,7 @@ export default function AdminMessagesPage() {
 
         <footer className="flex flex-col gap-2 border-t border-white/[0.06] pt-5 text-xs leading-5 text-slate-600 sm:flex-row sm:justify-between">
           <p>VEXORA Admin · Messages workspace</p>
-          <p>Demo data only · Changes reset when this page is refreshed</p>
+          <p>Live data from VEXORA inquiries · Updates are saved to Supabase</p>
         </footer>
       </div>
 
@@ -634,7 +664,7 @@ export default function AdminMessagesPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    updateMessage(selectedMessage.id, {
+                    void updateMessage(selectedMessage.id, {
                       starred: !selectedMessage.starred,
                     })
                   }
@@ -683,7 +713,7 @@ export default function AdminMessagesPage() {
                   Workspace tools
                 </p>
                 <h2 id="compose-title" className="mt-2 text-xl font-semibold">
-                  Add test message
+                  Add inquiry
                 </h2>
               </div>
               <button
@@ -770,7 +800,7 @@ export default function AdminMessagesPage() {
                     setCompose({ ...compose, message: event.target.value })
                   }
                   className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60"
-                  placeholder="Write the test message..."
+                  placeholder="Write the inquiry details..."
                 />
               </label>
 
@@ -802,9 +832,10 @@ export default function AdminMessagesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400"
+                  disabled={saving}
+                  className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-60"
                 >
-                  Add test message
+                  {saving ? "Saving..." : "Add inquiry"}
                 </button>
               </div>
             </form>

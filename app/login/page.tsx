@@ -34,6 +34,13 @@ export default function LoginPage() {
       throw userError ?? new Error("Please sign in again.");
     }
 
+    // Route trusted administrators before handling ordinary user redirects.
+    if (user.app_metadata?.role === "admin") {
+      router.replace("/admin");
+      router.refresh();
+      return;
+    }
+
     const requestedNext = new URLSearchParams(
       window.location.search
     ).get("next");
@@ -52,22 +59,6 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (clientError) {
-      throw clientError;
-    }
-
-    if (client) {
-      router.replace("/client");
-      router.refresh();
-      return;
-    }
-
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("account_type")
@@ -80,10 +71,11 @@ export default function LoginPage() {
 
     if (profile?.account_type === "student") {
       router.replace("/student");
-    } else {
-      router.replace("/client");
+      router.refresh();
+      return;
     }
 
+    router.replace("/client");
     router.refresh();
   }, [router]);
 

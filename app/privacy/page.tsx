@@ -35,7 +35,7 @@ const WHATSAPP_BASE_URL = "https://wa.me/201115449868";
 
 function createWhatsAppUrl(serviceName: string) {
   const message = encodeURIComponent(
-    `مرحبًا VEXORA، أريد الاستفسار عن خدمة ${serviceName}.`
+    `Hello VEXORA, I would like to inquire about the ${serviceName} service.`
   );
 
   return `${WHATSAPP_BASE_URL}?text=${message}`;
@@ -144,29 +144,29 @@ const services: Service[] = [
     id: "software",
     short: "Software",
     title: "Software Development",
-    subtitle: "نحوّل الفكرة إلى منتج رقمي قابل للنمو",
+    subtitle: "We turn ideas into scalable digital products",
     description:
-      "في VEXORA بنساعد الشركات على بناء أنظمة ومواقع ومنصات رقمية مصممة حول احتياجات العمل الفعلية، من مرحلة تحليل الفكرة وحتى الإطلاق والتطوير المستمر.",
+      "At VEXORA, we help businesses build digital systems, websites, and platforms around real business needs—from idea analysis through launch and continuous development.",
     capabilities: [
-      "تطوير مواقع ومنصات ويب حديثة وسريعة.",
-      "أنظمة إدارة داخلية ولوحات تحكم مخصصة.",
-      "تطبيقات وخدمات رقمية مرتبطة بقواعد البيانات والـ APIs.",
-      "تصميم معماري قابل للتوسع مع نمو المشروع.",
-      "ربط الأنظمة والخدمات الخارجية بطريقة منظمة.",
-      "تحسين الأداء وتجربة المستخدم والاستجابة لجميع الشاشات.",
+      "Developing modern, high-performance websites and web platforms.",
+      "Building internal management systems and custom dashboards.",
+      "Creating applications and digital services connected to databases and APIs.",
+      "Designing scalable architectures that grow with your project.",
+      "Integrating external systems and services in a structured way.",
+      "Improving performance, user experience, and responsiveness across all screen sizes.",
     ],
     problems: [
-      "موقع قديم أو بطيء لا يعكس مستوى الشركة.",
-      "عمليات العمل اليدوية التي تستهلك وقت الفريق.",
-      "أنظمة منفصلة تحتاج إلى الربط مع بعضها.",
-      "صعوبة تطوير المنتج بسبب بنية تقنية غير منظمة.",
+      "An outdated or slow website that does not reflect the company's standards.",
+      "Manual workflows that consume the team's time.",
+      "Disconnected systems that need to work together.",
+      "Difficulty evolving a product because of an unstructured technical architecture.",
     ],
     process: [
-      "فهم احتياجات المشروع والأهداف التجارية.",
-      "تحديد البنية والتقنيات المناسبة.",
-      "تصميم تجربة الاستخدام والواجهات.",
-      "التطوير والاختبار بشكل تدريجي.",
-      "الإطلاق والمتابعة والتحسين المستمر.",
+      "Understanding the project's needs and business objectives.",
+      "Selecting the right architecture and technologies.",
+      "Designing the user experience and interfaces.",
+      "Developing and testing in iterative stages.",
+      "Launching, monitoring, and continuously improving the product.",
     ],
     route: "/services/software-development",
     accent: {
@@ -180,29 +180,29 @@ const services: Service[] = [
     id: "security",
     short: "Cybersecurity",
     title: "Cybersecurity",
-    subtitle: "نساعدك تحمي الأنظمة والبيانات والبنية الرقمية",
+    subtitle: "Protecting your systems, data, and digital infrastructure",
     description:
-      "الأمن السيبراني بالنسبة لنا جزء أساسي من بناء التكنولوجيا، وليس إضافة في آخر المشروع. نساعدك على تقليل المخاطر وتحسين حماية الحسابات والأنظمة والبيانات.",
+      "Cybersecurity is a fundamental part of how we build technology, not an afterthought. We help reduce risks and strengthen the protection of your accounts, systems, and data.",
     capabilities: [
-      "مراجعة نقاط الضعف والمخاطر في الأنظمة.",
-      "تحسين آليات تسجيل الدخول والصلاحيات والوصول.",
-      "تصميم سياسات وصول مناسبة لكل نوع مستخدم.",
-      "حماية APIs والبيانات الحساسة.",
-      "مراجعة إعدادات قواعد البيانات وRow Level Security.",
-      "المساعدة في وضع أساس أمني للمشاريع الجديدة.",
+      "Assessing system vulnerabilities and risks.",
+      "Strengthening authentication, permissions, and access controls.",
+      "Designing access policies suited to each user type.",
+      "Protecting APIs and sensitive data.",
+      "Reviewing database configuration and Row Level Security (RLS).",
+      "Establishing a security foundation for new projects.",
     ],
     problems: [
-      "صلاحيات مستخدمين أوسع من المطلوب.",
-      "تخزين أو التعامل غير الآمن مع البيانات الحساسة.",
-      "واجهات API غير محمية بالشكل الكافي.",
-      "غياب تصور واضح لمن يستطيع الوصول لكل جزء من النظام.",
+      "User permissions that are broader than necessary.",
+      "Unsafe storage or handling of sensitive data.",
+      "APIs that are not adequately protected.",
+      "No clear view of who can access each part of the system.",
     ],
     process: [
-      "فهم النظام والأصول الرقمية المهمة.",
-      "تحديد نقاط الدخول والصلاحيات والمخاطر.",
-      "مراجعة البنية والتدفقات الحساسة.",
-      "اقتراح وتنفيذ التحسينات الأمنية.",
-      "اختبار ومراجعة النتائج بشكل مستمر.",
+      "Understanding the system and its critical digital assets.",
+      "Identifying entry points, permissions, and risks.",
+      "Reviewing the architecture and sensitive data flows.",
+      "Recommending and implementing security improvements.",
+      "Continuously testing and reviewing the results.",
     ],
     route: "/services/cybersecurity",
     accent: {
@@ -216,29 +216,29 @@ const services: Service[] = [
     id: "network",
     short: "Networks",
     title: "Networks & Infrastructure",
-    subtitle: "بنية تقنية مستقرة وقابلة للاعتماد",
+    subtitle: "Stable, dependable technology infrastructure",
     description:
-      "نساعد الشركات في تنظيم البنية التحتية والاتصالات والأنظمة التي تعتمد عليها العمليات اليومية، مع التركيز على الاستقرار والأمان وقابلية التوسع.",
+      "We help businesses organize the infrastructure, connectivity, and systems that support daily operations, with a focus on stability, security, and scalability.",
     capabilities: [
-      "تصميم وتنظيم الشبكات والبنية التحتية.",
-      "مراجعة توزيع الأنظمة والخدمات.",
-      "تحسين الاتصال والاعتمادية.",
-      "تنظيم الوصول بين مكونات البنية التقنية.",
-      "المساعدة في بيئات السيرفرات والخدمات السحابية.",
-      "مراقبة الأداء وتحديد نقاط الاختناق.",
+      "Designing and organizing networks and infrastructure.",
+      "Reviewing how systems and services are distributed.",
+      "Improving connectivity and reliability.",
+      "Managing access between infrastructure components.",
+      "Supporting server environments and cloud services.",
+      "Monitoring performance and identifying bottlenecks.",
     ],
     problems: [
-      "انقطاع متكرر أو ضعف في الاتصال.",
-      "بنية تقنية غير منظمة.",
-      "صعوبة معرفة سبب مشاكل الشبكة.",
-      "عدم وجود تصور واضح للتوسع المستقبلي.",
+      "Frequent outages or unreliable connectivity.",
+      "Disorganized technology infrastructure.",
+      "Difficulty identifying the cause of network issues.",
+      "No clear plan for future growth.",
     ],
     process: [
-      "تحليل البيئة الحالية.",
-      "تحديد المتطلبات ونقاط الضعف.",
-      "تصميم البنية المقترحة.",
-      "التنفيذ والتنظيم.",
-      "المراقبة والتحسين.",
+      "Assessing the current environment.",
+      "Identifying requirements and weaknesses.",
+      "Designing the proposed architecture.",
+      "Implementing and organizing the solution.",
+      "Monitoring and optimization.",
     ],
     route: "/services/networks-infrastructure",
     accent: {
@@ -252,29 +252,29 @@ const services: Service[] = [
     id: "analytics",
     short: "Analytics",
     title: "Data Analytics",
-    subtitle: "نحوّل البيانات إلى قرارات أوضح",
+    subtitle: "Turning data into clearer decisions",
     description:
-      "البيانات الموجودة داخل الشركة يمكن أن تكون مصدرًا قويًا لاتخاذ القرار. نساعدك في تنظيم البيانات وتحليلها وعرض المؤشرات المهمة بطريقة تساعد الإدارة والفريق.",
+      "The data already inside your business can be a powerful decision-making asset. We help organize and analyze it, then present the key metrics in ways that support management and teams.",
     capabilities: [
-      "تجميع وتنظيم البيانات من مصادر مختلفة.",
-      "لوحات معلومات ومؤشرات أداء مخصصة.",
-      "تحليل الاتجاهات والنتائج.",
-      "تقارير تساعد الإدارة على اتخاذ القرار.",
-      "ربط البيانات بالعمليات اليومية.",
-      "تحسين جودة البيانات قبل الاعتماد عليها.",
+      "Collecting and organizing data from multiple sources.",
+      "Building custom dashboards and performance indicators.",
+      "Analyzing trends and results.",
+      "Creating reports that support management decisions.",
+      "Connecting data to day-to-day operations.",
+      "Improving data quality before using it for decisions.",
     ],
     problems: [
-      "بيانات كثيرة بدون صورة واضحة.",
-      "تقارير يدوية تستغرق وقتًا طويلًا.",
-      "صعوبة متابعة مؤشرات الأداء.",
-      "قرارات تعتمد على التخمين بدل الأرقام.",
+      "Large amounts of data without a clear overview.",
+      "Manual reports that take too much time.",
+      "Difficulty tracking performance indicators.",
+      "Decisions based on guesswork instead of evidence.",
     ],
     process: [
-      "تحديد الأسئلة التي تحتاج الشركة للإجابة عنها.",
-      "تحديد مصادر البيانات.",
-      "تنظيف وتنظيم البيانات.",
-      "بناء المؤشرات والتقارير.",
-      "تحويل النتائج إلى قرارات قابلة للتنفيذ.",
+      "Identifying the questions the business needs to answer.",
+      "Identifying data sources.",
+      "Cleaning and structuring the data.",
+      "Building metrics and reports.",
+      "Turning findings into actionable decisions.",
     ],
     route: "/services/data-analytics",
     accent: {
@@ -288,29 +288,29 @@ const services: Service[] = [
     id: "marketing",
     short: "Marketing",
     title: "Digital Marketing",
-    subtitle: "نربط الحضور الرقمي بأهداف العمل",
+    subtitle: "Connecting your digital presence to business goals",
     description:
-      "التسويق الرقمي الناجح مش مجرد نشر محتوى. نساعدك في بناء حضور رقمي منظم وربطه بأهداف واضحة مثل الوصول والعملاء والتحويلات والنمو.",
+      "Successful digital marketing is more than publishing content. We help build a structured digital presence tied to clear goals such as reach, leads, conversions, and growth.",
     capabilities: [
-      "استراتيجية حضور رقمي مناسبة لطبيعة الشركة.",
-      "تحسين المحتوى والرسائل الرقمية.",
-      "تحليل أداء القنوات الرقمية.",
-      "تحسين صفحات الخدمات والمنتجات.",
-      "تنظيم الحملات الرقمية ومؤشرات قياسها.",
-      "ربط التسويق بالبيانات والنتائج.",
+      "A digital presence strategy tailored to your business.",
+      "Improving content and digital messaging.",
+      "Analyzing the performance of digital channels.",
+      "Optimizing service and product pages.",
+      "Managing digital campaigns and their performance metrics.",
+      "Connecting marketing activity to data and results.",
     ],
     problems: [
-      "وجود رقمي بدون استراتيجية واضحة.",
-      "محتوى لا يعكس قيمة الشركة.",
-      "صعوبة قياس نتيجة الحملات.",
-      "زيارات كثيرة بدون نتائج تجارية واضحة.",
+      "A digital presence without a clear strategy.",
+      "Content that does not communicate the company's value.",
+      "Difficulty measuring campaign results.",
+      "High traffic without clear business outcomes.",
     ],
     process: [
-      "فهم السوق والجمهور المستهدف.",
-      "تحديد الأهداف والمؤشرات.",
-      "بناء الرسائل والمحتوى.",
-      "تنفيذ وتحليل الحملات.",
-      "التحسين اعتمادًا على النتائج.",
+      "Understanding the market and target audience.",
+      "Defining objectives and KPIs.",
+      "Developing messaging and content.",
+      "Executing and analyzing campaigns.",
+      "Optimizing based on results.",
     ],
     route: "/services/digital-marketing",
     accent: {
@@ -324,29 +324,29 @@ const services: Service[] = [
     id: "technology",
     short: "Integration",
     title: "Integrated Technology",
-    subtitle: "حل تقني متكامل بدل حلول منفصلة",
+    subtitle: "An integrated technology solution instead of disconnected tools",
     description:
-      "أحيانًا المشكلة ليست في خدمة واحدة، ولكن في عدم اتصال أجزاء المنظومة ببعضها. هنا بنساعدك في تصميم حل يجمع البرمجيات والبيانات والأمان والبنية التحتية في منظومة واحدة.",
+      "Sometimes the challenge is not a single service, but disconnected parts of the same operation. We help design an integrated solution that brings software, data, security, and infrastructure together.",
     capabilities: [
-      "ربط أنظمة الشركة مع بعضها.",
-      "تصميم حلول تجمع أكثر من تخصص تقني.",
-      "تنظيم تدفق البيانات بين الأنظمة.",
-      "تحسين العمليات الرقمية الداخلية.",
-      "تصميم حلول قابلة للتوسع.",
-      "توحيد تجربة المستخدم عبر الأنظمة المختلفة.",
+      "Connecting your business systems.",
+      "Designing solutions that combine multiple technology disciplines.",
+      "Organizing data flows between systems.",
+      "Improving internal digital processes.",
+      "Designing scalable solutions.",
+      "Creating a consistent user experience across different systems.",
     ],
     problems: [
-      "أنظمة كثيرة لا تتحدث مع بعضها.",
-      "تكرار إدخال البيانات.",
-      "عمليات داخلية معقدة.",
-      "صعوبة التوسع بسبب حلول منفصلة.",
+      "Multiple systems that do not communicate with one another.",
+      "Repeated manual data entry.",
+      "Complex internal workflows.",
+      "Difficulty scaling because solutions are disconnected.",
     ],
     process: [
-      "تحليل الصورة الكاملة للمنظومة.",
-      "تحديد الأنظمة ومصادر البيانات.",
-      "تحديد نقاط الربط والتكامل.",
-      "بناء الحل واختباره.",
-      "المراقبة والتطوير مع نمو الشركة.",
+      "Assessing the entire technology environment.",
+      "Identifying systems and data sources.",
+      "Identifying integration and connection points.",
+      "Building and testing the solution.",
+      "Monitoring and evolving the solution as the business grows.",
     ],
     route: "/services/software-development",
     accent: {
@@ -469,9 +469,9 @@ export default function PrivacyPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-            استكشف المجالات التقنية التي تستطيع VEXORA مساعدتك فيها، واختر
-            المجال من القائمة الجانبية لمعرفة الخدمات والحلول التي يمكننا
-            تقديمها.
+            Explore the technology areas where VEXORA can help. Choose
+            an area from the sidebar to learn about the services and solutions we can
+            provide.
           </p>
         </div>
 
@@ -494,7 +494,7 @@ export default function PrivacyPage() {
                     key={service.id}
                     type="button"
                     onClick={() => setActiveId(service.id)}
-                    aria-label={`عرض ${service.title}`}
+                    aria-label={`View ${service.title}`}
                     aria-pressed={active}
                     title={service.title}
                     className={`group relative flex h-16 min-w-16 shrink-0 items-center justify-center rounded-xl border transition duration-300 lg:h-[70px] lg:min-w-0 ${
@@ -675,11 +675,11 @@ export default function PrivacyPage() {
                 <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-blue-400/10 bg-gradient-to-r from-blue-500/[0.07] via-transparent to-cyan-500/[0.04] p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="text-sm font-semibold text-white">
-                      عندك مشروع أو مشكلة تقنية؟
+                      Have a project or technical challenge?
                     </div>
 
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      تواصل مع VEXORA وخلينا نفهم احتياجك ونحدد الحل المناسب.
+                      Contact VEXORA so we can understand your needs and identify the right solution.
                     </p>
                   </div>
 
@@ -688,7 +688,7 @@ export default function PrivacyPage() {
                       href={activeService.route}
                       className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.07]"
                     >
-                      تفاصيل الخدمة
+                      Service details
                     </Link>
 
                     <a
@@ -727,29 +727,29 @@ export default function PrivacyPage() {
             </div>
 
             <h2 className="text-2xl font-semibold tracking-[-0.025em] text-white sm:text-3xl">
-              مش لاقي المجال المناسب؟
+              Not sure which area is right for you?
             </h2>
 
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-              بعض المشاريع تحتاج أكثر من تخصص في نفس الوقت. ابعت لنا فكرتك أو
-              المشكلة التي تواجهك، ونحدد معك أفضل طريقة للتنفيذ.
+              Some projects require multiple disciplines working together. Send us your idea or
+              the challenge you are facing, and we will help determine the best way forward.
             </p>
 
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <a
-                href={createWhatsAppUrl("استشارة تقنية")}
+                href={createWhatsAppUrl("Technical consultation")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-xl bg-blue-500 px-6 py-3 text-xs font-semibold text-white shadow-[0_0_30px_rgba(22,135,255,0.18)] transition hover:bg-blue-400"
               >
-                تحدث معنا على WhatsApp
+                Talk to us on WhatsApp
               </a>
 
               <Link
                 href="/contact"
                 className="rounded-xl border border-white/10 bg-white/[0.035] px-6 py-3 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06]"
               >
-                صفحة التواصل
+                Contact page
               </Link>
             </div>
           </div>

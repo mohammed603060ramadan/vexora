@@ -17,7 +17,7 @@ type Task = {
   project_id: string | null;
   assigned_to: string | null;
   priority: "low" | "medium" | "high" | "urgent";
-  status: "todo" | "in_progress" | "completed" | "blocked";
+  status: "todo" | "in_progress" | "review" | "completed" | "blocked";
   due_date: string | null;
   created_at: string;
   projects?: { title: string } | null;
@@ -65,6 +65,7 @@ const buttonStyle = {
 const statusLabels: Record<Task["status"], string> = {
   todo: "To Do",
   in_progress: "In Progress",
+  review: "Ready for review",
   completed: "Completed",
   blocked: "Blocked",
 };
