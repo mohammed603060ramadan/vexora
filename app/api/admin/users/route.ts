@@ -13,12 +13,20 @@ function json(data: unknown, status = 200) {
 
 function validOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+  if (!origin) return false;
   try {
     return new URL(origin).origin === new URL(request.url).origin;
   } catch {
     return false;
   }
+}
+
+async function readJsonBody(request: Request): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 16_384) return null;
+  const raw = await request.text();
+  if (raw.length > 16_384) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
 async function authorizeAdmin() {
@@ -53,7 +61,7 @@ function normalizeStatus(user: {
 }
 
 export async function GET(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if (!request.headers.get("origin") || !validOrigin(request)) return json({ error: "Request origin could not be verified." }, 403);
   const { response } = await authorizeAdmin();
   if (response) return response;
 
@@ -116,7 +124,7 @@ export async function POST(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return json({ error: "A valid user invitation is required." }, 400);
   }
@@ -242,11 +250,11 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if (!request.headers.get("origin") || !validOrigin(request)) return json({ error: "Request origin could not be verified." }, 403);
   const { user: currentUser, response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid user update is required." }, 400);
   const value = body as Record<string, unknown>;
   const id = typeof value.id === "string" ? value.id : "";
