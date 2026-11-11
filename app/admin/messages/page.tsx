@@ -131,7 +131,7 @@ export default function AdminMessagesPage() {
         subject: item.service || "Website inquiry",
         message: item.message || "",
         date: item.created_at,
-        status: item.status === "new" ? "Unread" : ["closed", "converted"].includes(item.status) ? "Archived" : "Read",
+        status: item.status === "new" ? "Unread" : item.status === "closed" ? "Archived" : "Read",
         priority: item.priority === "urgent" ? "Urgent" : item.priority === "high" ? "Important" : "Normal",
         starred: ["urgent", "high"].includes(item.priority),
         company: item.company || "Not provided",
@@ -406,7 +406,7 @@ export default function AdminMessagesPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        updateMessage(message.id, {
+                        void updateMessage(message.id, {
                           starred: !message.starred,
                         })
                       }
@@ -499,13 +499,6 @@ export default function AdminMessagesPage() {
                       className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-amber-400/30 hover:text-amber-200"
                     >
                       {message.status === "Archived" ? "Restore" : "Archive"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void archiveMessage(message.id)}
-                      className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-rose-400/30 hover:text-rose-300"
-                    >
-                      Delete
                     </button>
                   </div>
                 </article>
@@ -641,7 +634,7 @@ export default function AdminMessagesPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    updateMessage(selectedMessage.id, {
+                    void updateMessage(selectedMessage.id, {
                       starred: !selectedMessage.starred,
                     })
                   }
