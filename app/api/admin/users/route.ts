@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await readJsonBody(request);
+  const body: unknown = await readJsonBody(request, 16384);
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return json({ error: "A valid user invitation is required." }, 400);
   }
@@ -247,7 +247,7 @@ export async function PATCH(request: Request) {
   const { user: currentUser, response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await readJsonBody(request);
+  const body: unknown = await readJsonBody(request, 16384);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid user update is required." }, 400);
   const value = body as Record<string, unknown>;
   const id = typeof value.id === "string" ? value.id : "";
