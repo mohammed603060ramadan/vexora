@@ -168,16 +168,31 @@ export async function POST(request: Request) {
         return json({ error: "The invitation was sent, but the administrator registry could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
     } else if (role === "Manager" || role === "Employee") {
-      const { error: teamError } = await admin.from("team_members").insert({
-        full_name: name,
-        email,
-        job_title: role,
-        department: company || null,
-        status: "active",
-      });
-      if (teamError) {
-        console.error("[Admin Users API] Team record creation failed:", teamError);
-        return json({ error: "The invitation was sent, but the team record could not be created. Review this account before retrying.", userId: invitedUser.id }, 500);
+      const { data: existingTeam, error: teamLookupError } = await admin.from("team_members")
+        .select("id").eq("email", email).limit(1);
+      if (teamLookupError) {
+        console.error("[Admin Users API] Team record lookup failed:", teamLookupError);
+        return json({ error: "The invitation was sent, but the team record could not be checked.", userId: invitedUser.id }, 500);
+      }
+
+      const teamWrite = existingTeam?.[0]
+        ? await admin.from("team_members").update({
+            full_name: name,
+            job_title: role,
+            department: company || null,
+            status: "active",
+          }).eq("id", existingTeam[0].id)
+        : await admin.from("team_members").insert({
+            full_name: name,
+            email,
+            job_title: role,
+            department: company || null,
+            status: "active",
+          });
+
+      if (teamWrite.error) {
+        console.error("[Admin Users API] Team record write failed:", teamWrite.error);
+        return json({ error: "The invitation was sent, but the team record could not be saved. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
     }
 
