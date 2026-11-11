@@ -153,6 +153,18 @@ export async function POST(request: Request) {
       return json({ error: "The invitation was sent, but the role could not be assigned. Review this account before inviting again.", userId: invitedUser.id }, 500);
     }
 
+    const accountType = role === "Client"
+      ? "client"
+      : role === "Student"
+        ? "student"
+        : String(role).toLowerCase();
+    const { error: profileError } = await admin.from("profiles")
+      .upsert({ id: invitedUser.id, full_name: name, account_type: accountType }, { onConflict: "id" });
+    if (profileError) {
+      console.error("[Admin Users API] Profile role synchronization failed:", profileError);
+      return json({ error: "The invitation was sent, but the profile role could not be synchronized.", userId: invitedUser.id }, 500);
+    }
+
     if (role === "Client") {
       const { error: clientError } = await admin.from("clients")
         .update({ company: company || null })
@@ -166,6 +178,11 @@ export async function POST(request: Request) {
       if (registryError) {
         console.error("[Admin Users API] Admin registry creation failed:", registryError);
         return json({ error: "The invitation was sent, but the administrator registry could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
+      }
+      const { error: workspaceCleanupError } = await admin.from("clients").delete().eq("auth_user_id", invitedUser.id);
+      if (workspaceCleanupError) {
+        console.error("[Admin Users API] Administrator client-workspace cleanup failed:", workspaceCleanupError);
+        return json({ error: "The invitation was sent, but the administrator workspace could not be finalized.", userId: invitedUser.id }, 500);
       }
     } else if (role === "Manager" || role === "Employee") {
       const { data: existingTeam, error: teamLookupError } = await admin.from("team_members")
@@ -270,10 +287,10 @@ export async function PATCH(request: Request) {
       if (registryError) return json({ error: "The Auth role was updated, but the administrator registry could not be synchronized." }, 500);
     }
 
-    if (value.role === "Client" && data.user.email) {
+    if ((value.role === "Client" || value.role === "Student") && data.user.email) {
       const { data: clientLink, error: clientLookupError } = await admin.from("clients")
         .select("id").eq("auth_user_id", id).maybeSingle();
-      if (clientLookupError) return json({ error: "The profile role changed, but the client workspace could not be checked." }, 500);
+      if (clientLookupError) return json({ error: "The profile role changed, but the user workspace could not be checked." }, 500);
       if (!clientLink) {
         const { error: clientInsertError } = await admin.from("clients").insert({
           name: data.user.user_metadata?.full_name || data.user.email,
@@ -281,8 +298,12 @@ export async function PATCH(request: Request) {
           company: data.user.user_metadata?.company || null,
           auth_user_id: id,
         });
-        if (clientInsertError) return json({ error: "The profile role changed, but the client workspace could not be created." }, 500);
+        if (clientInsertError) return json({ error: "The profile role changed, but the user workspace could not be created." }, 500);
       }
+    }
+    if (value.role === "Admin") {
+      const { error: workspaceCleanupError } = await admin.from("clients").delete().eq("auth_user_id", id);
+      if (workspaceCleanupError) return json({ error: "The administrator role changed, but the old client workspace could not be cleaned up." }, 500);
     }
 
     if (value.role === "Manager" || value.role === "Employee") {
