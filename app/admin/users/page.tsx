@@ -145,8 +145,9 @@ export default function AdminUsersPage() {
   }
 
   async function suspendUser(user: UserItem) {
-    if (!window.confirm("Suspend access for " + user.name + "? Their account and data will be preserved.")) return;
-    await updateUser(user.id, { status: "Suspended" });
+    const nextStatus: UserStatus = user.status === "Suspended" ? "Active" : "Suspended";
+    if (!window.confirm((nextStatus === "Suspended" ? "Suspend access for " : "Restore access for ") + user.name + "? Their account and data will be preserved.")) return;
+    await updateUser(user.id, { status: nextStatus });
     if (selectedId === user.id) setSelectedId(null);
   }
 
@@ -269,7 +270,7 @@ export default function AdminUsersPage() {
                         <td className="px-5 py-4">
                           <div className="flex justify-end gap-2">
                             <button type="button" onClick={() => setSelectedId(user.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.05]">View</button>
-                            <button type="button" onClick={() => suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-rose-400/30 hover:text-rose-300">Suspend</button>
+                            <button type="button" onClick={() => suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-rose-400/30 hover:text-rose-300">{user.status === "Suspended" ? "Restore" : "Suspend"}</button>
                           </div>
                         </td>
                       </tr>
@@ -362,7 +363,7 @@ export default function AdminUsersPage() {
                 Account status
                 <select disabled={saving} value={selectedUser.status} onChange={(event) => void updateUser(selectedUser.id, { status: event.target.value as UserStatus })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
                   <option value="Active">Active</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Pending" disabled>Pending (email confirmation)</option>
                   <option value="Suspended">Suspended</option>
                 </select>
               </label>
