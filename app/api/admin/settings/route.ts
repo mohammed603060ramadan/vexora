@@ -87,7 +87,7 @@ export async function PUT(request: Request) {
 
   let body: unknown;
   try {
-    body = await readJsonBody(request);
+    body = await readJsonBody(request, 100000);
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body." },
