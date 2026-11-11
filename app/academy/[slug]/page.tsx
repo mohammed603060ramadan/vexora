@@ -197,7 +197,7 @@ function CourseDetailsContent() {
 
         if (lessonError) throw lessonError;
 
-        const loadedLessons: Lesson[] = (lessonData ?? []).map((lesson, index) => ({
+        const loadedLessons: Lesson[] = (lessonData ?? []).map((lesson, index): Lesson => ({
           id: lesson.id,
           section_id: courseData.id,
           title: lesson.title,
