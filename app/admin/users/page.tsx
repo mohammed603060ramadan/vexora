@@ -78,7 +78,6 @@ export default function AdminUsersPage() {
   }, [users, search, roleFilter, statusFilter]);
 
   const loadUsers = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await fetch("/api/admin/users", { cache: "no-store" });
       const result = await response.json();
