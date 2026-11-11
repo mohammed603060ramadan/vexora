@@ -191,11 +191,6 @@ export async function POST(request: Request) {
         console.error("[Admin Users API] Admin registry creation failed:", registryError);
         return json({ error: "The invitation was sent, but the administrator registry could not be updated. Review this account before retrying.", userId: invitedUser.id }, 500);
       }
-      const { error: workspaceCleanupError } = await admin.from("clients").delete().eq("auth_user_id", invitedUser.id);
-      if (workspaceCleanupError) {
-        console.error("[Admin Users API] Administrator client-workspace cleanup failed:", workspaceCleanupError);
-        return json({ error: "The invitation was sent, but the administrator workspace could not be finalized.", userId: invitedUser.id }, 500);
-      }
     } else if (role === "Manager" || role === "Employee") {
       const { data: existingTeam, error: teamLookupError } = await admin.from("team_members")
         .select("id").eq("email", email).limit(1);
