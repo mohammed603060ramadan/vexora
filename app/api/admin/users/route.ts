@@ -316,9 +316,6 @@ export async function PATCH(request: Request) {
         if (clientInsertError) return json({ error: "The profile role changed, but the user workspace could not be created." }, 500);
       }
     }
-    if (value.role === "Admin") {
-    }
-
     if (value.role === "Manager" || value.role === "Employee") {
       const { data: teamRecords, error: teamLookupError } = await admin.from("team_members")
         .select("id").eq("email", data.user.email ?? "").limit(1);
