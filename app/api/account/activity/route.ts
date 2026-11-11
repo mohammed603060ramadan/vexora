@@ -59,14 +59,17 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
-      }
-    } catch {
+  if (!origin) return NextResponse.json({ error: "Request origin could not be verified." }, { status: 403 });
+  try {
+    if (new URL(origin).origin !== new URL(request.url).origin) {
       return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
     }
+  } catch {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 2_048) {
+    return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
   }
 
   const supabase = await createClient();
@@ -81,8 +84,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This activity log is for student and client accounts." }, { status: 403 });
   }
 
-  const body: unknown = await request.json().catch(() => null);
-  if (!body || typeof body !== "object" || !("activity_type" in body) ||
+  const rawBody = await request.text().catch(() => "");
+  if (rawBody.length > 2_048) return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+  let body: unknown = null;
+  try { body = JSON.parse(rawBody); } catch { /* Invalid JSON is rejected below. */ }
+  if (!body || typeof body !== "object" || Array.isArray(body) || !("activity_type" in body) ||
       typeof body.activity_type !== "string" || !allowed.has(body.activity_type)) {
     return NextResponse.json({ error: "Unsupported activity." }, { status: 400 });
   }
