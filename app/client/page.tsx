@@ -2579,6 +2579,12 @@ export default function ClientPage() {
                 </article>
               </div>
 
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/account/profile" className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20">
+                  Manage profile & security ↗
+                </Link>
+              </div>
+
               <section className="contact-command">
                 <div>
                   <span>
