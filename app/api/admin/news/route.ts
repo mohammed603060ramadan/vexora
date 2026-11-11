@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   return NextResponse.json({articles:data ?? []});
 }
 export async function POST(request: Request) {
-  if (!validOrigin(request)) return NextResponse.json({error:"Invalid request origin."},{status:403});
+  if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {user,response}=await authorizeAdmin(); if(response) return response;
   let body: unknown; try { body=await request.json(); } catch { return NextResponse.json({error:"Invalid JSON body."},{status:400}); }
   const invalid=validate(body); if(invalid) return NextResponse.json({error:invalid},{status:400});
