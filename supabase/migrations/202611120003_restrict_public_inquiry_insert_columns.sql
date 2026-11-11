@@ -3,7 +3,7 @@
 -- controlled by database defaults and trusted authenticated/admin operations.
 -- Existing inquiry rows are not modified.
 
-REVOKE INSERT ON TABLE public.inquiries FROM anon;
+REVOKE INSERT ON TABLE public.inquiries FROM anon, authenticated;
 
 GRANT INSERT (
   full_name,
@@ -12,4 +12,4 @@ GRANT INSERT (
   company,
   service,
   message
-) ON TABLE public.inquiries TO anon;
+) ON TABLE public.inquiries TO anon, authenticated;
