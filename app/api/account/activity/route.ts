@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -67,11 +68,6 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > 2_048) {
-    return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
-  }
-
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -84,10 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This activity log is for student and client accounts." }, { status: 403 });
   }
 
-  const rawBody = await request.text().catch(() => "");
-  if (rawBody.length > 2_048) return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
-  let body: unknown = null;
-  try { body = JSON.parse(rawBody); } catch { /* Invalid JSON is rejected below. */ }
+  const body = await readJsonBody(request, 2_048);
   if (!body || typeof body !== "object" || Array.isArray(body) || !("activity_type" in body) ||
       typeof body.activity_type !== "string" || !allowed.has(body.activity_type)) {
     return NextResponse.json({ error: "Unsupported activity." }, { status: 400 });
