@@ -70,7 +70,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { supabase, user, response } = await getAdmin();
