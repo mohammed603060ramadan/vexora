@@ -224,13 +224,15 @@ export default function StudentDashboard() {
       try {
         const workspaceResponse = await fetch("/api/student/workspace", { cache: "no-store" });
         const workspacePayload = await workspaceResponse.json() as {
-          projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; error?: string;
+          projects?: StudentProject[]; requests?: StudentProjectRequest[]; tasks?: StudentTask[]; warnings?: string[]; error?: string;
         };
         if (!workspaceResponse.ok) throw new Error(workspacePayload.error || "Unable to load your project workspace.");
         setStudentProjects(Array.isArray(workspacePayload.projects) ? workspacePayload.projects : []);
         setProjectRequests(Array.isArray(workspacePayload.requests) ? workspacePayload.requests : []);
         setStudentTasks(Array.isArray(workspacePayload.tasks) ? workspacePayload.tasks : []);
-        setWorkspaceError("");
+        setWorkspaceError(Array.isArray(workspacePayload.warnings) && workspacePayload.warnings.length
+          ? `Some workspace sections could not be loaded: ${workspacePayload.warnings.join(" · ")}`
+          : "");
 
       } catch (workspaceLoadError) {
         setWorkspaceError(workspaceLoadError instanceof Error ? workspaceLoadError.message : "Unable to load your project workspace.");

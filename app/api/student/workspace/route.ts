@@ -104,9 +104,7 @@ export async function GET() {
         client
           ? admin
               .from("projects")
-              .select(
-                "id,title,description,status,deadline,client_id"
-              )
+              .select("id,title,description,status,deadline,client_id")
               .eq("client_id", client.id)
               .order("created_at", { ascending: false })
               .limit(100)
@@ -114,43 +112,35 @@ export async function GET() {
 
         admin
           .from("project_requests")
-          .select(
-            "id,project_id,status,message,created_at,updated_at"
-          )
-          .eq("user_id", auth.user.id)
+          .select("id,project_id,status,message,created_at,updated_at")
+          .or(`user_id.eq.${auth.user.id},client_id.eq.${client?.id ?? "00000000-0000-0000-0000-000000000000"}`)
           .order("created_at", { ascending: false })
           .limit(100),
 
         admin
           .from("tasks")
-          .select(
-            "id,project_id,title,description,status,priority,due_date,assigned_to,created_at,updated_at"
-          )
+          .select("id,project_id,title,description,status,priority,due_date,assigned_to,created_at,updated_at")
           .eq("assigned_to", auth.user.id)
           .order("created_at", { ascending: false })
           .limit(200),
       ]);
 
-    if (projectResult.error) {
-      throw projectResult.error;
-    }
-
-    if (requestResult.error) {
-      throw requestResult.error;
-    }
-
-    if (taskResult.error) {
-      throw taskResult.error;
-    }
+    // Keep each workspace section independent: a legacy request/task schema
+    // must not hide valid projects already linked to the signed-in client.
+    const workspaceWarnings = [
+      projectResult.error ? `Projects: ${projectResult.error.message}` : "",
+      requestResult.error ? `Requests: ${requestResult.error.message}` : "",
+      taskResult.error ? `Tasks: ${taskResult.error.message}` : "",
+    ].filter(Boolean);
 
     const clientProjects =
       (projectResult.data ?? []) as ProjectRow[];
 
     const requests =
-      (requestResult.data ?? []) as ProjectRequestRow[];
+      (requestResult.error ? [] : requestResult.data ?? []) as ProjectRequestRow[];
 
     const tasks =
-      (taskResult.data ?? []) as TaskRow[];
+      (taskResult.error ? [] : taskResult.data ?? []) as TaskRow[];
 
     const projectIds = [
       ...new Set<string>(
@@ -246,6 +236,7 @@ export async function GET() {
             ? nameMap.get(item.project_id) || "Project"
             : "Project",
         })),
+        warnings: workspaceWarnings,
       },
       { headers }
     );
