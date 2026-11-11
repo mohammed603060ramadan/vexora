@@ -70,6 +70,14 @@ export async function POST(request: Request) {
       .upsert(enrollmentPayload, { onConflict: "student_id,course_id" });
     if (enrollmentError) throw enrollmentError;
 
+    await admin.from("student_activity_logs").insert({
+      user_id: auth.user.id,
+      activity_type: "course_registered",
+      title: "Course enrollment completed",
+      description: `You enrolled in ${String(course.title).slice(0, 160)}.`,
+      metadata: { course_id: course.id },
+    });
+
     return NextResponse.json({ success: true, message: "Free enrollment completed. Open My Courses to start learning." }, { status: 201, headers });
   } catch (error) {
     console.error("Free course enrollment failed:", error);
