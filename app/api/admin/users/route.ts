@@ -218,6 +218,9 @@ export async function PATCH(request: Request) {
   if (id === currentUser?.id && value.status === "Suspended") {
     return json({ error: "You cannot suspend your own administrator account." }, 400);
   }
+  if (id === currentUser?.id && value.role !== undefined && value.role !== "Admin") {
+    return json({ error: "You cannot remove your own administrator role." }, 400);
+  }
 
   const admin = createAdminClient();
   const { data, error: lookupError } = await admin.auth.admin.getUserById(id);
