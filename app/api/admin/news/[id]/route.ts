@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -18,14 +19,6 @@ function dbError(error:{code?:string;message?:string;details?:string;hint?:strin
   console.error("[Admin News API]",error);
   return NextResponse.json({error:error.message||"News database operation failed.",code:error.code||null,details:error.details||null,hint:error.hint||null},{status:error.code==="23505"?409:400});
 }
-async function readJsonBody(request: Request, maxBytes = 160000): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
-
 export async function PATCH(request:Request,context:Context) {
   if((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const {user,response}=await authorizeAdmin(); if(response) return response;
