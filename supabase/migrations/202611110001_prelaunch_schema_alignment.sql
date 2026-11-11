@@ -138,6 +138,10 @@ REVOKE EXECUTE ON FUNCTION public.grant_course_enrollment_on_access_approval() F
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
 
+-- is_vexora_admin already schema-qualifies auth/public references; pin its
+-- search path to the system catalog while retaining authenticated RLS execution.
+ALTER FUNCTION public.is_vexora_admin() SET search_path = pg_catalog;
+
 -- The trigger function now respects internal account types instead of creating
 -- a client record for every newly invited employee, manager, or administrator.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
