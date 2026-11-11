@@ -17,6 +17,7 @@ const navigation = [
   { label: "Technology News", href: "/admin/news", icon: "news" },
   { label: "Events", href: "/admin/events", icon: "calendar" },
   { label: "Academy", href: "/admin/academy", icon: "book" },
+  { label: "Course Enrollments", href: "/admin/enrollments", icon: "graduation" },
   { label: "Student Registrations", href: "/admin/registrations", icon: "graduation" },
   { label: "Tasks", href: "/admin/tasks", icon: "check" },
   { label: "Messages", href: "/admin/messages", icon: "message" },
