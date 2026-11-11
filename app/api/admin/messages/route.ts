@@ -26,6 +26,14 @@ async function authorizeAdmin() {
   return { response: null };
 }
 
+async function readJsonBody(request: Request, maxBytes = 16384): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function GET(request: Request) {
   if (!validOrigin(request)) return json({ error: "Invalid request origin." }, 403);
   const { response } = await authorizeAdmin();
@@ -50,7 +58,7 @@ export async function POST(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid message is required." }, 400);
   const value = body as Record<string, unknown>;
   const name = typeof value.name === "string" ? value.name.trim() : "";
@@ -95,7 +103,7 @@ export async function PATCH(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await request.json().catch(() => null);
+  const body: unknown = await readJsonBody(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "A valid message update is required." }, 400);
   const value = body as Record<string, unknown>;
   const id = typeof value.id === "string" ? value.id : "";
