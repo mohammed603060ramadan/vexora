@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,14 +25,6 @@ async function authorizeAdmin() {
   if (error || !data.user) return { response: json({ error: "Authentication required." }, 401) };
   if (data.user.app_metadata?.role !== "admin") return { response: json({ error: "Administrator access required." }, 403) };
   return { response: null };
-}
-
-async function readJsonBody(request: Request, maxBytes = 16384): Promise<unknown> {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export async function GET(request: Request) {
