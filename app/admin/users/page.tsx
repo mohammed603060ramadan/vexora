@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type UserRole = "Admin" | "Manager" | "Employee" | "Client";
 type UserStatus = "Active" | "Pending" | "Suspended";
@@ -17,14 +17,7 @@ type UserItem = {
   lastActive: string;
 };
 
-const initialUsers: UserItem[] = [
-  { id: "USR-001", name: "Ahmed Hassan", email: "ahmed@example.com", company: "Hassan Group", role: "Client", status: "Active", joined: "2026-10-02", lastActive: "Today, 09:42" },
-  { id: "USR-002", name: "Sarah Mohamed", email: "sarah@example.com", company: "Nile Solutions", role: "Manager", status: "Active", joined: "2026-09-28", lastActive: "Today, 08:15" },
-  { id: "USR-003", name: "Omar Ali", email: "omar@example.com", company: "VEXORA", role: "Employee", status: "Active", joined: "2026-09-20", lastActive: "Yesterday" },
-  { id: "USR-004", name: "Mariam Adel", email: "mariam@example.com", company: "Orbit Business", role: "Client", status: "Pending", joined: "2026-10-15", lastActive: "Never" },
-  { id: "USR-005", name: "Youssef Ibrahim", email: "youssef@example.com", company: "VEXORA", role: "Admin", status: "Active", joined: "2026-08-12", lastActive: "Today, 10:04" },
-  { id: "USR-006", name: "Nour Khaled", email: "nour@example.com", company: "Independent", role: "Client", status: "Suspended", joined: "2026-09-04", lastActive: "Oct 10, 2026" },
-];
+const initialUsers: UserItem[] = [];
 
 const statusStyle: Record<UserStatus, string> = {
   Active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -45,6 +38,8 @@ function initials(name: string) {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -81,46 +76,77 @@ export default function AdminUsersPage() {
     });
   }, [users, search, roleFilter, statusFilter]);
 
-  function updateUser(id: string, updates: Partial<UserItem>) {
-    setUsers((current) => current.map((user) =>
-      user.id === id ? { ...user, ...updates } : user
-    ));
-  }
-
-  function addUser(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const email = form.email.trim().toLowerCase();
-    if (users.some((user) => user.email.toLowerCase() === email)) {
-      setNotice("This email already exists in the current demo list.");
-      return;
+  async function loadUsers() {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/users", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not load users.");
+      setUsers(Array.isArray(result.users) ? result.users as UserItem[] : []);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not load users.");
+    } finally {
+      setLoading(false);
     }
-
-    const newUser: UserItem = {
-      id: `USR-${Date.now()}`,
-      name: form.name.trim(),
-      email,
-      company: form.company.trim() || "Not provided",
-      role: form.role,
-      status: "Pending",
-      joined: new Date().toISOString().slice(0, 10),
-      lastActive: "Never",
-    };
-
-    setUsers((current) => [newUser, ...current]);
-    setForm({ name: "", email: "", company: "", role: "Client" });
-    setShowForm(false);
-    setSearch("");
-    setRoleFilter("All");
-    setStatusFilter("All");
-    setNotice("Demo user added with Pending status. No account or invitation was created.");
   }
 
-  function removeDemoUser(user: UserItem) {
-    if (!window.confirm(`Remove ${user.name} from this demo list? This will not delete a real account.`)) return;
-    setUsers((current) => current.filter((item) => item.id !== user.id));
+  useEffect(() => {
+    void loadUsers();
+  }, []);
+
+  async function updateUser(id: string, updates: Partial<UserItem>) {
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not update this account.");
+      setUsers((current) => current.map((user) =>
+        user.id === id ? { ...user, ...updates } : user
+      ));
+      setNotice("Account updated successfully.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update this account.");
+      await loadUsers();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addUser(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not send the invitation.");
+      setForm({ name: "", email: "", company: "", role: "Client" });
+      setShowForm(false);
+      setSearch("");
+      setRoleFilter("All");
+      setStatusFilter("All");
+      setNotice(result.message || "Invitation sent successfully.");
+      await loadUsers();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not send the invitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function suspendUser(user: UserItem) {
+    if (!window.confirm("Suspend access for " + user.name + "? Their account and data will be preserved.")) return;
+    await updateUser(user.id, { status: "Suspended" });
     if (selectedId === user.id) setSelectedId(null);
-    setNotice("User removed from the current demo list only.");
   }
 
   return (
@@ -144,7 +170,7 @@ export default function AdminUsersPage() {
               ← Dashboard
             </Link>
             <button type="button" onClick={() => { setNotice(""); setShowForm(true); }} className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400">
-              + Add demo user
+              + Invite user
             </button>
           </div>
         </header>
@@ -158,8 +184,8 @@ export default function AdminUsersPage() {
 
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: "Total users", value: stats.total, icon: "◎", note: "In this demo directory", color: "text-white" },
-            { label: "Active accounts", value: stats.active, icon: "✓", note: "Marked as active", color: "text-emerald-300" },
+            { label: "Total users", value: stats.total, icon: "◎", note: "Live Supabase Auth directory", color: "text-white" },
+            { label: "Active accounts", value: stats.active, icon: "✓", note: "Confirmed and not suspended", color: "text-emerald-300" },
             { label: "Pending review", value: stats.pending, icon: "◷", note: "Awaiting review", color: "text-amber-300" },
             { label: "Internal team", value: stats.internal, icon: "⌘", note: "Admins, managers and staff", color: "text-blue-300" },
           ].map((stat) => (
@@ -192,13 +218,15 @@ export default function AdminUsersPage() {
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status" className="rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-slate-300 outline-none focus:border-blue-400/60">
                 <option value="All">All statuses</option>
                 <option value="Active">Active</option>
-                <option value="Pending">Pending</option>
+                <option value="Pending" disabled>Pending (email confirmation)</option>
                 <option value="Suspended">Suspended</option>
               </select>
             </div>
           </div>
 
-          {filteredUsers.length === 0 ? (
+          {loading ? (
+            <div className="px-6 py-20 text-center text-sm text-slate-400">Loading real user accounts...</div>
+          ) : filteredUsers.length === 0 ? (
             <div className="px-6 py-20 text-center">
               <div className="text-3xl text-slate-500">◎</div>
               <h3 className="mt-4 font-medium">No users found</h3>
@@ -239,7 +267,7 @@ export default function AdminUsersPage() {
                         <td className="px-5 py-4">
                           <div className="flex justify-end gap-2">
                             <button type="button" onClick={() => setSelectedId(user.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/[0.05]">View</button>
-                            <button type="button" onClick={() => removeDemoUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-rose-400/30 hover:text-rose-300">Remove</button>
+                            <button type="button" onClick={() => suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-rose-400/30 hover:text-rose-300">Suspend</button>
                           </div>
                         </td>
                       </tr>
@@ -264,7 +292,7 @@ export default function AdminUsersPage() {
                       <span className={`text-xs ${roleStyle[user.role]}`}>{user.role}</span>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setSelectedId(user.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300">View</button>
-                        <button type="button" onClick={() => removeDemoUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">Remove</button>
+                        <button type="button" onClick={() => suspendUser(user)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">Suspend</button>
                       </div>
                     </div>
                   </article>
@@ -274,14 +302,14 @@ export default function AdminUsersPage() {
           )}
 
           <div className="flex flex-col gap-2 border-t border-white/[0.07] px-5 py-4 text-xs text-slate-500 sm:flex-row sm:justify-between">
-            <span>Showing {filteredUsers.length} of {users.length} demo users</span>
-            <span>VEXORA Access Management · Preview mode</span>
+            <span>Showing {filteredUsers.length} of {users.length} users</span>
+            <span>VEXORA Access Management · Live accounts</span>
           </div>
         </section>
 
         <footer className="flex flex-col gap-2 border-t border-white/[0.06] pt-5 text-xs leading-5 text-slate-600 sm:flex-row sm:justify-between">
           <p>VEXORA Admin · User management</p>
-          <p>Sample data only · Changes reset when the page refreshes</p>
+          <p>Connected to Supabase Auth · Account changes are saved</p>
         </footer>
       </div>
 
@@ -318,8 +346,8 @@ export default function AdminUsersPage() {
               </div>
 
               <label className="block text-xs text-slate-400">
-                Demo role
-                <select value={selectedUser.role} onChange={(event) => updateUser(selectedUser.id, { role: event.target.value as UserRole })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
+                Account role
+                <select disabled={saving} value={selectedUser.role} onChange={(event) => void updateUser(selectedUser.id, { role: event.target.value as UserRole })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
                   <option value="Admin">Admin</option>
                   <option value="Manager">Manager</option>
                   <option value="Employee">Employee</option>
@@ -328,8 +356,8 @@ export default function AdminUsersPage() {
               </label>
 
               <label className="block text-xs text-slate-400">
-                Demo account status
-                <select value={selectedUser.status} onChange={(event) => updateUser(selectedUser.id, { status: event.target.value as UserStatus })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
+                Account status
+                <select disabled={saving} value={selectedUser.status} onChange={(event) => void updateUser(selectedUser.id, { status: event.target.value as UserStatus })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
                   <option value="Active">Active</option>
                   <option value="Pending">Pending</option>
                   <option value="Suspended">Suspended</option>
@@ -337,7 +365,7 @@ export default function AdminUsersPage() {
               </label>
 
               <p className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] p-3 text-xs leading-5 text-amber-100/80">
-                Preview mode: role and status changes affect only this page. They do not change Supabase Auth, database permissions, or a real account.
+                Role and suspension changes are applied to the real Supabase Auth account. Pending status is determined by email confirmation.
               </p>
               <button type="button" onClick={() => setSelectedId(null)} className="w-full rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400">Done</button>
             </div>
@@ -351,13 +379,13 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between border-b border-white/[0.08] p-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-blue-300">Directory tools</p>
-                <h2 id="add-user-title" className="mt-2 text-xl font-semibold">Add demo user</h2>
+                <h2 id="add-user-title" className="mt-2 text-xl font-semibold">Invite user</h2>
               </div>
               <button type="button" onClick={() => setShowForm(false)} aria-label="Close form" className="rounded-lg border border-white/10 px-3 py-2 text-slate-400">✕</button>
             </div>
             <form onSubmit={addUser} className="space-y-4 p-5">
               <p className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] p-3 text-xs leading-5 text-amber-100/80">
-                This creates a demo record only. It will not create a login, send an invitation, or grant access.
+                An invitation email will be sent. The selected role and related client or team record will be saved.
               </p>
               <label className="block text-xs text-slate-400">
                 Full name *
@@ -372,7 +400,7 @@ export default function AdminUsersPage() {
                 <input maxLength={150} value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} placeholder="Company or organization" className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60" />
               </label>
               <label className="block text-xs text-slate-400">
-                Intended role (demo only)
+                Account role
                 <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080c14] px-3 py-3 text-sm text-white outline-none focus:border-blue-400/60">
                   <option value="Client">Client</option>
                   <option value="Employee">Employee</option>
@@ -382,7 +410,7 @@ export default function AdminUsersPage() {
               </label>
               <div className="flex gap-3 border-t border-white/[0.07] pt-4">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300">Cancel</button>
-                <button type="submit" className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400">Add demo user</button>
+                <button type="submit" disabled={saving} className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-60">{saving ? "Sending..." : "Send invitation"}</button>
               </div>
             </form>
           </section>
