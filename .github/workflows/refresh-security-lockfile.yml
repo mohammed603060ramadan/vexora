@@ -17,6 +17,11 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'security/harden-api-endpoints-2026-11-12'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
     steps:
       - name: Checkout security branch
         uses: actions/checkout@v4
