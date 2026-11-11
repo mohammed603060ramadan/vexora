@@ -42,7 +42,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { response } = await authorizeAdmin();
@@ -109,7 +109,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
-  if (!validOrigin(request)) {
+  if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
   const { response } = await authorizeAdmin();
