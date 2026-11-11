@@ -523,7 +523,7 @@ function CourseDetailsContent() {
 
       {!loading && !error && course && (
         <section className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_330px] lg:py-16">
-          <div className="min-w-0">
+          <aside className="min-w-0">
             {hasCourseAccess ? (
               <Link href="/student" className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:brightness-110">
                 ✓ Open my courses
