@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,12 +20,8 @@ export async function POST(request: Request) {
     return fail("Invalid request origin.", 403);
   }
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > 2_048) return fail("Request body is too large.", 413);
-  const rawBody = await request.text().catch(() => "");
-  if (rawBody.length > 2_048) return fail("Request body is too large.", 413);
-  let body: unknown = null;
-  try { body = JSON.parse(rawBody); } catch { return fail("Invalid JSON body.", 400); }
+  const body = await readJsonBody(request, 2_048);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail("Invalid or oversized JSON body.", 400);
 
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
