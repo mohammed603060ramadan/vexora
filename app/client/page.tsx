@@ -131,11 +131,6 @@ const navItems: {
     label: "Technology",
     description: "Technology radar",
   },
-  {
-    id: "academy",
-    label: "My Courses",
-    description: "Offline course registrations",
-  },
 ];
 
 const techResources = [
