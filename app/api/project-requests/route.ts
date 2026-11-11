@@ -18,6 +18,16 @@ type ProjectRequestsDatabase = {
         { id?: string; auth_user_id?: string | null },
         { id?: string; auth_user_id?: string | null }
       >;
+      profiles: DatabaseTable<
+        { id: string; account_type: string | null },
+        { id: string; account_type?: string | null },
+        { account_type?: string | null }
+      >;
+      student_activity_logs: DatabaseTable<
+        { id: string; user_id: string; activity_type: string; title: string; description: string | null; metadata: Record<string, unknown>; created_at: string },
+        { user_id: string; activity_type: string; title: string; description?: string | null; metadata?: Record<string, unknown> },
+        Record<string, never>
+      >;
       projects: DatabaseTable<
         {
           id: string;
@@ -121,7 +131,7 @@ export async function GET() {
     }
 
     const admin = getAdminClient();
-    const accountAdmin = createAdminClient() as any;
+    const accountAdmin = getAdminClient();
     const { data: accountProfile, error: accountProfileError } = await accountAdmin
       .from("profiles").select("account_type").eq("id", user.id).maybeSingle();
     if (accountProfileError) throw accountProfileError;
@@ -318,7 +328,7 @@ export async function POST(request: Request) {
       throw insertError;
     }
 
-    await (createAdminClient() as any).from("student_activity_logs").insert({
+    await getAdminClient().from("student_activity_logs").insert({
       user_id: user.id,
       activity_type: "project_request",
       title: "Project request submitted",
