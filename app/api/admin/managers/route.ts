@@ -116,7 +116,7 @@ export async function POST(request: Request) {
   const { response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await readJsonBody(request);
+  const body: unknown = await readJsonBody(request, 10000);
   if (body === null) {
     return NextResponse.json(
       { error: "Invalid or oversized JSON body." },
@@ -262,7 +262,7 @@ export async function DELETE(request: Request) {
   const { user: currentUser, response } = await authorizeAdmin();
   if (response) return response;
 
-  const body: unknown = await readJsonBody(request);
+  const body: unknown = await readJsonBody(request, 10000);
   if (body === null) {
     return NextResponse.json(
       { error: "Invalid or oversized JSON body." },
