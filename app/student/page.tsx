@@ -104,6 +104,7 @@ const resources = [
 const navigation = [
   { label: "Overview", href: "/student", icon: "▦" },
   { label: "Academy", href: "/academy", icon: "▤" },
+  { label: "Profile & Security", href: "/account/profile", icon: "◉" },
   { label: "Main Website", href: "/", icon: "⌂" },
 ];
 
