@@ -102,10 +102,13 @@ export async function POST(request: Request) {
       .insert({ course_id: courseId, student_id: user.id, email, student_message: studentMessage })
       .select("id,purchase_code,status,course_id,created_at")
       .single();
+    if (insertError?.code === "23505") {
+      return fail("An access request for this course already exists.", 409);
+    }
     if (insertError) throw insertError;
     return NextResponse.json({ request: created, message: "Request created. Keep your reference code; access is enabled after administrator approval." }, { status: 201, headers });
   } catch (error) {
     console.error("Course access request creation failed:", error);
-    return fail("Could not create the access request. Check that the course access migration is applied.", 500);
+    return fail("We could not save your access request right now. Please try again. If the problem continues, contact the VEXORA Academy team.", 500);
   }
 }
