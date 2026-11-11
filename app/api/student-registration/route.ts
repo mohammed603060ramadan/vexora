@@ -1,3 +1,4 @@
+import { readJsonBody } from "@/lib/server/read-json-body";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,22 +78,11 @@ export async function POST(request: Request) {
   if (!(request.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) {
     return NextResponse.json({ error: "Content-Type must be application/json." }, { status: 415 });
   }
-  const length = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(length) && length > MAX_BODY_LENGTH) {
-    return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+  const parsed = await readJsonBody(request, MAX_BODY_LENGTH);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return NextResponse.json({ error: "Invalid or oversized JSON body." }, { status: 400 });
   }
-  let payload: Payload;
-  try {
-    const raw = await request.text();
-    if (raw.length > MAX_BODY_LENGTH) return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-    }
-    payload = parsed as Payload;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
-  }
+  const payload = parsed as Payload;
   if (cleanText(payload.website, 200)) return NextResponse.json({ success: true }, { status: 201 });
 
   const fullName = cleanText(payload.full_name, 100);
