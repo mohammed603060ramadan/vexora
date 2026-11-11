@@ -76,7 +76,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!validOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  if ((!request.headers.get("origin") || !validOrigin(request))) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   const { user, response } = await authorizeAdmin();
   if (response) return response;
 
