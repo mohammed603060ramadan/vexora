@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not update this account.");
       setUsers((current) => current.map((user) =>
-        user.id === id ? { ...user, ...updates } : user
+        user.id === id ? { ...user, ...updates, ...(result.user ?? {}) } : user
       ));
       setNotice("Account updated successfully.");
     } catch (error) {
