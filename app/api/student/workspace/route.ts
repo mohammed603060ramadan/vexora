@@ -216,9 +216,11 @@ export async function GET() {
         const completedTasks = projectTasks.filter(
           (task) => task.status === "completed"
         ).length;
-        const progress = projectTasks.length > 0
-          ? Math.round((completedTasks / projectTasks.length) * 100)
-          : item.status === "completed" ? 100 : 0;
+        const progress = item.status === "completed"
+          ? 100
+          : projectTasks.length > 0
+            ? Math.round((completedTasks / projectTasks.length) * 100)
+            : 0;
 
         return {
           ...item,
