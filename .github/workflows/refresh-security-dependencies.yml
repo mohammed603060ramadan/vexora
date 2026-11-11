@@ -1,9 +1,9 @@
 name: Refresh security dependencies
 
 on:
-  push:
+  pull_request:
     branches:
-      - security/harden-api-endpoints-2026-11-12
+      - master
     paths:
       - .github/workflows/refresh-security-dependencies.yml
 
