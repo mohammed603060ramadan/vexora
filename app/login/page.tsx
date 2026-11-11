@@ -370,6 +370,7 @@ export default function LoginPage() {
         }
 
         if (data.session) {
+          await fetch("/api/account/activity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activity_type: "account_created" }) }).catch(() => undefined);
           await routeUser(false);
         } else {
           setMessage(
@@ -389,6 +390,7 @@ export default function LoginPage() {
         throw error;
       }
 
+      await fetch("/api/account/activity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activity_type: "login" }) }).catch(() => undefined);
       await routeUser(true);
     } catch (error) {
       setMessage(
