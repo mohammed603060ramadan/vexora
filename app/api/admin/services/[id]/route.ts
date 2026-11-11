@@ -41,6 +41,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+async function readJsonBody(request: Request, maxBytes = 20000): Promise<unknown> {
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) return null;
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   if ((!request.headers.get("origin") || !validOrigin(request))) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
@@ -55,7 +63,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readJsonBody(request);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
