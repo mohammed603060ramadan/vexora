@@ -27,7 +27,8 @@ export async function GET() {
       .from("project_media")
       .select("id,project_id,name,path,mime_type,size_bytes,created_at")
       .in("project_id", ids)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(300);
 
     if (mediaError) throw mediaError;
 
