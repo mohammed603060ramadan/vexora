@@ -48,15 +48,17 @@ function databaseError(error: {
   details?: string;
   hint?: string;
 }) {
-  console.error("[Admin Services API]", error);
+  console.error("[Admin Services API] Database operation failed:", {
+    code: error.code ?? null,
+    message: error.message ?? null,
+  });
   return NextResponse.json(
     {
-      error: error.message || "The services database operation failed.",
-      code: error.code || null,
-      details: error.details || null,
-      hint: error.hint || null,
+      error: error.code === "23505"
+        ? "A service with this value already exists."
+        : "The services database operation could not be completed.",
     },
-    { status: error.code === "23505" ? 409 : 400 },
+    { status: error.code === "23505" ? 409 : 500 },
   );
 }
 
