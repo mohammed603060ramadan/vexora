@@ -29,13 +29,15 @@ function validOrigin(request: Request) {
 }
 
 function databaseError(error: { code?: string; message?: string; details?: string; hint?: string }) {
-  console.error("[Admin Services API]", error);
+  console.error("[Admin Services API] Database operation failed:", {
+    code: error.code ?? null,
+    message: error.message ?? null,
+  });
   return NextResponse.json({
-    error: error.message || "The services database operation failed.",
-    code: error.code || null,
-    details: error.details || null,
-    hint: error.hint || null,
-  }, { status: error.code === "23505" ? 409 : 400 });
+    error: error.code === "23505"
+      ? "A service with this value already exists."
+      : "The services database operation could not be completed.",
+  }, { status: error.code === "23505" ? 409 : 500 });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
